@@ -1,5 +1,5 @@
 import { toTextTree, toUTF8 } from "./TextTree";
-import type { Any } from "./DustExpression";
+import type { DustExpression } from "./DustExpression";
 import { parseExpression } from "./DustExpressionParser";
 import { unparseExpression } from "./DustExpressionUnparser";
 import { createWindow } from "./Windows";
@@ -19,7 +19,7 @@ function initializePlainTextEditor() {
     inputBox.textContent = toUTF8(textTree);
   });
 
-  let expression: Any;
+  let expression: DustExpression;
   let output = app.querySelector("#debug-output")!;
 
   onInput();

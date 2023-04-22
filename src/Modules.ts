@@ -23,54 +23,61 @@ import { RollingAverage } from "./Stats";
 //   };
 // }
 
-export type Simulation = {
-  moduleElement: PhysicsElement;
-  moduleName: PhysicsElement;
-  elements: PhysicsElement[];
-  playing: boolean;
-};
+export class Simulation {
+  readonly moduleElement: PhysicsElement;
+  readonly moduleName: PhysicsElement;
+  #physicsElements: PhysicsElement[] = [];
+  get physicsElements() {
+    return this.#physicsElements;
+  }
+  #playing: boolean = false;
+  get playing() {
+    return this.#playing;
+  }
 
-export function createSimulation(moduleHTMLElement: HTMLElement): Simulation {
-  const physicsElements: PhysicsElement[] = [];
-
-  const moduleNameHTMLElement: HTMLElement =
-    moduleHTMLElement.querySelector(".Dust.moduleName") ??
-    raise("Module must have a .moduleName element");
-
-  moduleHTMLElement
-    .querySelectorAll<HTMLElement>(".Dust.moduleElement")
-    .forEach((htmlElement) => {
-      if (htmlElement !== moduleNameHTMLElement) {
-        physicsElements.push(
-          new PhysicsElement({
-            htmlElement,
-            state: "free",
-            centeredWithinParent: true,
-            // TODO make it remember the center position for each element. For now everything starts at the center and springs apart.
-          })
-        );
-      }
+  constructor(
+    moduleHTMLElement: HTMLElement,
+    moduleNameHTMLElement: HTMLElement
+  ) {
+    this.moduleElement = new PhysicsElement({
+      htmlElement: moduleHTMLElement,
+      state: "pinned",
     });
+    this.moduleName = new PhysicsElement({
+      htmlElement: moduleNameHTMLElement,
+      state: "pinned",
+      centeredWithinParent: true,
+    });
+  }
 
-  const moduleElement = new PhysicsElement({
-    htmlElement: moduleHTMLElement,
-    state: "pinned",
-  });
-  let moduleName = new PhysicsElement({
-    htmlElement: moduleNameHTMLElement,
-    state: "pinned",
-    centeredWithinParent: true,
-  });
-  return {
-    moduleElement,
-    moduleName,
-    elements: physicsElements,
-    playing: false,
-  };
+  addElement(htmlElement: HTMLElement) {
+    this.#physicsElements.push(
+      new PhysicsElement({
+        htmlElement,
+        state: "free",
+        centeredWithinParent: true,
+        // TODO make it remember the center position for each element. For now everything starts at the center and springs apart.
+      })
+    );
+  }
+
+  removeElement(htmlElement: HTMLElement) {
+    this.#physicsElements = this.#physicsElements.filter(
+      (element) => element.htmlElement !== htmlElement
+    );
+  }
+
+  play() {
+    this.#playing = true;
+    playSimulation(this);
+  }
+
+  pause() {
+    this.#playing = false; // will stop on next frame callback
+  }
 }
 
-export function playSimulation(simulation: Simulation) {
-  simulation.playing = true;
+function playSimulation(simulation: Simulation) {
   requestAnimationFrame(frameCallback);
 
   let previousFrameTime: DOMHighResTimeStamp | undefined = undefined;
@@ -121,12 +128,8 @@ export function playSimulation(simulation: Simulation) {
   }
 }
 
-export function pauseSimulation(simulation: Simulation) {
-  simulation.playing = false;
-}
-
-export function runOneStep(
-  { moduleElement, moduleName, elements }: Simulation,
+function runOneStep(
+  { moduleElement, moduleName, physicsElements }: Simulation,
   deltaMillis: number
 ) {
   const dragMultiplier = 0.995;
@@ -148,7 +151,7 @@ export function runOneStep(
   moduleElement.force.y = 0;
   moduleName.force.x = 0;
   moduleName.force.y = 0;
-  for (const element of elements) {
+  for (const element of physicsElements) {
     element.force.x = 0;
     element.force.y = 0;
 
@@ -187,10 +190,10 @@ export function runOneStep(
   let sumOfGapsBetweenElements = 0;
   // TODO sumOfGapsBetweenNearbyElements
   let sumOfGapsBetweenOverlappingElements = 0;
-  for (let i = 0; i < elements.length; i++) {
-    const first = elements[i];
-    for (let j = i + 1; j < elements.length; j++) {
-      const second = elements[j];
+  for (let i = 0; i < physicsElements.length; i++) {
+    const first = physicsElements[i];
+    for (let j = i + 1; j < physicsElements.length; j++) {
+      const second = physicsElements[j];
       Springs.connectCenters(
         first,
         second,
@@ -211,7 +214,7 @@ export function runOneStep(
   }
 
   let totalEnergy = 0;
-  for (const element of elements) {
+  for (const element of physicsElements) {
     element.updateVelocityAndPositionIfNeeded(
       dragMultiplier,
       frictionCoefficient,

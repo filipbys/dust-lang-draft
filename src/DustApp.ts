@@ -4,7 +4,6 @@ import { parseExpression } from "./DustExpressionParser";
 import { unparseExpression } from "./DustExpressionUnparser";
 import { createWindow } from "./Windows";
 import * as DustHTMLWindow from "./DustHTMLWindow";
-import { createModule } from "./Modules";
 
 function initializePlainTextEditor() {
   const app = document.querySelector("#editor-container")!;
@@ -75,7 +74,7 @@ function testOutSomeWindows() {
                 <span class="Dust identifier">E</span>
             </div>
         `),
-    createModule([]).htmlElement,
+    // createModule([]).htmlElement,
   ]);
 
   document.querySelector("#example-dust-windows")!.append(window1.htmlElement);

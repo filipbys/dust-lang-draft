@@ -3,6 +3,10 @@ import { onMount } from "solid-js/types/reactive/signal";
 import { smallestEnclosingCircle } from "./Geometry";
 import { PhysicsElement } from "./Physics";
 import { createEffect, children } from "solid-js";
+import { makeDraggable } from "./DragAndDrop";
+import type * as DustExpression from "./DustExpression";
+import { DustExpressionView } from "./DustExpressionView";
+
 function setUpWindowContents(windowContents: HTMLElement) {
   const elements: PhysicsElement[] = [];
 
@@ -64,22 +68,32 @@ function setUpWindowContents(windowContents: HTMLElement) {
   encircleWindowContents();
 }
 
-function WindowContents(props) {
+const WindowContents: Component<{
+  expressions: readonly DustExpression.Any[];
+  id: string;
+}> = (props) => {
   //  = <div class="windowContents"></div>;
   // DustDOM.div({ className: "windowContents" }, []);
   // const c = children(() => props.children);
   // createEffect(() => c().forEach((item) => (item.style.color = props.color)));
   // return <>{c()}</>;
+  const depthLimit = 42; // TODO
   return (
-    <div class="windowContents" ref={setUpWindowContents}>
-      <For each={props.windowElements}>
-        {(windowElement) => <div class="windowElement">
-          
-        </div>}
+    <div class="Dust windowContents" ref={setUpWindowContents}>
+      <For each={props.expressions}>
+        {(expression, index) => (
+          <div class="windowElement">
+            <DustExpressionView
+              expression={expression}
+              id={props.id + "/expressions/" + index()}
+              depthLimit={depthLimit}
+            />
+          </div>
+        )}
       </For>
     </div>
   );
-}
+};
 
 export const Window: Component = (props) => {
   return <div></div>;

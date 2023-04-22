@@ -1,6 +1,8 @@
 import { updateElementText } from "./Debugging";
 import { makeDraggable } from "./DragAndDrop";
+import { raise } from "./Errors";
 import { PhysicsElement, Springs } from "./Physics";
+import { RollingAverage } from "./Stats";
 
 // TODO create a similar simulation for unordered containers/collections which has only public elements and just distributes them as evenly as possible
 // ==> Extract shared code between them into other namespaces:
@@ -11,23 +13,119 @@ import { PhysicsElement, Springs } from "./Physics";
 
 // TODO extract a component with inputs for changing various forces (e.g. setting forces to zero to turn them off)
 
-export type DustModule = {
-  htmlElement: HTMLElement;
-};
+// export type DustModule = {
+//   htmlElement: HTMLElement;
+// };
 
-export function createModule(moduleElements: HTMLElement[]): DustModule {
-  return {
-    htmlElement: div("module", moduleElements), // TODO
-  };
-}
+// function createModule(moduleElements: HTMLElement[]): DustModule {
+//   return {
+//     htmlElement: div("module", moduleElements), // TODO
+//   };
+// }
 
-type Simulation = {
+export type Simulation = {
   moduleElement: PhysicsElement;
   moduleName: PhysicsElement;
   elements: PhysicsElement[];
+  playing: boolean;
 };
 
-function runOneStep(
+export function createSimulation(moduleHTMLElement: HTMLElement): Simulation {
+  const physicsElements: PhysicsElement[] = [];
+
+  const moduleNameHTMLElement: HTMLElement =
+    moduleHTMLElement.querySelector(".Dust.moduleName") ??
+    raise("Module must have a .moduleName element");
+
+  moduleHTMLElement
+    .querySelectorAll<HTMLElement>(".Dust.moduleElement")
+    .forEach((htmlElement) => {
+      if (htmlElement !== moduleNameHTMLElement) {
+        physicsElements.push(
+          new PhysicsElement({
+            htmlElement,
+            state: "free",
+            centeredWithinParent: true,
+            // TODO make it remember the center position for each element. For now everything starts at the center and springs apart.
+          })
+        );
+      }
+    });
+
+  const moduleElement = new PhysicsElement({
+    htmlElement: moduleHTMLElement,
+    state: "pinned",
+  });
+  let moduleName = new PhysicsElement({
+    htmlElement: moduleNameHTMLElement,
+    state: "pinned",
+    centeredWithinParent: true,
+  });
+  return {
+    moduleElement,
+    moduleName,
+    elements: physicsElements,
+    playing: false,
+  };
+}
+
+export function playSimulation(simulation: Simulation) {
+  simulation.playing = true;
+  requestAnimationFrame(frameCallback);
+
+  let previousFrameTime: DOMHighResTimeStamp | undefined = undefined;
+
+  let runOneStepPerformance = new RollingAverage(30);
+  let frameDelta = new RollingAverage(30);
+  let debugFrameCounter = 0;
+
+  function frameCallback(time: DOMHighResTimeStamp) {
+    if (previousFrameTime === undefined) {
+      // first frame
+      runOneStep(simulation, 16);
+      previousFrameTime = time;
+      requestAnimationFrame(frameCallback);
+      return;
+    }
+    if (!simulation.playing) {
+      // TODO extract an animation module which automatically stops animations when they reach
+      // a steady state, and automatically resumes them if something changes (use ResizeObserver for size changes and also observe changes to the DustExpression)
+      console.log("simulation paused: exiting animation loop");
+      return;
+    }
+    if (time !== previousFrameTime) {
+      const deltaMillis = time - previousFrameTime;
+      performance.mark("runOneStep-start");
+      runOneStep(simulation, deltaMillis);
+      performance.mark("runOneStep-end");
+
+      const p = performance.measure(
+        "runOneStep",
+        "runOneStep-start",
+        "runOneStep-end"
+      );
+      runOneStepPerformance.add(p.duration);
+      frameDelta.add(deltaMillis);
+      debugFrameCounter++;
+      if (debugFrameCounter === 30) {
+        console.log(
+          `averages over the last 30 frames: runOneStep=${runOneStepPerformance.average()}, frameDelta=${frameDelta.average()}`
+        );
+        debugFrameCounter = 0;
+      }
+
+      previousFrameTime = time;
+    }
+    // Unconditionally request another callback, otherwise the animation could pause on its own.
+    requestAnimationFrame(frameCallback);
+  }
+}
+
+export function pauseSimulation(simulation: Simulation) {
+  simulation.playing = false;
+}
+
+export function runOneStep(
   { moduleElement, moduleName, elements }: Simulation,
   deltaMillis: number
 ) {
@@ -135,35 +233,7 @@ function runOneStep(
   // also grow the module if any private elements end up touching the border
 }
 
-function span(
-  text: string,
-  id: string | undefined = undefined
-): HTMLSpanElement {
-  const result = document.createElement("span");
-  if (id) {
-    result.id = id;
-  }
-  result.textContent = text;
-  return result;
-}
-
-function div(className: string, children: HTMLElement[]): HTMLDivElement {
-  const divElement = document.createElement("div");
-  divElement.classList.add("Dust", className);
-  divElement.append(...children);
-  return divElement;
-}
-
-function button(
-  text: string,
-  listener: (this: HTMLButtonElement, ev: MouseEvent) => any
-): HTMLButtonElement {
-  const result = document.createElement("button");
-  result.textContent = text;
-  result.addEventListener("click", listener);
-  return result;
-}
-
+/*
 function makeRandomPhysicsElement(
   id: number | string,
   isPublic: boolean,
@@ -258,39 +328,39 @@ function updateDiameter(element: PhysicsElement, delta: number) {
   element.mass = element.diameter ** 2; // TODO
 }
 
-export function testInit2(moduleId: string) {
-  testInit(document.getElementById(moduleId)!);
-}
+// export function testInit2(moduleId: string) {
+//   testInit(document.getElementById(moduleId)!);
+// }
 
-export function testInit(module: HTMLElement) {
-  // TODO extract an initialization function that takes a possibly-empty list of elements
-  const bounds = module.getBoundingClientRect();
-  const moduleElement = new PhysicsElement({
-    htmlElement: module,
-    state: "pinned",
-    diameter: Math.floor(Math.max(bounds.width, bounds.height)),
-  });
+// export function testInit(module: HTMLElement) {
+//   // TODO extract an initialization function that takes a possibly-empty list of elements
+//   const bounds = module.getBoundingClientRect();
+//   const moduleElement = new PhysicsElement({
+//     htmlElement: module,
+//     state: "pinned",
+//     diameter: Math.floor(Math.max(bounds.width, bounds.height)),
+//   });
 
-  module.append(
-    button("grow", () => updateDiameter(moduleElement, 20)),
-    button("shrink", () => updateDiameter(moduleElement, -20))
-  );
+//   module.append(
+//     button("grow", () => updateDiameter(moduleElement, 20)),
+//     button("shrink", () => updateDiameter(moduleElement, -20))
+//   );
 
-  const moduleName = makeRandomPhysicsElement(
-    "TestModule",
-    false,
-    moduleElement
-  );
-  moduleName.htmlElement.classList.add("moduleName");
-  updateElementText(moduleName);
-  moduleName.state = "pinned";
+//   const moduleName = makeRandomPhysicsElement(
+//     "TestModule",
+//     false,
+//     moduleElement
+//   );
+//   moduleName.htmlElement.classList.add("moduleName");
+//   updateElementText(moduleName);
+//   moduleName.state = "pinned";
 
-  test_data.simulation = {
-    moduleElement,
-    moduleName,
-    elements: [],
-  };
-}
+//   test_data.simulation = {
+//     moduleElement,
+//     moduleName,
+//     elements: [],
+//   };
+// }
 
 export function testRunOneStep() {
   runOneStep(test_data.simulation!, 16);
@@ -364,3 +434,4 @@ export function testRunPlay() {
 export function testRunPause() {
   test_data.playing = false;
 }
+*/

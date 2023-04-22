@@ -7,10 +7,18 @@ export type Destructurable = Readonly<
   | { kind: "interpolatedText"; chunks: readonly Any[]; totalLength: number }
   | FunctionCall
   | Array
+  | Module
 >;
 
 export type Array = Readonly<{
   kind: "array";
+  expressions: readonly Any[];
+  totalLength: number;
+}>;
+
+export type Module = Readonly<{
+  kind: "module";
+  name: string;
   expressions: readonly Any[];
   totalLength: number;
 }>;

@@ -58,8 +58,8 @@ const FunctionCall: Component<{
 
   return (
     <div
-      class={`Dust ${props.functionCall.functionKind} functionCall`}
       id={props.id}
+      class={`Dust ${props.functionCall.functionKind} functionCall`}
     >
       <For each={props.functionCall.expressions}>
         {(expression, index) => (
@@ -81,7 +81,7 @@ const List: Component<{
   depthLimit: number;
 }> = (props) => {
   return (
-    <div class={`Dust ${props.kind}`} id={props.id}>
+    <div id={props.id} class={`Dust ${props.kind}`}>
       <For each={props.expressions}>
         {(expression, index) => (
           <DustExpressionView

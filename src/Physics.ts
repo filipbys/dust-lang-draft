@@ -1,5 +1,5 @@
 import { clamp } from "./Numbers";
-import { gapBetween } from "./Geometry";
+import { elementDiameter, gapBetween } from "./Geometry";
 import type { Circle } from "./Geometry";
 import type { Vector2D } from "./Vectors";
 import { distanceBetween, getScaled, lengthSquared } from "./Vectors";
@@ -15,6 +15,8 @@ export class PhysicsElement implements Circle {
   state: PhysicsState;
   readonly force: Vector2D = { x: 0, y: 0 }; // pixels/millis^2
   readonly velocity: Vector2D = { x: 0, y: 0 }; // pixels/millis
+
+  // TODO support relative positions?
   #center: Readonly<Vector2D>; // pixels. Vector is Readonly so we can make sure we update html position when it changes
   #diameter: number;
   #centeredWithinParent: boolean;
@@ -25,14 +27,14 @@ export class PhysicsElement implements Circle {
     htmlElement,
     state,
     center = { x: 0, y: 0 },
-    diameter,
+    diameter = elementDiameter(htmlElement),
     centeredWithinParent = false,
     mass = diameter ** 2, // TODO
   }: Readonly<{
     htmlElement: HTMLElement;
     state: PhysicsState;
     center?: Readonly<Vector2D>;
-    diameter: number;
+    diameter?: number;
     centeredWithinParent?: boolean;
     mass?: number;
   }>) {

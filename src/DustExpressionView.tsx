@@ -1,5 +1,14 @@
-import { Component, For } from "solid-js";
+import { Component, For, Match, Switch } from "solid-js";
 import type * as DustExpression from "./DustExpression";
+
+const BASE_CSS_CLASS = "Dust";
+
+function computeCssClass(
+  expression: DustExpression.Any,
+  ...additional: readonly string[]
+): string {
+  return [BASE_CSS_CLASS, expression.kind, ...additional].join(" ");
+}
 
 export type EventCallback<T extends Element> = (this: T, ev: Event) => any;
 
@@ -11,32 +20,39 @@ export type Callbacks = Readonly<{
   onGroupClicked: EventCallback<HTMLDivElement>;
 }>;
 
-export const DustExpressionView: Component<{
-  expression: DustExpression.Any;
-  id: string;
-  depthLimit: number;
-}> = (props) => {
-  console.log(`Creating DustExpressionView:`, props);
-  const expression = props.expression;
-  const kind = expression.kind;
+interface ExpressionProps<T extends DustExpression.Any = DustExpression.Any> {
+  readonly id: string;
+  readonly expression: T;
+  readonly depthLimit: number;
+}
 
-  if (kind === "identifier") {
-    return (
-      <span id={props.id} class="Dust identifier" tabIndex="0">
-        {expression.identifier}
-      </span>
-    );
-  } else if (props.depthLimit <= 0) {
-    return DepthLimitPlaceholder(props);
-  } else if (kind === "functionCall") {
-    // TODO consider using MathJAX for math expressions https://www.mathjax.org/
-    return FunctionCall({ functionCall: expression, ...props });
-  } else if (kind === "array" || kind === "block") {
-    return List({ kind, expressions: expression.expressions, ...props });
-  } else if (kind === "declaration") {
-    throw "TODO";
-  }
-  throw `Unrecognized expression kind ${kind}`; // TODO return a special error element instead!
+export const DustExpressionView: Component<ExpressionProps> = (props) => {
+  return (
+    <Switch
+      fallback={
+        <div>Unrecognized Dust expression kind {props.expression.kind}</div>
+      }
+    >
+      <Match when={props.expression.kind === "identifier"}>
+        <Identifier {...(props as IdentifierProps)} />
+      </Match>
+      <Match when={props.depthLimit <= 0}>
+        <DepthLimitPlaceholder />
+      </Match>
+      <Match when={isListLike(props.expression)}>
+        <List {...(props as ListProps)} />
+      </Match>
+    </Switch>
+  );
+};
+
+type IdentifierProps = ExpressionProps<DustExpression.Identifier>;
+const Identifier: Component<IdentifierProps> = (props) => {
+  return (
+    <span id={props.id} class={computeCssClass(props.expression)} tabIndex="0">
+      {props.expression.identifier}
+    </span>
+  );
 };
 
 // TODO use <Show when={}></Show> for this instead. Every DustExpressionView should be a <Show>
@@ -49,23 +65,33 @@ const DepthLimitPlaceholder: Component<{}> = (props) => {
   return <span onClick={expand}>...</span>;
 };
 
-const FunctionCall: Component<{
-  functionCall: DustExpression.FunctionCall;
-  id: string;
-  depthLimit: number;
-}> = (props) => {
-  // TODO check for special functions like 'tuple' and 'module' which produce totally different html
+type ListLikeExpression =
+  | DustExpression.FunctionCall
+  | DustExpression.Array
+  | DustExpression.Block;
 
+function isListLike(
+  expression: DustExpression.Any
+): expression is ListLikeExpression {
   return (
-    <div
-      id={props.id}
-      class={`Dust ${props.functionCall.functionKind} functionCall`}
-    >
-      <For each={props.functionCall.expressions}>
+    expression.kind === "functionCall" ||
+    expression.kind === "array" ||
+    expression.kind === "block"
+  );
+}
+
+interface ListProps extends ExpressionProps<ListLikeExpression> {
+  additionalCssClasses?: string[];
+}
+
+const List: Component<ListProps> = (props) => {
+  return (
+    <div id={props.id} class={computeListLikeCssClass(props.expression)}>
+      <For each={props.expression.expressions}>
         {(expression, index) => (
           <DustExpressionView
-            expression={expression}
             id={props.id + "/expressions/" + index()}
+            expression={expression}
             depthLimit={props.depthLimit - 1}
           />
         )}
@@ -74,23 +100,9 @@ const FunctionCall: Component<{
   );
 };
 
-const List: Component<{
-  kind: "array" | "block";
-  expressions: readonly DustExpression.Any[];
-  id: string;
-  depthLimit: number;
-}> = (props) => {
-  return (
-    <div id={props.id} class={`Dust ${props.kind}`}>
-      <For each={props.expressions}>
-        {(expression, index) => (
-          <DustExpressionView
-            expression={expression}
-            id={props.id + "/expressions/" + index()}
-            depthLimit={props.depthLimit - 1}
-          />
-        )}
-      </For>
-    </div>
-  );
-};
+function computeListLikeCssClass(expression: ListLikeExpression) {
+  if (expression.kind === "functionCall") {
+    return computeCssClass(expression, expression.functionKind);
+  }
+  return computeCssClass(expression);
+}

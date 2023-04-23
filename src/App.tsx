@@ -5,7 +5,9 @@ import "./styles.css";
 import { DustExpressionView } from "./DustExpressionView";
 import { toTextTree } from "./TextTree";
 import { parseExpression } from "./DustExpressionParser";
-import { createStore } from "solid-js/store";
+import { createStore, produce } from "solid-js/store";
+
+import * as jsonpatch from "fast-json-patch";
 
 const PlainTextEditor: Component = () => {
   const [expression, setExpression] = createStore<DustExpression.Any>({
@@ -27,50 +29,38 @@ const PlainTextEditor: Component = () => {
 / 42 
 + (f x y z)
 `);
-  const initialText = inputText();
-
-  function onInput(this: HTMLElement) {
-    console.log("onInput:", this.textContent);
-    setInputText(this.textContent!);
-  }
 
   createEffect(
     on(inputText, (newInput: string) => {
       const newExpression = parseInput(newInput);
-      console.log("input text changed:", newInput, newExpression);
-      // TODO use JSON patch to diff instead
-      setExpression(newExpression);
+      const diff = jsonpatch.compare(expression, newExpression);
+      console.log("input text changed:", diff);
+      setExpression(
+        produce((currentExpression) => {
+          jsonpatch.applyPatch(currentExpression, diff);
+        })
+      );
     })
   );
 
-  createEffect(() => {
-    console.log("expression changed:", expression.kind, expression);
-  });
-
-  const testPath = ["expressions", 2, "expressions", 0, "identifier"] as const;
-
-  function setExpressionUntyped(path: readonly [...any], value: any) {
-    // TODO now this silently fails: check if path exists and throw error otherwise
-    (setExpression as any)(...[...path, value]);
-    console.log("new expression:", expression);
+  function onInput(this: HTMLElement) {
+    setInputText(this.textContent!);
   }
 
+  const initialText = inputText(); // let contentEditable take over
   return (
     <div>
-      <code id="debug-input-box" contenteditable={true} onInput={onInput}>
+      <code id="debug-input-box" contentEditable={true} onInput={onInput}>
         {initialText}
       </code>
       <button onClick={() => alert("TODO")}>Save</button>
-      <button onClick={() => setExpressionUntyped(testPath, "Hello!")}>
-        update {testPath.toString()}
-      </button>
-      {/* TODO wrap in a module component */}
-      {/* TODO I guess we need to pass the signal down to the DustExpressionView and use the Switch/Match control flow. For now we can call render() on a div container as a workaround */}
-      <DustExpressionView
-        expression={expression}
-        id="plain-text-editor-output"
-        depthLimit={42}
-      />
+      <div contentEditable={true}>
+        <DustExpressionView
+          expression={expression}
+          id="plain-text-editor-output"
+          depthLimit={42}
+        />
+      </div>
       {/* TODO depthLimit */}
     </div>
   );

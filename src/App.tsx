@@ -31,7 +31,7 @@ const PlainTextEditor: Component = () => {
 `);
 
   createEffect(
-    on(inputText, (newInput: string) => {
+    on(inputText, (newInput) => {
       const newExpression = parseInput(newInput);
       const diff = jsonpatch.compare(expression, newExpression);
       console.log("input text changed:", diff);

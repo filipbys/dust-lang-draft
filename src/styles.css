@@ -29,10 +29,6 @@ body {
   gap: 5px;
 }
 
-.Dust.function-gap {
-  width: 0.5ch;
-}
-
 .Dust.array {
   display: inline-flex;
   flex-wrap: nowrap;
@@ -43,6 +39,7 @@ body {
   margin: 2px;
 }
 
+/* TODO split into a separate file */
 .Dust.vertical.array {
   flex-direction: column;
 }
@@ -60,6 +57,7 @@ body {
   background: unset;
 }
 
+/* TODO split into a separate file */
 .Dust.functionCall {
   display: inline-flex;
   flex-wrap: nowrap;
@@ -75,14 +73,6 @@ body {
   margin: 0;
   margin-inline: 0;
   padding: 2px;
-}
-
-.Dust.function-parameters {
-  display: inline-flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 1ch;
-  white-space: nowrap;
 }
 
 .Dust.binary-operation-chain-item {
@@ -199,17 +189,6 @@ body {
   justify-items: start;
 }
 
-/* .Dust.functionCall.matchExpression>:first-child {
-    grid-column-start: 1;
-    grid-column-end: 5;
-} */
-
-.Dust.vertical > .function-parameters {
-  flex-direction: column;
-  align-items: start;
-  gap: 4px;
-}
-
 .Dust.identifier {
   border-radius: 4px;
   flex-shrink: 0;
@@ -217,7 +196,8 @@ body {
   padding-block: 0.25ch;
 }
 
-.Dust.function {
+.Dust.functionCall.binary > :nth-child(even),
+.Dust.functionCall.prefix > :first-child {
   font-weight: bold;
 }
 

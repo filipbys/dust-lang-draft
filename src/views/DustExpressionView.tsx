@@ -10,21 +10,25 @@ function computeCssClass(
   return [BASE_CSS_CLASS, expression.kind, ...additional].join(" ");
 }
 
-export type EventCallback<T extends Element> = (this: T, ev: Event) => any;
+// export type EventCallback<T extends Element> = (this: T, ev: Event) => any;
 
-export type Callbacks = Readonly<{
-  onInput: EventCallback<HTMLSpanElement>;
-  onKeyDown: EventCallback<HTMLSpanElement>;
-  onFocusIn: EventCallback<HTMLElement>;
-  onFocusOut: EventCallback<HTMLElement>;
-  onGroupClicked: EventCallback<HTMLDivElement>;
-}>;
+// export type Callbacks = Readonly<{
+//   onInput: EventCallback<HTMLSpanElement>;
+//   onKeyDown: EventCallback<HTMLSpanElement>;
+//   onFocusIn: EventCallback<HTMLElement>;
+//   onFocusOut: EventCallback<HTMLElement>;
+//   onGroupClicked: EventCallback<HTMLDivElement>;
+// }>;
 
 interface ExpressionProps<T extends DustExpression.Any = DustExpression.Any> {
   readonly id: string;
   readonly expression: T;
   readonly depthLimit: number;
 }
+
+// TODO add the "vertical" class where needed, BUT ALSO
+// TODO make a note of https://prettier.io/docs/en/rationale.html#%EF%B8%8F-a-note-on-formatting-reversibility
+//  -> That's the sort of issue we're trying to avoid with Dust
 
 export const DustExpressionView: Component<ExpressionProps> = (props) => {
   return (
@@ -85,6 +89,8 @@ interface ListProps extends ExpressionProps<ListLikeExpression> {
 }
 
 const List: Component<ListProps> = (props) => {
+  // TODO check for special functions like 'tuple' and 'module' which produce totally different html
+
   return (
     <div id={props.id} class={computeListLikeCssClass(props.expression)}>
       <For each={props.expression.expressions}>

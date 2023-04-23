@@ -1,6 +1,6 @@
 import type { Node, Group } from "./TextTree";
 import { toUTF8 } from "./TextTree";
-import type { Any } from "./DustExpression";
+import type { Any } from "../types/DustExpression";
 
 export function parseExpression(textTree: Node): Any {
   if (textTree.kind === "leaf") {

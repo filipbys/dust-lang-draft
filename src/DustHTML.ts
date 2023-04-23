@@ -1,5 +1,5 @@
-import type * as DustExpression from "./DustExpression";
-import { MAX_HORIZONTAL_LENGTH } from "./TextTree";
+import type * as DustExpression from "./types/DustExpression";
+import { MAX_HORIZONTAL_LENGTH } from "./text/TextTree";
 
 export type EventCallback<T extends Element> = (this: T, ev: Event) => any;
 
@@ -98,40 +98,10 @@ function depthLimitPlaceholder(
 // )
 
 namespace Module {
-  // TODO imported and exported values go around the outside.
-  // Private values are only visible when editing the module, so you
-  // can't see the private values of two different modules at the same time,
-  // at least not in the same window.
-  // When editing a module, it takes up as much space as it can on the window, so imports and exports are at the edges of the window. Other modules can be brought into view as well, but you can only see their surfaces, i.e. imports and exports
-  // When a module loses focus, the private values animate out, leaving just the imports and exports
-  // When you zoom out and even the imports/exports get too small to read, they are hidden as well and the module is just shown as a circle around the name, with arrows displaying the flow of dependencies in your project
-  // TODO should do a similar thing for function definitions: when zooming out, the body should animate out, leaving just the function signature
+  
 }
 
-namespace Identifier {
-  export function toHTML(
-    expression: DustExpression.Identifier,
-    id: string,
-    callbacks: Callbacks
-  ): HTMLSpanElement {
-    return make("span", (span) => {
-      initializeElement(span, expression, id, callbacks);
-      span.textContent = expression.identifier;
-      span.contentEditable = "true";
-      span.addEventListener("input", callbacks.onInput);
-      span.addEventListener("keydown", callbacks.onKeyDown);
-    });
-    // TODO with contentEditable, either:
-    // (A) Only text spans are contentEditable and onInput works on them but can't select multiple spans
-    // (B) Everything is contentEditable and we can select everything, but onInput doesn't work
 
-    // There are other issues as well (see e.g. https://answerly.io/blog/my-pain-developing-a-wysiwyg-editor-with-contenteditable/)
-    // So we should...
-    // TODO implement our own Caret element that can be moved around the document, splitting
-    // Spans in half where needed. That way we can more easily implement multiple Carets as well as Selections
-    // NB: check if Carets can be implemented using :focus:after rather than manually inserting a node that becomes part of the HTML
-  }
-}
 
 namespace FunctionCall {
   export function toHTML(

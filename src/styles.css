@@ -1,5 +1,5 @@
-@import url(Modules.css);
-@import url(Windows.css);
+@import url(./views/Modules.css);
+@import url(./views/Windows.css);
 
 /* TODO split into more files */
 

@@ -1,5 +1,5 @@
 import { Component, For, Match, Switch } from "solid-js";
-import type * as DustExpression from "./DustExpression";
+import type * as DustExpression from "../types/DustExpression";
 
 const BASE_CSS_CLASS = "Dust";
 

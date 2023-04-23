@@ -1,10 +1,9 @@
 import { Component, For } from "solid-js";
-import { onMount } from "solid-js/types/reactive/signal";
-import { smallestEnclosingCircle } from "./Geometry";
-import { PhysicsElement } from "./Physics";
-import { createEffect, children } from "solid-js";
-import { makeDraggable } from "./DragAndDrop";
-import type * as DustExpression from "./DustExpression";
+import { smallestEnclosingCircle } from "../math/Geometry";
+import { PhysicsElement } from "../Physics";
+import { onMount, createEffect, children } from "solid-js";
+import { makeDraggable } from "../DragAndDrop";
+import type * as DustExpression from "../types/DustExpression";
 import { DustExpressionView } from "./DustExpressionView";
 
 function setUpWindowContents(windowContents: HTMLElement) {

@@ -1,7 +1,7 @@
-import { toTextTree, toUTF8 } from "./TextTree";
-import type * as DustExpression from "./DustExpression";
-import { parseExpression } from "./DustExpressionParser";
-import { unparseExpression } from "./DustExpressionUnparser";
+import { toTextTree, toUTF8 } from "./text/TextTree";
+import { parseExpression } from "./text/DustExpressionParser";
+import { unparseExpression } from "./text/DustExpressionUnparser";
+import type * as DustExpression from "./types/DustExpression";
 import { createWindow } from "./Windows";
 import * as DustHTMLWindow from "./DustHTMLWindow";
 

@@ -1,8 +1,10 @@
 import { clamp } from "./Numbers";
-import { elementDiameter, gapBetween } from "./Geometry";
-import type { Circle } from "./Geometry";
-import type { Vector2D } from "./Vectors";
-import { distanceBetween, getScaled, lengthSquared } from "./Vectors";
+import { elementDiameter, gapBetween } from "./math/Geometry";
+import type { Circle } from "./math/Geometry";
+import type { Vector2D } from "./math/Vectors";
+import { distanceBetween, getScaled, lengthSquared } from "./math/Vectors";
+
+// TODO! decouple HTML part from the math part. Math part belongs in the math/ folder.
 
 const MAX_VELOCITY_MAGNITUDE = 2; // pixels/millis
 

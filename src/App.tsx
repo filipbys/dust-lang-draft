@@ -1,10 +1,10 @@
 import { Component, createEffect, createSignal, on } from "solid-js";
-import * as DustExpression from "./DustExpression";
+import * as DustExpression from "./types/DustExpression";
 import "./styles.css";
 
-import { DustExpressionView } from "./DustExpressionView";
-import { toTextTree } from "./TextTree";
-import { parseExpression } from "./DustExpressionParser";
+import { DustExpressionView } from "./views/DustExpressionView";
+import { toTextTree } from "./text/TextTree";
+import { parseExpression } from "./text/DustExpressionParser";
 import { createStore, produce } from "solid-js/store";
 
 import * as jsonpatch from "fast-json-patch";
@@ -64,6 +64,13 @@ const PlainTextEditor: Component = () => {
       {/* TODO depthLimit */}
     </div>
   );
+  // TODO with contentEditable, either:
+  // (A) Only text spans are contentEditable and onInput works on them but can't select multiple spans
+  // (B) Everything is contentEditable and we can select everything, but onInput doesn't work
+
+  // There are other issues as well (see e.g. https://answerly.io/blog/my-pain-developing-a-wysiwyg-editor-with-contenteditable/)
+  // So we should...
+  // TODO implement our own Caret element that can be moved around the document, splitting Spans in half where needed. That way we can more easily implement multiple Carets as well as Selections
 };
 
 function parseInput(text: string): DustExpression.Any {

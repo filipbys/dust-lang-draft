@@ -1,8 +1,8 @@
-import { updateElementText } from "./Debugging";
-import { makeDraggable } from "./DragAndDrop";
-import { raise } from "./Errors";
-import { PhysicsElement, Springs } from "./Physics";
-import { RollingAverage } from "./Stats";
+import { updateElementText } from "../development/Debugging";
+import { makeDraggable } from "../DragAndDrop";
+import { raise } from "../development/Errors";
+import { PhysicsElement, Springs } from "../Physics";
+import { RollingAverage } from "../math/Stats";
 
 // TODO create a similar simulation for unordered containers/collections which has only public elements and just distributes them as evenly as possible
 // ==> Extract shared code between them into other namespaces:

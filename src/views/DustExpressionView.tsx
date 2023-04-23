@@ -10,7 +10,10 @@ function computeCssClass(
   return [BASE_CSS_CLASS, expression.kind, ...additional].join(" ");
 }
 
-// export type EventCallback<T extends Element> = (this: T, ev: Event) => any;
+export type EventCallback<T extends Element, E extends Event> = (
+  this: T,
+  ev: E
+) => any;
 
 // export type Callbacks = Readonly<{
 //   onInput: EventCallback<HTMLSpanElement>;
@@ -20,10 +23,15 @@ function computeCssClass(
 //   onGroupClicked: EventCallback<HTMLDivElement>;
 // }>;
 
-interface ExpressionProps<T extends DustExpression.Any = DustExpression.Any> {
+export interface ExpressionProps<
+  T extends DustExpression.Any = DustExpression.Any
+> {
   readonly id: string;
   readonly expression: T;
   readonly depthLimit: number;
+  readonly onFocusIn?: EventCallback<HTMLSpanElement, FocusEvent>;
+  readonly onFocusOut?: EventCallback<HTMLSpanElement, FocusEvent>;
+  readonly onInput?: EventCallback<HTMLSpanElement, InputEvent>;
 }
 
 // TODO add the "vertical" class where needed, BUT ALSO
@@ -53,7 +61,15 @@ export const DustExpressionView: Component<ExpressionProps> = (props) => {
 type IdentifierProps = ExpressionProps<DustExpression.Identifier>;
 const Identifier: Component<IdentifierProps> = (props) => {
   return (
-    <span id={props.id} class={computeCssClass(props.expression)} tabIndex="0">
+    <span
+      id={props.id}
+      class={computeCssClass(props.expression)}
+      tabIndex="0"
+      onFocusIn={props.onFocusIn}
+      onFocusOut={props.onFocusOut}
+      contentEditable={props.onInput !== undefined}
+      onInput={props.onInput}
+    >
       {props.expression.identifier}
     </span>
   );
@@ -84,9 +100,7 @@ function isListLike(
   );
 }
 
-interface ListProps extends ExpressionProps<ListLikeExpression> {
-  additionalCssClasses?: string[];
-}
+type ListProps = ExpressionProps<ListLikeExpression>;
 
 const List: Component<ListProps> = (props) => {
   // TODO check for special functions like 'tuple' and 'module' which produce totally different html
@@ -96,9 +110,12 @@ const List: Component<ListProps> = (props) => {
       <For each={props.expression.expressions}>
         {(expression, index) => (
           <DustExpressionView
-            id={props.id + "/expressions/" + index()}
-            expression={expression}
-            depthLimit={props.depthLimit - 1}
+            {...{
+              ...props,
+              id: props.id + "/expressions/" + index(),
+              expression,
+              depthLimit: props.depthLimit - 1,
+            }}
           />
         )}
       </For>

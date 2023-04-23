@@ -1,4 +1,4 @@
-import { Component, createEffect, createSignal, on } from "solid-js";
+import { Component, createEffect, createSignal, on, onCleanup } from "solid-js";
 import * as DustExpression from "./types/DustExpression";
 import "./styles.css";
 
@@ -36,15 +36,41 @@ const PlainTextEditor: Component = () => {
       const diff = jsonpatch.compare(expression, newExpression);
       console.log("input text changed:", diff);
       setExpression(
-        produce((currentExpression) => {
-          jsonpatch.applyPatch(currentExpression, diff);
-        })
+        produce((currentExpression) =>
+          jsonpatch.applyPatch(currentExpression, diff)
+        )
       );
     })
   );
 
   function onInput(this: HTMLElement) {
     setInputText(this.textContent!);
+  }
+
+  function onHTMLEditorInput(this: HTMLElement, event: InputEvent) {
+    console.log("onHTMLEditorInput", this, event);
+  }
+
+  function onElementInput(this: HTMLElement, event: InputEvent) {
+    console.log("onElementInput", this, event);
+  }
+
+  function onElementFocusIn(this: HTMLElement, event: FocusEvent) {
+    console.log("onFocusIn", this, event);
+
+    const range: Range = document.createRange();
+    range.setStart(this, 0);
+    range.collapse(true);
+
+    const selection: Selection = window.getSelection()!;
+    // selection.removeAllRanges();
+    selection.addRange(range);
+    // selection.
+  }
+
+  function onElementFocusOut(this: HTMLElement, event: FocusEvent) {
+    console.log("onFocusOut", this, event, window.getSelection());
+    // window.getSelection()!.removeAllRanges();
   }
 
   const initialText = inputText(); // let contentEditable take over
@@ -54,7 +80,19 @@ const PlainTextEditor: Component = () => {
         {initialText}
       </code>
       <button onClick={() => alert("TODO")}>Save</button>
-      <div contentEditable={true}>
+      <div>
+        <DustExpressionView
+          expression={expression}
+          id="plain-text-editor-output"
+          depthLimit={42}
+          onFocusIn={onElementFocusIn}
+          onFocusOut={onElementFocusOut}
+          onInput={onElementInput}
+        />
+      </div>
+      <br />
+      {/* Readonly view to make sure updates are reflected */}
+      <div>
         <DustExpressionView
           expression={expression}
           id="plain-text-editor-output"

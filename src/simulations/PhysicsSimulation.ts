@@ -1,139 +1,188 @@
-import { elementDiameter, gapBetween } from "../math/Geometry";
-import type { Circle } from "../math/Geometry";
-import type { Vector2D } from "../math/Vectors";
-import { lengthSquared } from "../math/Vectors";
 import {
+  kineticEnergy,
   PhysicsConstants,
   PhysicsElement,
   updateVelocityAndPosition,
 } from "../math/Physics";
+import { RollingAverage } from "../math/Stats";
+import { X, Y } from "../math/Vectors";
 
-// TODO! decouple HTML part from the math part. Math part belongs in the math/ folder.
+export interface PhysicsSimulationElement extends PhysicsElement {
+  state: PhysicsSimulationElementState;
+}
 
-// TODO add another state "focused" which is like "free" but instead of it moving around, the world moves around it so the viewer can keep a fixed reference frame on the element.
-// export type PhysicsState = "free" | "pinned" | "dragged";
+export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
 
-// TODO implement to/from JSON
-// TODO tie in DragAndDrop
-export class PhysicsSimulationElement implements Circle, PhysicsElement {
-  readonly htmlElement: HTMLElement;
-  state: PhysicsState;
-  readonly force: Vector2D = { x: 0, y: 0 }; // pixels/millis^2
-  readonly velocity: Vector2D = { x: 0, y: 0 }; // pixels/millis
+export type ForceCalculator = () => any;
 
-  // TODO support relative positions?
-  #center: Readonly<Vector2D>; // pixels. Vector is Readonly so we can make sure we update html position when it changes
-  #diameter: number;
-  #centeredWithinParent: boolean;
-  readonly #previousCssTranslate: Vector2D = { x: 0, y: 0 }; // pixels, rounded to nearest integers
-  mass: number; // number of characters // TODO should update if the element's expression changes
+const FIRST_FRAME_DELTA_MILLIS = 16;
+
+export class PhysicsSimulation<T extends PhysicsSimulationElement> {
+  #playing: boolean = false;
+
+  readonly #elements: T[] = [];
+
+  readonly #forceCalculators: ForceCalculator[] = [];
+
+  readonly #frameCallback: FrameRequestCallback;
 
   constructor({
-    htmlElement,
-    state,
-    center = { x: 0, y: 0 },
-    diameter = elementDiameter(htmlElement),
-    centeredWithinParent = false,
-    mass = diameter ** 2, // TODO
-  }: Readonly<{
-    htmlElement: HTMLElement;
-    state: PhysicsState;
-    center?: Readonly<Vector2D>;
-    diameter?: number;
-    centeredWithinParent?: boolean;
-    mass?: number;
-  }>) {
-    this.htmlElement = htmlElement;
-    this.state = state;
-    this.mass = mass;
-    this.#diameter = diameter;
-    this.#center = center;
-    this.#centeredWithinParent = centeredWithinParent;
+    constants,
+    maxStillFramesBeforeAutoPause = 30,
+  }: {
+    constants: PhysicsConstants;
+    maxStillFramesBeforeAutoPause?: number;
+  }) {
+    this.#frameCallback = frameCallback;
 
-    setTranslate(htmlElement, center, this.#previousCssTranslate);
-    setDiameter(htmlElement, diameter, centeredWithinParent);
-  }
+    const simulation = this;
+    let previousFrameTime: DOMHighResTimeStamp | undefined = undefined;
 
-  get center() {
-    return this.#center;
-  }
+    function frameCallback(time: DOMHighResTimeStamp) {
+      if (!simulation.#playing) {
+        console.log("simulation paused: exiting animation loop");
+        return;
+      }
 
-  set center(newCenter: Readonly<Vector2D>) {
-    this.#center = newCenter;
-    setTranslate(this.htmlElement, newCenter, this.#previousCssTranslate);
-  }
+      if (previousFrameTime === undefined) {
+        runOneStep(FIRST_FRAME_DELTA_MILLIS);
+      } else if (time !== previousFrameTime) {
+        runOneStep(time - previousFrameTime);
+      }
+      previousFrameTime = time;
+      requestAnimationFrame(frameCallback);
+    }
 
-  get diameter() {
-    return this.#diameter;
-  }
+    const simulationPerformance = new SimulationPerformance();
+    function runOneStep(deltaMillis: number) {
+      simulationPerformance.startClock(deltaMillis);
+      recalculateForces();
+      updateVelocitiesAndPositions(deltaMillis);
+      autoPauseIfNeeded();
+      simulationPerformance.stopClock();
+    }
 
-  // TODO instead of setting the diameter based on the htmlElement's size, maybe set the padding instead?
-  set diameter(newDiameter: number) {
-    this.#diameter = newDiameter;
-    setDiameter(this.htmlElement, newDiameter, this.#centeredWithinParent);
-  }
+    function recalculateForces() {
+      for (const element of simulation.#elements) {
+        element.force[X] = 0;
+        element.force[Y] = 0;
+      }
 
-  setBoundary(boundary: Circle) {
-    this.center = boundary.center;
-    this.diameter = boundary.diameter;
-  }
+      for (const updateForces of simulation.#forceCalculators) {
+        updateForces();
+      }
+    }
 
-  get centeredWithinParent() {
-    return this.#centeredWithinParent;
-  }
+    const averageEnergy = new RollingAverage(maxStillFramesBeforeAutoPause);
+    function updateVelocitiesAndPositions(deltaMillis: number) {
+      let totalEnergy = 0;
+      for (const element of simulation.#elements) {
+        if (element.state === "free") {
+          updateVelocityAndPosition(element, constants, deltaMillis);
+        }
+        totalEnergy += kineticEnergy(element);
+      }
+      averageEnergy.add(totalEnergy);
+    }
 
-  set centeredWithinParent(newValue: boolean) {
-    this.#centeredWithinParent = newValue;
-    if (newValue) {
-      centerWithinParent(this.htmlElement, this.#diameter);
+    function autoPauseIfNeeded() {
+      if (averageEnergy.isSaturated && averageEnergy.average() === 0) {
+        simulation.pause();
+        averageEnergy.clear();
+      }
     }
   }
-}
 
-// TODO move these into a separate file
-function setTranslate(
-  htmlElement: HTMLElement,
-  newTranslate: Readonly<Vector2D>,
-  previousTranslate: Vector2D
-) {
-  const x = Math.round(newTranslate.x);
-  const y = Math.round(newTranslate.y);
-  // TODO observe jank and measure perf with/without this optimization
-  if (x === previousTranslate.x && y === previousTranslate.y) {
-    return;
+  // TODO I wonder if we can use solidjs's reactivity rather than having to write these add/remove method pairs...
+  addElement(element: T) {
+    if (addElementIfAbsent(this.#elements, element)) {
+      console.log("Added element to simulation:", element);
+    } else {
+      console.warn("Element already exists in the simulation:", element);
+    }
   }
 
-  // TODO try using custom css properties:
-  // - js: style.setPropery("--translate-x", x + "px")
-  //       style.setPropery("--translate-y", y + "px")
-  // - css: transform: translate(var(--translate-x), var(--translate-y))
-  // see https://thomaswilburn.github.io/wc-book/sd-behavioral.html
-  htmlElement.style.transform = `translate(${x}px, ${y}px)`;
-  previousTranslate.x = x;
-  previousTranslate.y = y;
-}
+  removeElement(element: T) {
+    if (removeElementIfPresent(this.#elements, element)) {
+      console.log("Removed element from simulation:", element);
+    } else {
+      console.warn("Element does not exist in the simulation:", element);
+    }
+  }
 
-function setDiameter(
-  htmlElement: HTMLElement,
-  newDiameter: number,
-  centeredWithinParent: boolean
-) {
-  // TODO try custom css properties for this as well (see above)
-  const roundedDiameter = Math.round(newDiameter);
-  const style = htmlElement.style;
-  style.width = roundedDiameter + "px";
-  style.height = roundedDiameter + "px";
-  style.borderRadius = roundedDiameter + "px"; // just needs to be bigger than the element's radius
+  addForceCalculator(calculator: ForceCalculator) {
+    if (addElementIfAbsent(this.#forceCalculators, calculator)) {
+      console.log("Added calculator to simulation:", calculator);
+    } else {
+      console.warn("Calculator already exists in the simulation:", calculator);
+    }
+  }
 
-  if (centeredWithinParent) {
-    centerWithinParent(htmlElement, newDiameter);
+  removeForceCalculator(calculator: ForceCalculator) {
+    if (removeElementIfPresent(this.#forceCalculators, calculator)) {
+      console.log("Removed calculator from simulation:", calculator);
+    } else {
+      console.warn("Calculator does not exist in the simulation:", calculator);
+    }
+  }
+
+  play() {
+    if (this.#playing) {
+      return;
+    }
+    this.#playing = true;
+    requestAnimationFrame(this.#frameCallback);
+  }
+
+  pause() {
+    if (!this.#playing) {
+      return;
+    }
+    this.#playing = false; // next frame callback will return early
   }
 }
 
-function centerWithinParent(htmlElement: HTMLElement, diameter: number) {
-  // Center the element on its parent (movement within parent uses css transform: translate)
-  const roundedRadius = Math.round(diameter / 2);
-  const style = htmlElement.style;
-  style.left = `calc(50% - ${roundedRadius}px)`;
-  style.top = `calc(50% - ${roundedRadius}px)`;
+function addElementIfAbsent<T>(array: T[], element: T): boolean {
+  if (!array.includes(element)) {
+    array.push(element);
+    return true;
+  }
+  return false;
+}
+
+function removeElementIfPresent<T>(array: T[], element: T): boolean {
+  if (array.includes(element)) {
+    array.splice(array.indexOf(element), 1);
+    return true;
+  }
+  return false;
+}
+
+class SimulationPerformance {
+  averagePerformance = new RollingAverage(30);
+  frameDeltaMillis = new RollingAverage(30);
+  debugFrameCounter = 0;
+
+  startClock(frameDeltaMillis: number) {
+    this.frameDeltaMillis.add(frameDeltaMillis);
+    performance.mark("SimulationPerformance-start");
+  }
+
+  stopClock() {
+    performance.mark("SimulationPerformance-end");
+    const p = performance.measure(
+      "SimulationPerformance",
+      "SimulationPerformance-start",
+      "SimulationPerformance-end"
+    );
+    this.averagePerformance.add(p.duration);
+
+    this.debugFrameCounter++;
+    if (this.debugFrameCounter === 30) {
+      console.log(
+        `averages over the last 30 frames: runOneStep=${this.averagePerformance.average()}, frameDelta=${this.frameDeltaMillis.average()}`
+      );
+      this.debugFrameCounter = 0;
+    }
+  }
 }

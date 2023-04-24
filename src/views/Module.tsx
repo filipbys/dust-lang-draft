@@ -3,7 +3,8 @@ import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
 import { DustExpressionView } from "./DustExpressionView";
 import { smallestEnclosingCircle } from "../math/Geometry";
-import { Simulation } from "./Modules";
+import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
+// import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 
 // TODO imported and exported values go around the outside.
 // Private values are only visible when editing the module, so you
@@ -18,7 +19,7 @@ const ModuleElement: Component<{
   expression: DustExpression.Any;
   id: string;
   depthLimit: number;
-  simulation: Simulation;
+  simulation: PhysicsSimulation;
 }> = (props) => {
   let htmlElement: HTMLElement | null = null;
   onMount(() => {

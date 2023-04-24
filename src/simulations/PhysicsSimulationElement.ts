@@ -1,25 +1,18 @@
-import { elementDiameter, gapBetween } from "../math/Geometry";
+import { elementDiameter } from "../math/Geometry";
 import type { Circle } from "../math/Geometry";
 import { Vector2D, X, Y } from "../math/Vectors";
-import { lengthSquared } from "../math/Vectors";
-import {
-  PhysicsConstants,
-  PhysicsElement,
-  updateVelocityAndPosition,
-} from "../math/Physics";
-import {
-  PhysicsSimulationElement,
-  PhysicsSimulationElementState,
-} from "./PhysicsSimulation";
+import { PhysicsElement } from "../math/Physics";
+
+export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
 
 // TODO! decouple HTML part from the math part. Math part belongs in the math/ folder.
 
 // TODO add another state "focused" which is like "free" but instead of it moving around, the world moves around it so the viewer can keep a fixed reference frame on the element.
 // export type PhysicsState = "free" | "pinned" | "dragged";
 
-// TODO implement to/from JSON
-// TODO tie in DragAndDrop
-export class HTMLCircle implements Circle, PhysicsSimulationElement {
+// TODO I think we need to extend HTMLElement here so the simulation can use ResizeObserver on it efficiently. See this answer about how to instantiate such an element from SolidJS: https://stackoverflow.com/questions/72238932/how-to-use-a-web-component-in-a-solid-js-project
+// Otherwise we need to do something like play() the simulation on every edit so that the sizes update.
+export class PhysicsSimulationElement implements Circle, PhysicsElement {
   readonly htmlElement: HTMLElement;
   state: PhysicsSimulationElementState;
   readonly force: Vector2D = [0, 0]; // pixels/millis^2
@@ -65,6 +58,7 @@ export class HTMLCircle implements Circle, PhysicsSimulationElement {
   set center(newCenter: Readonly<Vector2D>) {
     this.#center = newCenter;
     setTranslate(this.htmlElement, newCenter, this.#previousCssTranslate);
+    // TODO needs to also play the simulation...
   }
 
   get diameter() {
@@ -75,6 +69,7 @@ export class HTMLCircle implements Circle, PhysicsSimulationElement {
   set diameter(newDiameter: number) {
     this.#diameter = newDiameter;
     setDiameter(this.htmlElement, newDiameter, this.#centeredWithinParent);
+    // TODO needs to also play the simulation...
   }
 
   setBoundary(boundary: Circle) {

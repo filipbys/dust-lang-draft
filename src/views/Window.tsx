@@ -1,10 +1,13 @@
-import { Component, For } from "solid-js";
+import { Component, createSignal, For } from "solid-js";
 import { elementDiameter, smallestEnclosingCircle } from "../math/Geometry";
-import { PhysicsElement } from "../Physics";
-import { onMount, createEffect, children } from "solid-js";
-import { makeDraggable } from "../DragAndDrop";
+import { createEffect, on } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
 import { DustExpressionView } from "./DustExpressionView";
+import {
+  PhysicsSimulation,
+  PhysicsSimulationElement,
+} from "../simulations/PhysicsSimulation";
+import { PhysicsConstants } from "../math/Physics";
 
 // TODO window should have a toolbar with undo/redo, zoom in/out, insert, set depth limit, etc buttons
 
@@ -38,9 +41,9 @@ import { DustExpressionView } from "./DustExpressionView";
 //
 
 function setUpWindowContents(windowContents: HTMLElement) {
-  const elements: PhysicsElement[] = [];
+  const elements: PhysicsSimulationElement[] = [];
 
-  const windowContentsPhysicsElement = new PhysicsElement({
+  const windowContentsPhysicsElement = new PhysicsSimulationElement({
     htmlElement: windowContents,
     state: "pinned",
     diameter: 100,
@@ -99,8 +102,9 @@ function setUpWindowContents(windowContents: HTMLElement) {
 }
 
 const WindowContents: Component<{
-  expressions: readonly DustExpression.Any[];
   id: string;
+  expressions: readonly DustExpression.Any[];
+  simulation: PhysicsSimulation<HTMLCircle>;
 }> = (props) => {
   //  = <div class="windowContents"></div>;
   // DustDOM.div({ className: "windowContents" }, []);
@@ -125,6 +129,41 @@ const WindowContents: Component<{
   );
 };
 
-export const Window: Component = (props) => {
-  return <div></div>;
+export const Window: Component<{
+  id: string;
+  expressions: DustExpression.Any[]; // TODO Dust.WindowExpression?
+}> = (props) => {
+  // TODO add inputs for these as well for debugging
+  const physicsConstants: PhysicsConstants = {
+    maxVelocity: 2,
+    dragMultiplier: 0.995,
+    frictionCoefficient: 0.01,
+  };
+  const simulation = new PhysicsSimulation<HTMLCircle>({
+    constants: physicsConstants,
+  });
+  const [simulationPlaying, setSimulationPlaying] = createSignal(false);
+
+  createEffect(
+    on(simulationPlaying, (playing, wasPlaying) => {
+      if (playing && !wasPlaying) {
+        simulation.play();
+      }
+      if (!playing && wasPlaying) {
+        simulation.pause();
+      }
+    })
+  );
+  return (
+    <div class="Dust window">
+      <button onClick={() => setSimulationPlaying(!simulationPlaying())}>
+        {simulationPlaying() ? "pause" : "play"} simulation
+      </button>
+      <WindowContents
+        id={props.id}
+        expressions={props.expressions}
+        simulation={simulation}
+      />
+    </div>
+  );
 };

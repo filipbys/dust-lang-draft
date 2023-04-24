@@ -6,21 +6,16 @@ import {
 } from "../math/Physics";
 import { RollingAverage } from "../math/Stats";
 import { X, Y } from "../math/Vectors";
-
-export interface PhysicsSimulationElement extends PhysicsElement {
-  state: PhysicsSimulationElementState;
-}
-
-export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
+import { PhysicsSimulationElement } from "./PhysicsSimulationElement";
 
 export type ForceCalculator = () => any;
 
 const FIRST_FRAME_DELTA_MILLIS = 16;
 
-export class PhysicsSimulation<T extends PhysicsSimulationElement> {
+export class PhysicsSimulation {
   #playing: boolean = false;
 
-  readonly #elements: T[] = [];
+  readonly #elements: PhysicsSimulationElement[] = [];
 
   readonly #forceCalculators: ForceCalculator[] = [];
 
@@ -94,20 +89,22 @@ export class PhysicsSimulation<T extends PhysicsSimulationElement> {
   }
 
   // TODO I wonder if we can use solidjs's reactivity rather than having to write these add/remove method pairs...
-  addElement(element: T) {
+  addElement(element: PhysicsSimulationElement) {
     if (addElementIfAbsent(this.#elements, element)) {
       console.log("Added element to simulation:", element);
     } else {
       console.warn("Element already exists in the simulation:", element);
     }
+    this.play();
   }
 
-  removeElement(element: T) {
+  removeElement(element: PhysicsSimulationElement) {
     if (removeElementIfPresent(this.#elements, element)) {
       console.log("Removed element from simulation:", element);
     } else {
       console.warn("Element does not exist in the simulation:", element);
     }
+    this.play();
   }
 
   addForceCalculator(calculator: ForceCalculator) {
@@ -116,6 +113,7 @@ export class PhysicsSimulation<T extends PhysicsSimulationElement> {
     } else {
       console.warn("Calculator already exists in the simulation:", calculator);
     }
+    this.play();
   }
 
   removeForceCalculator(calculator: ForceCalculator) {
@@ -124,6 +122,7 @@ export class PhysicsSimulation<T extends PhysicsSimulationElement> {
     } else {
       console.warn("Calculator does not exist in the simulation:", calculator);
     }
+    this.play();
   }
 
   play() {

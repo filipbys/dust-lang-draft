@@ -2,8 +2,12 @@ import { Component, For, on } from "solid-js";
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
 import { DustExpressionView } from "./DustExpressionView";
-import { smallestEnclosingCircle } from "../math/Geometry";
-import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
+import {
+  ForceCalculator,
+  PhysicsSimulation,
+  PhysicsSimulationElement,
+} from "../simulations/PhysicsSimulation";
+import { Simulation } from "./Modules";
 // import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 
 // TODO imported and exported values go around the outside.
@@ -21,25 +25,21 @@ const ModuleElement: Component<{
   depthLimit: number;
   simulation: PhysicsSimulation;
 }> = (props) => {
-  let htmlElement: HTMLElement | null = null;
-  onMount(() => {
-    const element = htmlElement!;
-    props.simulation.addElement(element);
-
-    onCleanup(() => props.simulation.removeElement(element));
-  });
-
   return (
-    <div class="Dust moduleElement" ref={(it) => (htmlElement = it)}>
+    <div
+      class="Dust moduleElement"
+      ref={(it) => mountModuleElement(it, props.simulation)}
+    >
       <DustExpressionView {...props} />
     </div>
   );
 };
 
 export const Module: Component<{
-  moduleExpression: DustExpression.Module;
+  expression: DustExpression.Module;
   id: string;
   depthLimit: number;
+  simulation: PhysicsSimulation;
 }> = (props) => {
   // TODO:
   // - Create a signal for whether the simulation is playing
@@ -47,59 +47,35 @@ export const Module: Component<{
   // - Set up MutationObservers and ResizeObservers to auto-play the simulation
   // - Auto-pause the simulation if every PhysicsElement has zero velocity
 
-  const [simulationPlaying, setSimulationPlaying] =
-    createSignal<boolean>(false);
+  let moduleCircle: PhysicsSimulationElement | null = null;
 
-  let moduleHTMLElement: HTMLElement | null = null;
-  let moduleNameHTMLElement: HTMLElement | null = null;
-  let simulation: Simulation | null = null;
-
-  onMount(() => {
-    simulation = new Simulation(moduleHTMLElement!, moduleNameHTMLElement!);
-    setSimulationPlaying(true);
-  });
-
-  createEffect(
-    on(simulationPlaying, (playing, wasPlaying) => {
-      if (playing && !wasPlaying) {
-        simulation!.play();
-      }
-      if (!playing && wasPlaying) {
-        simulation!.pause();
-      }
-    })
-  );
+  const calculateForces = () => {
+    // TODO need a way to track the current PhysicsSimulationElements so we can calculate the forces
+  };
 
   return (
     <div
       id={props.id}
       class="Dust module"
-      ref={(it) => (moduleHTMLElement = it)}
+      ref={(it) => mountModule(it, props.simulation, calculateForces)}
     >
-      <button onClick={() => (simulation!.moduleElement.diameter += 20)}>
-        grow
-      </button>
-      <button onClick={() => (simulation!.moduleElement.diameter -= 20)}>
-        shrink
-      </button>
-      <button onClick={() => setSimulationPlaying(!simulationPlaying())}>
-        {simulationPlaying() ? "pause" : "play"} simulation
-      </button>
+      <button onClick={() => (moduleCircle!.diameter += 20)}>grow</button>
+      <button onClick={() => (moduleCircle!.diameter -= 20)}>shrink</button>
       {/* TODO add a way to add and remove elements */}
 
       <div
         class="Dust moduleElement moduleName"
-        ref={(it) => (moduleNameHTMLElement = it)}
+        ref={(it) => mountModuleElement(it, props.simulation)}
       >
-        {props.moduleExpression.name}
+        {props.expression.name}
       </div>
-      <For each={props.moduleExpression.expressions}>
+      <For each={props.expression.expressions}>
         {(expression, index) => (
           <ModuleElement
             expression={expression}
             id={props.id + "/expressions/" + index()}
             depthLimit={props.depthLimit - 1}
-            simulation={simulation!}
+            simulation={props.simulation}
           />
           // TODO the "simulation!" might or might not work
         )}
@@ -107,3 +83,42 @@ export const Module: Component<{
     </div>
   );
 };
+
+function mountModuleElement(
+  htmlElement: HTMLElement,
+  simulation: PhysicsSimulation
+): PhysicsSimulationElement {
+  console.log("Mounting ModuleElement:", htmlElement);
+  const simulationElement = new PhysicsSimulationElement({
+    htmlElement,
+    state: "free",
+  });
+  simulation.addElement(simulationElement);
+
+  onCleanup(() => {
+    console.log("Cleaning up ModuleElement:", htmlElement);
+    simulation.removeElement(simulationElement);
+  });
+  return simulationElement;
+}
+
+function mountModule(
+  htmlElement: HTMLElement,
+  simulation: PhysicsSimulation,
+  calculateForces: ForceCalculator
+): PhysicsSimulationElement {
+  console.log("Mounting Module:", htmlElement);
+  const simulationElement = new PhysicsSimulationElement({
+    htmlElement,
+    state: "pinned",
+  });
+
+  simulation.addElement(simulationElement);
+  simulation.addForceCalculator(calculateForces);
+  onCleanup(() => {
+    console.log("Cleaning up Module:", htmlElement);
+    simulation.removeElement(simulationElement);
+    simulation.removeForceCalculator(calculateForces);
+  });
+  return simulationElement;
+}

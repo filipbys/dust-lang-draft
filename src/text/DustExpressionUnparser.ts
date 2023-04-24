@@ -1,5 +1,5 @@
 import type { Node, GroupType } from "./TextTree";
-import type { Any, Declaration } from "./DustExpression";
+import type { Any, Declaration } from "../types/DustExpression";
 
 export function unparseExpression(expression: Any): Node {
   const kind = expression.kind;

@@ -1,15 +1,39 @@
-import { Component, createEffect, createSignal, on, onCleanup } from "solid-js";
+import {
+  batch,
+  Component,
+  createEffect,
+  createSignal,
+  on,
+  onCleanup,
+} from "solid-js";
 import * as DustExpression from "./types/DustExpression";
 import "./styles.css";
 
 import { DustExpressionView } from "./views/DustExpressionView";
-import { toTextTree } from "./text/TextTree";
+import { TextNode, toTextTree } from "./text/TextTree";
 import { parseExpression } from "./text/DustExpressionParser";
-import { createStore, produce } from "solid-js/store";
+import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
 
 import * as jsonpatch from "fast-json-patch";
+import { TextTreeView } from "./views/TextTreeView";
+
+function applyJsonPatch<T>(
+  setStore: SetStoreFunction<T>,
+  patch: readonly jsonpatch.Operation[]
+) {
+  setStore(
+    produce((currentValue) => jsonpatch.applyPatch(currentValue, patch))
+  );
+}
 
 const PlainTextEditor: Component = () => {
+  const [textTree, setTextTree] = createStore<TextNode>({
+    kind: "group",
+    groupType: "()",
+    nodes: [],
+    totalLength: 0,
+  });
+
   const [expression, setExpression] = createStore<DustExpression.Any>({
     kind: "identifier",
     identifier: "loading...",
@@ -32,14 +56,24 @@ const PlainTextEditor: Component = () => {
 
   createEffect(
     on(inputText, (newInput) => {
-      const newExpression = parseInput(newInput);
-      const diff = jsonpatch.compare(expression, newExpression);
-      console.log("input text changed:", diff);
-      setExpression(
-        produce((currentExpression) =>
-          jsonpatch.applyPatch(currentExpression, diff)
-        )
-      );
+      const parseResult = toTextTree(newInput);
+      console.log("parseInput", parseResult);
+      if (parseResult.kind !== "success") {
+        throw parseResult;
+      }
+      const newTextTree = parseResult.node;
+
+      const textTreeDiff = jsonpatch.compare(textTree, newTextTree);
+
+      const newExpression = parseExpression(newTextTree);
+
+      const expressionDiff = jsonpatch.compare(expression, newExpression);
+      console.log("input text changed:", textTreeDiff, expressionDiff);
+
+      batch(() => {
+        applyJsonPatch(setTextTree, textTreeDiff);
+        applyJsonPatch(setExpression, expressionDiff);
+      });
     })
   );
 
@@ -73,6 +107,12 @@ const PlainTextEditor: Component = () => {
     // window.getSelection()!.removeAllRanges();
   }
 
+  function beforeTextTreeViewInput(this: HTMLElement, event: InputEvent) {
+    console.log("beforeTextTreeViewInput", this, event, window.getSelection());
+    event.preventDefault();
+    // TODO handle changes here
+  }
+
   const initialText = inputText(); // let contentEditable take over
   return (
     <div>
@@ -80,6 +120,10 @@ const PlainTextEditor: Component = () => {
         {initialText}
       </code>
       <button onClick={() => alert("TODO")}>Save</button>
+      <div contentEditable={true} onBeforeInput={beforeTextTreeViewInput}>
+        <TextTreeView node={textTree} />
+      </div>
+      <br />
       <div>
         <DustExpressionView
           expression={expression}
@@ -110,15 +154,6 @@ const PlainTextEditor: Component = () => {
   // So we should...
   // TODO implement our own Caret element that can be moved around the document, splitting Spans in half where needed. That way we can more easily implement multiple Carets as well as Selections
 };
-
-function parseInput(text: string): DustExpression.Any {
-  const parseResult = toTextTree(text);
-  console.log("parseInput", parseResult);
-  if (parseResult.kind !== "success") {
-    throw parseResult;
-  }
-  return parseExpression(parseResult.node);
-}
 
 const App: Component = () => {
   return (

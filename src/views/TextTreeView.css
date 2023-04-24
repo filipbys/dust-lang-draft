@@ -1,0 +1,8 @@
+.Dust.textLeaf,
+.Dust.textGroup {
+  white-space: pre;
+}
+
+.Dust.textGroup {
+  display: inline;
+}

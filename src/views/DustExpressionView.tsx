@@ -15,18 +15,10 @@ export type EventCallback<T extends Element, E extends Event> = (
   ev: E
 ) => any;
 
-// export type Callbacks = Readonly<{
-//   onInput: EventCallback<HTMLSpanElement>;
-//   onKeyDown: EventCallback<HTMLSpanElement>;
-//   onFocusIn: EventCallback<HTMLElement>;
-//   onFocusOut: EventCallback<HTMLElement>;
-//   onGroupClicked: EventCallback<HTMLDivElement>;
-// }>;
-
 export interface ExpressionProps<
   T extends DustExpression.Any = DustExpression.Any
 > {
-  readonly id: string;
+  readonly id: string; // TODO add a data-json-path to each element instead of using id? Unless we want to be able to query any element by id...
   readonly expression: T;
   readonly depthLimit: number;
   readonly onFocusIn?: EventCallback<HTMLSpanElement, FocusEvent>;

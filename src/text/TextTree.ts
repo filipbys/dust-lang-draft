@@ -1,10 +1,27 @@
+export type TextNode = TextLeaf | TextGroup;
+
+export type TextLeaf = Readonly<{ kind: "leaf"; text: string }>;
+
+export type TextGroupType = keyof typeof GROUP_TYPE_INFO;
+
+export type TextGroup = Readonly<_TextGroup<readonly TextNode[]>>;
+
+type MutableTextGroup = _TextGroup<TextNode[]>;
+
+type _TextGroup<TextNodes> = {
+  readonly kind: "group";
+  readonly groupType: TextGroupType;
+  readonly nodes: TextNodes;
+  totalLength: number;
+};
+
 // TODO JS string encoding is WEIRD. See https://www.infoq.com/presentations/js-character-encoding/
 // Current index-and-.length-based approach is definitely broken for some kinds of inputs
 // We should implement text parsing functions in Rust, and then convert to JS strings only when we need to put them in the DOM
 // Alternatively, use ByteArrays and plain ascii as the parsing layer, then have a JS-string layer for the user-facing text, then convert JS-string inputs to ascii for parsing, replacing a known subset of unicode characters with their \keyword counterparts
-export const MAX_HORIZONTAL_LENGTH = 80; // TODO make this an adjustable setting
+const MAX_HORIZONTAL_LENGTH = 80; // TODO make this an adjustable setting
 
-export const GROUP_TYPE_INFO = {
+const GROUP_TYPE_INFO = {
   /* TEXT-BASED GROUPS */
   "''": { description: "Character", example: "'d'" },
   '""': { description: "Ascii text", example: '"the answer is 42"' },
@@ -50,76 +67,61 @@ export const GROUP_TYPE_INFO = {
   // ( entry-to-text = ( (λ (key : Any) (value : Any)) : Text = “$(key) -> $(value)” ) )
 } as const;
 
-function groupStart(groupType: GroupType): string {
+export function groupStart(groupType: TextGroupType): string {
   return groupType[0];
 }
 
-function groupEnd(groupType: GroupType): string {
+export function groupEnd(groupType: TextGroupType): string {
   return groupType[groupType.length - 1];
 }
 
-export const [GROUP_TYPES_BY_START, GROUP_TYPES_BY_END]: [
-  Map<string, GroupType>,
-  Map<string, GroupType>
+const [GROUP_TYPES_BY_START, GROUP_TYPES_BY_END]: [
+  Map<string, TextGroupType>,
+  Map<string, TextGroupType>
 ] = (() => {
-  let starts = new Map<string, GroupType>();
-  let ends = new Map<string, GroupType>();
+  let starts = new Map<string, TextGroupType>();
+  let ends = new Map<string, TextGroupType>();
   for (const key in GROUP_TYPE_INFO) {
-    const groupType = key as GroupType;
+    const groupType = key as TextGroupType;
     starts.set(groupStart(groupType), groupType);
     ends.set(groupEnd(groupType), groupType);
   }
   return [starts, ends];
 })();
 
-export type GroupType = keyof typeof GROUP_TYPE_INFO;
-
-type _Group<Nodes> = {
-  readonly kind: "group";
-  readonly groupType: GroupType;
-  readonly nodes: Nodes;
-  totalLength: number;
-};
-export type Group = Readonly<_Group<readonly Node[]>>;
-type MutableGroup = _Group<Node[]>;
-
-export type Leaf = Readonly<{ kind: "leaf"; text: string }>;
-
-export type Node = Group | Leaf;
-
 export type ParseError = Readonly<
   | {
       kind: "error:missing-start-of-group";
-      groupType: GroupType;
-      partialNode: Node;
+      groupType: TextGroupType;
+      partialNode: TextNode;
       index: number;
     }
   | {
       kind: "error:missing-one-or-more-ends-of-groups";
-      unfinishedGroups: readonly Group[]; // .at(0) is the root and .at(-1) is the most recently opened group that needs closing
+      unfinishedGroups: readonly TextGroup[]; // .at(0) is the root and .at(-1) is the most recently opened group that needs closing
     }
 >;
 
 export type ParseResult =
-  | Readonly<{ kind: "success"; node: Group }>
+  | Readonly<{ kind: "success"; node: TextNode }>
   | ParseError;
 
 export function toTextTree(text: string): ParseResult {
-  let stack: MutableGroup[] = [];
-  let currentGroup: MutableGroup = {
+  let stack: MutableTextGroup[] = [];
+  let currentGroup: MutableTextGroup = {
     kind: "group",
     groupType: "()",
     nodes: [],
     totalLength: 0,
   };
 
-  function startNewGroup(groupType: GroupType) {
+  function startNewGroup(groupType: TextGroupType) {
     endCurrentTextChunk();
     stack.push(currentGroup);
     currentGroup = { kind: "group", groupType, nodes: [], totalLength: 1 };
   }
 
-  function endCurrentGroup(): Group {
+  function endCurrentGroup(): TextGroup {
     endCurrentTextChunk();
     currentGroup.totalLength += 1;
     return currentGroup;
@@ -138,8 +140,9 @@ export function toTextTree(text: string): ParseResult {
 
   for (; currentIndex < text.length; currentIndex++) {
     const c = text[currentIndex];
-    const groupTypeStart: GroupType | undefined = GROUP_TYPES_BY_START.get(c);
-    const groupTypeEnd: GroupType | undefined = GROUP_TYPES_BY_END.get(c);
+    const groupTypeStart: TextGroupType | undefined =
+      GROUP_TYPES_BY_START.get(c);
+    const groupTypeEnd: TextGroupType | undefined = GROUP_TYPES_BY_END.get(c);
 
     const isStart = groupTypeStart !== undefined;
     const isEnd = groupTypeEnd !== undefined;
@@ -149,7 +152,7 @@ export function toTextTree(text: string): ParseResult {
       startNewGroup(groupTypeStart);
     } else if (isEnd) {
       const group = endCurrentGroup();
-      const parentGroup: MutableGroup | undefined = stack.pop();
+      const parentGroup: MutableTextGroup | undefined = stack.pop();
       if (parentGroup === undefined) {
         return {
           kind: "error:missing-start-of-group",
@@ -176,13 +179,13 @@ export function toTextTree(text: string): ParseResult {
   return { kind: "success", node };
 }
 
-function isSingleLine(group: Group): boolean {
+function isSingleLine(group: TextGroup): boolean {
   return group.totalLength < MAX_HORIZONTAL_LENGTH;
 }
 
 const SINGLE_INDENT = "  ";
 
-function multilineGroupToUTF8(group: Group, indent: string) {
+function multilineGroupToUTF8(group: TextGroup, indent: string) {
   const groupType = group.groupType;
   const start = indent + groupStart(groupType);
   const nextIndent = indent + SINGLE_INDENT;
@@ -193,7 +196,7 @@ function multilineGroupToUTF8(group: Group, indent: string) {
 }
 
 // TODO actually JS strings are UTF-16. Rename to toJsString
-export function toUTF8(node: Node, indent: string = ""): string {
+export function toUTF8(node: TextNode, indent: string = ""): string {
   if (node.kind === "leaf") {
     return indent + node.text;
   }

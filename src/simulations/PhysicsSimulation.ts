@@ -88,23 +88,9 @@ export class PhysicsSimulationElement implements Circle, PhysicsElement {
       centerWithinParent(this.htmlElement, this.#diameter);
     }
   }
-
-  get kineticEnergy(): number {
-    return (this.mass * lengthSquared(this.velocity)) / 2;
-  }
-
-  // TODO move this part into a simulation component
-  updateVelocityAndPositionIfNeeded(
-    constants: PhysicsConstants,
-    deltaMillis: number
-  ) {
-    if (this.state !== "free") {
-      return;
-    }
-    updateVelocityAndPosition(this, constants, deltaMillis);
-  }
 }
 
+// TODO move these into a separate file
 function setTranslate(
   htmlElement: HTMLElement,
   newTranslate: Readonly<Vector2D>,

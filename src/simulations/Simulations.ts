@@ -1,10 +1,11 @@
 import {
+  kineticEnergy,
   PhysicsConstants,
   PhysicsElement,
   updateVelocityAndPosition,
 } from "../math/Physics";
 import { RollingAverage } from "../math/Stats";
-import { Vector2D } from "../math/Vectors";
+import { Vector2D, X, Y } from "../math/Vectors";
 
 export interface SimulationElement extends PhysicsElement {
   state: SimulationElementState;
@@ -17,20 +18,21 @@ type ForceCalculator = () => any;
 const FIRST_FRAME_DELTA_MILLIS = 16;
 
 export class Simulation<T extends SimulationElement> {
-  // TODO track all elements that can move around (e.g. they're in a module and/or they're being dragged)
-  // Track whether the simulation is playing. Expose a play() method that starts the simulation using requestAnimationFrame if not already playing, and a pause() method that stops the simulation before the next frame.
-  // Update element positions on every frame while playing
-  // If no positions changed in X frames since the last play(), automatically pause()
-
   #playing: boolean = false;
 
-  #elements: T[] = [];
+  readonly #elements: T[] = [];
 
-  #forceCalculators: ForceCalculator[] = [];
+  readonly #forceCalculators: ForceCalculator[] = [];
 
   readonly #frameCallback: FrameRequestCallback;
 
-  constructor(constants: PhysicsConstants) {
+  constructor({
+    constants,
+    maxStillFramesBeforeAutoPause = 30,
+  }: {
+    constants: PhysicsConstants;
+    maxStillFramesBeforeAutoPause?: number;
+  }) {
     this.#frameCallback = frameCallback;
 
     const simulation = this;
@@ -54,59 +56,74 @@ export class Simulation<T extends SimulationElement> {
     const simulationPerformance = new SimulationPerformance();
     function runOneStep(deltaMillis: number) {
       simulationPerformance.startClock(deltaMillis);
+      recalculateForces();
+      updateVelocitiesAndPositions(deltaMillis);
+      autoPauseIfNeeded();
+      simulationPerformance.stopClock();
+    }
 
-      for (const forceCalculator of simulation.#forceCalculators) {
-        forceCalculator();
+    function recalculateForces() {
+      for (const element of simulation.#elements) {
+        element.force[X] = 0;
+        element.force[Y] = 0;
       }
 
+      for (const updateForces of simulation.#forceCalculators) {
+        updateForces();
+      }
+    }
+
+    const averageEnergy = new RollingAverage(maxStillFramesBeforeAutoPause);
+    function updateVelocitiesAndPositions(deltaMillis: number) {
+      let totalEnergy = 0;
       for (const element of simulation.#elements) {
         if (element.state === "free") {
           updateVelocityAndPosition(element, constants, deltaMillis);
-          // TODO automatically pause if nothing moved in the last X frames
         }
+        totalEnergy += kineticEnergy(element);
       }
+      averageEnergy.add(totalEnergy);
+    }
 
-      simulationPerformance.stopClock();
+    function autoPauseIfNeeded() {
+      if (averageEnergy.isSaturated && averageEnergy.average() === 0) {
+        simulation.pause();
+        averageEnergy.clear();
+      }
     }
   }
 
   // TODO I wonder if we can use solidjs's reactivity rather than having to write these add/remove method pairs...
   addElement(element: T) {
-    if (this.#elements.includes(element)) {
+    if (addElementIfAbsent(this.#elements, element)) {
+      console.log("Added element to simulation:", element);
+    } else {
       console.warn("Element already exists in the simulation:", element);
-      return;
     }
-    console.log("Adding element to simulation:", element);
-    this.#elements.push(element);
   }
 
   removeElement(element: T) {
-    if (!this.#elements.includes(element)) {
+    if (removeElementIfPresent(this.#elements, element)) {
+      console.log("Removed element from simulation:", element);
+    } else {
       console.warn("Element does not exist in the simulation:", element);
-      return;
     }
-    console.log("Removing element from simulation:", element);
-    this.#elements = this.#elements.filter((it) => it === element);
   }
 
   addForceCalculator(calculator: ForceCalculator) {
-    if (this.#forceCalculators.includes(calculator)) {
+    if (addElementIfAbsent(this.#forceCalculators, calculator)) {
+      console.log("Added calculator to simulation:", calculator);
+    } else {
       console.warn("Calculator already exists in the simulation:", calculator);
-      return;
     }
-    console.log("Adding calculator to simulation:", calculator);
-    this.#forceCalculators.push(calculator);
   }
 
   removeForceCalculator(calculator: ForceCalculator) {
-    if (!this.#forceCalculators.includes(calculator)) {
+    if (removeElementIfPresent(this.#forceCalculators, calculator)) {
+      console.log("Removed calculator from simulation:", calculator);
+    } else {
       console.warn("Calculator does not exist in the simulation:", calculator);
-      return;
     }
-    console.log("Removing calculator from simulation:", calculator);
-    this.#forceCalculators = this.#forceCalculators.filter(
-      (it) => it === calculator
-    );
   }
 
   play() {
@@ -125,8 +142,24 @@ export class Simulation<T extends SimulationElement> {
   }
 }
 
+function addElementIfAbsent<T>(array: T[], element: T): boolean {
+  if (!array.includes(element)) {
+    array.push(element);
+    return true;
+  }
+  return false;
+}
+
+function removeElementIfPresent<T>(array: T[], element: T): boolean {
+  if (array.includes(element)) {
+    array.splice(array.indexOf(element), 1);
+    return true;
+  }
+  return false;
+}
+
 class SimulationPerformance {
-  runOneStepPerformance = new RollingAverage(30);
+  averagePerformance = new RollingAverage(30);
   frameDeltaMillis = new RollingAverage(30);
   debugFrameCounter = 0;
 
@@ -142,12 +175,12 @@ class SimulationPerformance {
       "SimulationPerformance-start",
       "SimulationPerformance-end"
     );
-    this.runOneStepPerformance.add(p.duration);
+    this.averagePerformance.add(p.duration);
 
     this.debugFrameCounter++;
     if (this.debugFrameCounter === 30) {
       console.log(
-        `averages over the last 30 frames: runOneStep=${this.runOneStepPerformance.average()}, frameDelta=${this.frameDeltaMillis.average()}`
+        `averages over the last 30 frames: runOneStep=${this.averagePerformance.average()}, frameDelta=${this.frameDeltaMillis.average()}`
       );
       this.debugFrameCounter = 0;
     }

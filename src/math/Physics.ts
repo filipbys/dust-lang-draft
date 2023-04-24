@@ -1,5 +1,4 @@
 import { gapBetween } from "./Geometry";
-import { clamp } from "./Numbers";
 import {
   distanceBetween,
   Vector2D,
@@ -8,6 +7,7 @@ import {
   Vector2DIndex,
   X,
   Y,
+  lengthSquared,
 } from "./Vectors";
 
 // TODO consider switching to different units like mm instead of px
@@ -18,6 +18,10 @@ export interface PhysicsElement {
   readonly force: Vector2D; // characters * pixels/(millis^2). Mutable since it changes the most often per frame
 
   readonly mass: number; // characters
+}
+
+export function kineticEnergy(element: PhysicsElement): number {
+  return (element.mass * lengthSquared(element.velocity)) / 2;
 }
 
 export interface PhysicsConstants {

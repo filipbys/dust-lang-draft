@@ -22,11 +22,10 @@ const ModuleElement: Component<{
 }> = (props) => {
   let htmlElement: HTMLElement | null = null;
   onMount(() => {
-    props.simulation.addElement(htmlElement!);
+    const element = htmlElement!;
+    props.simulation.addElement(element);
 
-    onCleanup(() => {
-      props.simulation.removeElement(htmlElement!);
-    });
+    onCleanup(() => props.simulation.removeElement(element));
   });
 
   return (

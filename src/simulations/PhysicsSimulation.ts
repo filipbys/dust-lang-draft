@@ -11,7 +11,7 @@ import {
 // TODO! decouple HTML part from the math part. Math part belongs in the math/ folder.
 
 // TODO add another state "focused" which is like "free" but instead of it moving around, the world moves around it so the viewer can keep a fixed reference frame on the element.
-export type PhysicsState = "free" | "pinned" | "dragged";
+// export type PhysicsState = "free" | "pinned" | "dragged";
 
 // TODO implement to/from JSON
 // TODO tie in DragAndDrop

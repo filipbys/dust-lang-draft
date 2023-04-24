@@ -1,4 +1,5 @@
-import { Component, For, Match, Switch } from "solid-js";
+import { Component, For, Match, onCleanup, Switch } from "solid-js";
+import { Rectangle } from "../math/Geometry";
 import type * as DustExpression from "../types/DustExpression";
 
 const BASE_CSS_CLASS = "Dust";
@@ -10,10 +11,7 @@ function computeCssClass(
   return [BASE_CSS_CLASS, expression.kind, ...additional].join(" ");
 }
 
-export type EventCallback<T extends Element, E extends Event> = (
-  this: T,
-  ev: E
-) => any;
+export type EventCallback<T extends Element, E> = (this: T, ev: E) => any;
 
 export interface ExpressionProps<
   T extends DustExpression.Any = DustExpression.Any
@@ -23,6 +21,7 @@ export interface ExpressionProps<
   readonly depthLimit: number;
   readonly onFocusIn?: EventCallback<HTMLSpanElement, FocusEvent>;
   readonly onFocusOut?: EventCallback<HTMLSpanElement, FocusEvent>;
+  readonly resizeObserver?: ResizeObserver;
 }
 
 // TODO add the "vertical" class where needed, BUT ALSO
@@ -94,8 +93,20 @@ type ListProps = ExpressionProps<ListLikeExpression>;
 const List: Component<ListProps> = (props) => {
   // TODO check for special functions like 'tuple' and 'module' which produce totally different html
 
+  const ref = (element: HTMLElement) => {
+    const observer = props.resizeObserver;
+    if (observer !== undefined) {
+      observer.observe(element);
+      onCleanup(() => observer.unobserve(element));
+    }
+  };
+
   return (
-    <div id={props.id} class={computeListLikeCssClass(props.expression)}>
+    <div
+      id={props.id}
+      class={computeListLikeCssClass(props.expression)}
+      ref={ref}
+    >
       <For each={props.expression.expressions}>
         {(expression, index) => (
           <DustExpressionView

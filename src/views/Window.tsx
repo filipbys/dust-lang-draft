@@ -1,5 +1,5 @@
 import { Component, For } from "solid-js";
-import { smallestEnclosingCircle } from "../math/Geometry";
+import { elementDiameter, smallestEnclosingCircle } from "../math/Geometry";
 import { PhysicsElement } from "../Physics";
 import { onMount, createEffect, children } from "solid-js";
 import { makeDraggable } from "../DragAndDrop";

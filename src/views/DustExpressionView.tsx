@@ -23,7 +23,6 @@ export interface ExpressionProps<
   readonly depthLimit: number;
   readonly onFocusIn?: EventCallback<HTMLSpanElement, FocusEvent>;
   readonly onFocusOut?: EventCallback<HTMLSpanElement, FocusEvent>;
-  readonly onInput?: EventCallback<HTMLSpanElement, InputEvent>;
 }
 
 // TODO add the "vertical" class where needed, BUT ALSO
@@ -59,8 +58,6 @@ const Identifier: Component<IdentifierProps> = (props) => {
       tabIndex="0"
       onFocusIn={props.onFocusIn}
       onFocusOut={props.onFocusOut}
-      contentEditable={props.onInput !== undefined}
-      onInput={props.onInput}
     >
       {props.expression.identifier}
     </span>

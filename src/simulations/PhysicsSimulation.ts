@@ -93,8 +93,7 @@ export class PhysicsSimulationElement implements Circle, PhysicsElement {
     return (this.mass * lengthSquared(this.velocity)) / 2;
   }
 
-  // dragMultiplier: a fraction between zero and 1
-  // frictionCoefficient: pixels/millis
+  // TODO move this part into a simulation component
   updateVelocityAndPositionIfNeeded(
     constants: PhysicsConstants,
     deltaMillis: number

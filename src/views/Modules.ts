@@ -1,9 +1,9 @@
 import { updateElementText } from "../development/Debugging";
 import { makeDraggable } from "../simulations/DragAndDrop";
-import { raise } from "../development/Errors";
-import { PhysicsElement, Springs } from "../math/Physics";
+import { Springs } from "../math/Physics";
 import { PhysicsSimulationElement } from "../simulations/PhysicsSimulation";
 import { RollingAverage } from "../math/Stats";
+import { X, Y } from "../math/Vectors";
 
 // TODO create a similar simulation for unordered containers/collections which has only public elements and just distributes them as evenly as possible
 // ==> Extract shared code between them into other namespaces:
@@ -24,6 +24,7 @@ import { RollingAverage } from "../math/Stats";
 //   };
 // }
 
+// TODO is there a way solidjs can help us with this so we don't have to manually add/remove elements?
 export class Simulation {
   readonly moduleElement: PhysicsSimulationElement;
   readonly moduleName: PhysicsSimulationElement;
@@ -130,6 +131,7 @@ function playSimulation(simulation: Simulation) {
 }
 
 const PHYSICS_CONSTANTS = {
+  maxVelocity: 2,
   dragMultiplier: 0.995,
   frictionCoefficient: 0.01,
 } as const;
@@ -150,13 +152,13 @@ function runOneStep(
   let sumOfPublicElementGapsToBorder = 0;
   let sumOfPrivateElementGapsToBorder = 0;
 
-  moduleElement.force.x = 0;
-  moduleElement.force.y = 0;
-  moduleName.force.x = 0;
-  moduleName.force.y = 0;
+  moduleElement.force[X] = 0;
+  moduleElement.force[Y] = 0;
+  moduleName.force[X] = 0;
+  moduleName.force[Y] = 0;
   for (const element of physicsElements) {
-    element.force.x = 0;
-    element.force.y = 0;
+    element.force[X] = 0;
+    element.force[Y] = 0;
 
     Springs.preventCollisions(element, moduleName, collisionSpringConstant);
     if (element.htmlElement.classList.contains("public")) {

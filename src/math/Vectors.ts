@@ -1,49 +1,46 @@
 import { roundToString } from "./Numbers";
 
-export type Vector2D = {
-  x: number;
-  y: number;
-};
+export type Vector2DIndex = 0 | 1;
+export const X: Vector2DIndex = 0;
+export const Y: Vector2DIndex = 1;
+
+export type Vector2D = [x: number, y: number];
 
 export function vectorToString(
-  vector: Readonly<Vector2D>,
+  [x, y]: Readonly<Vector2D>,
   fractionDigits: number = 0
 ): string {
   return (
-    roundToString(vector.x, fractionDigits) +
-    "," +
-    roundToString(vector.y, fractionDigits)
+    roundToString(x, fractionDigits) + "," + roundToString(y, fractionDigits)
   );
 }
 
-export function lengthSquared(vector: Readonly<Vector2D>): number {
-  return vector.x ** 2 + vector.y ** 2;
+export function lengthSquared([x, y]: Readonly<Vector2D>): number {
+  return x ** 2 + y ** 2;
 }
 
-export function length(vector: Readonly<Vector2D>): number {
-  return Math.hypot(vector.x, vector.y);
+export function length([x, y]: Readonly<Vector2D>): number {
+  return Math.hypot(x, y);
 }
 
 export function distanceBetween(
   first: Readonly<Vector2D>,
   second: Readonly<Vector2D>
 ): number {
-  return Math.hypot(second.x - first.x, second.y - first.y);
+  return Math.hypot(second[X] - first[X], second[Y] - first[Y]);
 }
 
+// TODO verify that this works
 export function scale(
   vector: Readonly<Vector2D>,
   hypotenuse: number
 ): Vector2D {
   const currentHypotenuse = length(vector);
   if (currentHypotenuse === 0) {
-    return structuredClone(vector);
+    return [0, 0];
   }
   const ratio = hypotenuse / currentHypotenuse;
-  return {
-    x: vector.x * ratio,
-    y: vector.y * ratio,
-  };
+  return [vector[X] * ratio, vector[Y] * ratio];
 }
 
 // TODO remove

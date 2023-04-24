@@ -81,14 +81,6 @@ const PlainTextEditor: Component = () => {
     setInputText(this.textContent!);
   }
 
-  function onHTMLEditorInput(this: HTMLElement, event: InputEvent) {
-    console.log("onHTMLEditorInput", this, event);
-  }
-
-  function onElementInput(this: HTMLElement, event: InputEvent) {
-    console.log("onElementInput", this, event);
-  }
-
   function onElementFocusIn(this: HTMLElement, event: FocusEvent) {
     console.log("onFocusIn", this, event);
 
@@ -113,6 +105,12 @@ const PlainTextEditor: Component = () => {
     // TODO handle changes here
   }
 
+  function beforeExpressionViewInput(event: InputEvent) {
+    console.log("beforeExpressionViewInput", event, window.getSelection());
+    event.preventDefault();
+    // TODO handle changes here
+  }
+
   const initialText = inputText(); // let contentEditable take over
   return (
     <div>
@@ -124,14 +122,13 @@ const PlainTextEditor: Component = () => {
         <TextTreeView node={textTree} />
       </div>
       <br />
-      <div>
+      <div contentEditable={true} onBeforeInput={beforeExpressionViewInput}>
         <DustExpressionView
           expression={expression}
           id="plain-text-editor-output"
           depthLimit={42}
           onFocusIn={onElementFocusIn}
           onFocusOut={onElementFocusOut}
-          onInput={onElementInput}
         />
       </div>
       <br />

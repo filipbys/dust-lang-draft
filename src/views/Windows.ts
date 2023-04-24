@@ -1,11 +1,11 @@
 import { elementDiameter, smallestEnclosingCircle } from "../math/Geometry";
-import { PhysicsElement } from "../math/Physics";
+import { PhysicsSimulationElement } from "../simulations/PhysicsSimulation";
 import { makeDraggable } from "../simulations/DragAndDrop";
 import { createSignal } from "solid-js";
 
 type WindowContents = {
   readonly htmlElement: HTMLDivElement;
-  readonly elements: PhysicsElement[];
+  readonly elements: PhysicsSimulationElement[];
 };
 
 type DustWindow = {
@@ -17,9 +17,9 @@ type DustWindow = {
 function makeWindowContents(htmlElements: HTMLElement[]): WindowContents {
   const windowContents = DustDOM.div({ className: "windowContents" }, []);
 
-  const elements: PhysicsElement[] = [];
+  const elements: PhysicsSimulationElement[] = [];
 
-  const windowContentsPhysicsElement = new PhysicsElement({
+  const windowContentsPhysicsElement = new PhysicsSimulationElement({
     htmlElement: windowContents,
     state: "pinned",
     diameter: 100,

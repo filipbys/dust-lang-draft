@@ -1,20 +1,30 @@
 import { gapBetween } from "./Geometry";
 import { clamp } from "./Numbers";
-import { distanceBetween, Vector2D, scale } from "./Vectors";
+import {
+  distanceBetween,
+  Vector2D,
+  scale,
+  length,
+  Vector2DIndex,
+  X,
+  Y,
+} from "./Vectors";
 
+// TODO consider switching to different units like mm instead of px
 export interface PhysicsElement {
-  center: Readonly<Vector2D>;
-  readonly diameter: number;
+  readonly diameter: number; // pixels
+  center: Readonly<Vector2D>; // pixels
+  velocity: Readonly<Vector2D>; // pixels/millis.
+  readonly force: Vector2D; // characters * pixels/(millis^2). Mutable since it changes the most often per frame
 
-  readonly force: Vector2D;
-  readonly velocity: Vector2D;
-
-  readonly mass: number;
+  readonly mass: number; // characters
 }
 
 export interface PhysicsConstants {
-  readonly dragMultiplier: number;
-  readonly frictionCoefficient: number;
+  readonly maxVelocity: number; // pixels/millis: no elements can move faster than this
+
+  readonly dragMultiplier: number; // a fraction between zero and 1: reduces current velocity proportionally to the current velocity. Faster elements slow down quicker.
+  readonly frictionCoefficient: number; // pixels/millis: reduces current velocity by at most this amount. Slow elements just stop moving.
 }
 
 // positive force => speed up along that direction, negative force => accellerate in the opposite direction
@@ -25,8 +35,8 @@ export function addForceAlong(
 ) {
   const forceVector = scale(direction, force);
 
-  element.force.x += forceVector.x;
-  element.force.y += forceVector.y;
+  element.force[X] += forceVector[X];
+  element.force[Y] += forceVector[Y];
 }
 
 // positive force => attract, negative force => repel
@@ -35,43 +45,39 @@ export function addForceBetween(
   second: PhysicsElement,
   force: number
 ) {
-  const direction = {
-    x: second.center.x - first.center.x,
-    y: second.center.y - first.center.y,
-  };
+  const direction: Vector2D = [
+    second.center[X] - first.center[X],
+    second.center[Y] - first.center[Y],
+  ];
   const forceVector = scale(direction, force);
 
-  first.force.x += forceVector.x;
-  first.force.y += forceVector.y;
+  first.force[X] += forceVector[X];
+  first.force[Y] += forceVector[Y];
 
-  second.force.x -= forceVector.x;
-  second.force.y -= forceVector.y;
+  second.force[X] -= forceVector[X];
+  second.force[Y] -= forceVector[Y];
 }
 
-const MAX_VELOCITY_MAGNITUDE = 2; // pixels/millis
-
 function newVelocity(
-  currentVelocity: number,
-  force: number,
-  mass: number,
+  element: PhysicsElement,
+  dimension: Vector2DIndex,
   constants: PhysicsConstants,
   deltaMillis: number
 ): number {
   // force: pixels*mass/millis^2
   // accelleration: pixels/millis^2
-  const accelleration = force / mass; // (F = ma) => (a = F / m)
+  const accelleration = element.force[dimension] / element.mass; // (F = ma) => (a = F / m)
 
   // velocity: pixels/millis
   let newVelocity =
-    (currentVelocity + accelleration * deltaMillis) *
+    (element.velocity[dimension] + accelleration * deltaMillis) *
     constants.dragMultiplier ** deltaMillis;
 
-  newVelocity -=
+  return (
+    newVelocity -
     Math.sign(newVelocity) *
-    Math.min(constants.frictionCoefficient, Math.abs(newVelocity));
-
-  // TODO this allows elements to move faster diagonally than they can ever move horizontally or vertically. Need to limit the actual distance travelled.
-  return clamp(-MAX_VELOCITY_MAGNITUDE, newVelocity, MAX_VELOCITY_MAGNITUDE);
+      Math.min(constants.frictionCoefficient, Math.abs(newVelocity))
+  );
 }
 
 export function updateVelocityAndPosition(
@@ -79,25 +85,19 @@ export function updateVelocityAndPosition(
   constants: PhysicsConstants,
   deltaMillis: number
 ) {
-  element.velocity.x = newVelocity(
-    element.velocity.x,
-    element.force.x,
-    element.mass,
-    constants,
-    deltaMillis
-  );
-  element.velocity.y = newVelocity(
-    element.velocity.y,
-    element.force.y,
-    element.mass,
-    constants,
-    deltaMillis
-  );
+  element.velocity = [
+    newVelocity(element, X, constants, deltaMillis),
+    newVelocity(element, Y, constants, deltaMillis),
+  ];
 
-  element.center = {
-    x: element.center.x + element.velocity.x * deltaMillis,
-    y: element.center.y + element.velocity.y * deltaMillis,
-  };
+  if (length(element.velocity) > constants.maxVelocity) {
+    element.velocity = scale(element.velocity, constants.maxVelocity);
+  }
+
+  element.center = [
+    element.center[X] + element.velocity[X] * deltaMillis,
+    element.center[Y] + element.velocity[Y] * deltaMillis,
+  ];
 }
 
 export namespace Springs {

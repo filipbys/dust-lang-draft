@@ -1,7 +1,8 @@
 import { updateElementText } from "../development/Debugging";
-import { makeDraggable } from "../DragAndDrop";
+import { makeDraggable } from "../simulations/DragAndDrop";
 import { raise } from "../development/Errors";
-import { PhysicsElement, Springs } from "../Physics";
+import { PhysicsElement, Springs } from "../math/Physics";
+import { PhysicsSimulationElement } from "../simulations/PhysicsSimulation";
 import { RollingAverage } from "../math/Stats";
 
 // TODO create a similar simulation for unordered containers/collections which has only public elements and just distributes them as evenly as possible
@@ -24,9 +25,9 @@ import { RollingAverage } from "../math/Stats";
 // }
 
 export class Simulation {
-  readonly moduleElement: PhysicsElement;
-  readonly moduleName: PhysicsElement;
-  #physicsElements: PhysicsElement[] = [];
+  readonly moduleElement: PhysicsSimulationElement;
+  readonly moduleName: PhysicsSimulationElement;
+  #physicsElements: PhysicsSimulationElement[] = [];
   get physicsElements() {
     return this.#physicsElements;
   }
@@ -39,11 +40,11 @@ export class Simulation {
     moduleHTMLElement: HTMLElement,
     moduleNameHTMLElement: HTMLElement
   ) {
-    this.moduleElement = new PhysicsElement({
+    this.moduleElement = new PhysicsSimulationElement({
       htmlElement: moduleHTMLElement,
       state: "pinned",
     });
-    this.moduleName = new PhysicsElement({
+    this.moduleName = new PhysicsSimulationElement({
       htmlElement: moduleNameHTMLElement,
       state: "pinned",
       centeredWithinParent: true,
@@ -52,7 +53,7 @@ export class Simulation {
 
   addElement(htmlElement: HTMLElement) {
     this.#physicsElements.push(
-      new PhysicsElement({
+      new PhysicsSimulationElement({
         htmlElement,
         state: "free",
         centeredWithinParent: true,
@@ -128,13 +129,15 @@ function playSimulation(simulation: Simulation) {
   }
 }
 
+const PHYSICS_CONSTANTS = {
+  dragMultiplier: 0.995,
+  frictionCoefficient: 0.01,
+} as const;
+
 function runOneStep(
   { moduleElement, moduleName, physicsElements }: Simulation,
   deltaMillis: number
 ) {
-  const dragMultiplier = 0.995;
-  const frictionCoefficient = 0.01;
-
   const idealGapBetweenElements = 20;
 
   const collisionSpringConstant = 100; // 1/(millis^2): strongly repel colliding elements
@@ -215,11 +218,7 @@ function runOneStep(
 
   let totalEnergy = 0;
   for (const element of physicsElements) {
-    element.updateVelocityAndPositionIfNeeded(
-      dragMultiplier,
-      frictionCoefficient,
-      deltaMillis
-    );
+    element.updateVelocityAndPositionIfNeeded(PHYSICS_CONSTANTS, deltaMillis);
 
     totalEnergy += element.kineticEnergy;
     updateElementText(element);

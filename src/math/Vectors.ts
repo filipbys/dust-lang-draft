@@ -6,7 +6,7 @@ export type Vector2D = {
 };
 
 export function vectorToString(
-  vector: Vector2D,
+  vector: Readonly<Vector2D>,
   fractionDigits: number = 0
 ): string {
   return (
@@ -16,15 +16,38 @@ export function vectorToString(
   );
 }
 
-export function lengthSquared(vector: Vector2D): number {
+export function lengthSquared(vector: Readonly<Vector2D>): number {
   return vector.x ** 2 + vector.y ** 2;
 }
 
-export function distanceBetween(first: Vector2D, second: Vector2D): number {
+export function length(vector: Readonly<Vector2D>): number {
+  return Math.hypot(vector.x, vector.y);
+}
+
+export function distanceBetween(
+  first: Readonly<Vector2D>,
+  second: Readonly<Vector2D>
+): number {
   return Math.hypot(second.x - first.x, second.y - first.y);
 }
 
-export function getScaled(
+export function scale(
+  vector: Readonly<Vector2D>,
+  hypotenuse: number
+): Vector2D {
+  const currentHypotenuse = length(vector);
+  if (currentHypotenuse === 0) {
+    return structuredClone(vector);
+  }
+  const ratio = hypotenuse / currentHypotenuse;
+  return {
+    x: vector.x * ratio,
+    y: vector.y * ratio,
+  };
+}
+
+// TODO remove
+function getScaled(
   hypotenuse: number,
   mainDirection: number,
   otherDirection: number

@@ -1,7 +1,7 @@
-import type { Node, GroupType } from "./TextTree";
-import type { Any, Declaration } from "../types/DustExpression";
+import type { TextNode, TextGroupType } from "./TextTree";
+import type * as DustExpression from "../types/DustExpression";
 
-export function unparseExpression(expression: Any): Node {
+export function unparseExpression(expression: DustExpression.Any): TextNode {
   const kind = expression.kind;
   if (kind === "identifier") {
     return { kind: "leaf", text: expression.identifier };
@@ -17,26 +17,26 @@ export function unparseExpression(expression: Any): Node {
   throw `Unrecognized expression kind ${kind}`;
 }
 
-const COLON: Node = { kind: "leaf", text: ":" };
-const EQUALS: Node = { kind: "leaf", text: "=" };
+const COLON: TextNode = { kind: "leaf", text: ":" };
+const EQUALS: TextNode = { kind: "leaf", text: "=" };
 
-function getLength(node: Node): number {
+function getLength(node: TextNode): number {
   if (node.kind === "leaf") {
     return node.text.length;
   }
   return node.totalLength;
 }
 
-function calculateTotalLength(nodes: readonly Node[]): number {
+function calculateTotalLength(nodes: readonly TextNode[]): number {
   return nodes.map(getLength).reduce((a, b) => a + b);
 }
 
-function unparseDeclaration(declaration: Declaration): Node {
+function unparseDeclaration(declaration: DustExpression.Declaration): TextNode {
   const pattern = unparseExpression(declaration.pattern);
   if (!declaration.constraints && !declaration.value) {
     return pattern;
   }
-  const nodes: Node[] = [pattern];
+  const nodes: TextNode[] = [pattern];
   if (declaration.constraints) {
     nodes.push(COLON, unparseExpression(declaration.constraints));
   }
@@ -51,7 +51,10 @@ function unparseDeclaration(declaration: Declaration): Node {
   };
 }
 
-function unparseGroup(groupType: GroupType, expressions: readonly Any[]): Node {
+function unparseGroup(
+  groupType: TextGroupType,
+  expressions: readonly DustExpression.Any[]
+): TextNode {
   const nodes = expressions.map(unparseExpression);
   // TODO!! need to join adjacent leaves by whitespace?
   return {

@@ -6,3 +6,8 @@
 .Dust.textGroup {
   display: inline;
 }
+
+/* TODO TextTree needs to split by whitespace in order for this to work... */
+/* .Dust.textGroup[data-group-type="()"] > :first-child {
+  font-weight: bold;
+} */

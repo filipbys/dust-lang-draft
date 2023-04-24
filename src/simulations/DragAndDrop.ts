@@ -1,9 +1,10 @@
-import { updateElementText } from "./Debugging";
-import type { Vector2D } from "./Vectors";
-import type { PhysicsElement } from "./Physics";
-import { RollingAverage } from "./Stats";
+import { updateElementText } from "../development/Debugging";
+import type { Vector2D } from "../math/Vectors";
+import type { PhysicsSimulationElement } from "./PhysicsSimulation";
+import { RollingAverage } from "../math/Stats";
 
-export function makeDraggable(element: PhysicsElement) {
+// TODO needs to take some kind of Simulation parameter so it can play the simulation if needed when an element is dropped
+export function makeDraggable(element: PhysicsSimulationElement) {
   element.htmlElement.addEventListener("pointerdown", (event) =>
     dragStart(event, element)
   );
@@ -21,7 +22,7 @@ type DragState = {
 
 function addListeners(
   event: PointerEvent,
-  element: PhysicsElement,
+  element: PhysicsSimulationElement,
   dragState: DragState
 ) {
   const htmlElement = element.htmlElement;
@@ -34,7 +35,7 @@ function addListeners(
 
 function removeListeners(
   event: PointerEvent,
-  element: PhysicsElement,
+  element: PhysicsSimulationElement,
   dragState: DragState
 ) {
   const htmlElement = element.htmlElement;
@@ -44,7 +45,7 @@ function removeListeners(
   htmlElement.removeEventListener("pointercancel", dragState.dragEnd);
 }
 
-function dragStart(event: PointerEvent, element: PhysicsElement) {
+function dragStart(event: PointerEvent, element: PhysicsSimulationElement) {
   if (element.state !== "free") {
     return;
   }
@@ -69,7 +70,7 @@ function dragStart(event: PointerEvent, element: PhysicsElement) {
 
 function dragMove(
   event: PointerEvent,
-  element: PhysicsElement,
+  element: PhysicsSimulationElement,
   dragState: DragState
 ) {
   console.assert(element.state === "dragged");
@@ -87,7 +88,7 @@ function dragMove(
 
 function dragEnd(
   event: PointerEvent,
-  element: PhysicsElement,
+  element: PhysicsSimulationElement,
   dragState: DragState
 ) {
   console.assert(element.state === "dragged");
@@ -101,7 +102,7 @@ function dragEnd(
 
 function updatePositionAndVelocity(
   event: PointerEvent,
-  element: PhysicsElement,
+  element: PhysicsSimulationElement,
   dragState: DragState
 ) {
   const deltaMillis = Math.max(

@@ -1,6 +1,6 @@
-import { elementDiameter, smallestEnclosingCircle } from "./Geometry";
-import { PhysicsElement } from "./Physics";
-import { makeDraggable } from "./DragAndDrop";
+import { elementDiameter, smallestEnclosingCircle } from "../math/Geometry";
+import { PhysicsElement } from "../math/Physics";
+import { makeDraggable } from "../simulations/DragAndDrop";
 import { createSignal } from "solid-js";
 
 type WindowContents = {

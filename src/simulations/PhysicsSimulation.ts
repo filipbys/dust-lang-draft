@@ -1,4 +1,8 @@
 import {
+  addElementIfAbsent,
+  removeElementIfPresent,
+} from "../data-structures/Arrays";
+import {
   kineticEnergy,
   PhysicsConstants,
   PhysicsElement,
@@ -90,38 +94,30 @@ export class PhysicsSimulation {
 
   // TODO I wonder if we can use solidjs's reactivity rather than having to write these add/remove method pairs...
   addElement(element: PhysicsSimulationElement) {
-    if (addElementIfAbsent(this.#elements, element)) {
-      console.log("Added element to simulation:", element);
-    } else {
-      console.warn("Element already exists in the simulation:", element);
-    }
+    addElementIfAbsent(this.#elements, element, "Simulation.addElement");
     this.play();
   }
 
   removeElement(element: PhysicsSimulationElement) {
-    if (removeElementIfPresent(this.#elements, element)) {
-      console.log("Removed element from simulation:", element);
-    } else {
-      console.warn("Element does not exist in the simulation:", element);
-    }
+    removeElementIfPresent(this.#elements, element, "Simulation.removeElement");
     this.play();
   }
 
   addForceCalculator(calculator: ForceCalculator) {
-    if (addElementIfAbsent(this.#forceCalculators, calculator)) {
-      console.log("Added calculator to simulation:", calculator);
-    } else {
-      console.warn("Calculator already exists in the simulation:", calculator);
-    }
+    addElementIfAbsent(
+      this.#forceCalculators,
+      calculator,
+      "Simulation.addForceCalculator"
+    );
     this.play();
   }
 
   removeForceCalculator(calculator: ForceCalculator) {
-    if (removeElementIfPresent(this.#forceCalculators, calculator)) {
-      console.log("Removed calculator from simulation:", calculator);
-    } else {
-      console.warn("Calculator does not exist in the simulation:", calculator);
-    }
+    removeElementIfPresent(
+      this.#forceCalculators,
+      calculator,
+      "Simulation.removeForceCalculator"
+    );
     this.play();
   }
 
@@ -139,22 +135,6 @@ export class PhysicsSimulation {
     }
     this.#playing = false; // next frame callback will return early
   }
-}
-
-function addElementIfAbsent<T>(array: T[], element: T): boolean {
-  if (!array.includes(element)) {
-    array.push(element);
-    return true;
-  }
-  return false;
-}
-
-function removeElementIfPresent<T>(array: T[], element: T): boolean {
-  if (array.includes(element)) {
-    array.splice(array.indexOf(element), 1);
-    return true;
-  }
-  return false;
 }
 
 class SimulationPerformance {

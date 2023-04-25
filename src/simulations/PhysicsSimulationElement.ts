@@ -2,24 +2,39 @@ import { elementDiameter } from "../math/Geometry";
 import type { Circle } from "../math/Geometry";
 import { Vector2D, X, Y } from "../math/Vectors";
 import { PhysicsElement } from "../math/Physics";
+import { PhysicsSimulation } from "./PhysicsSimulation";
+import { filterMap } from "../data-structures/Arrays";
 
 // TODO add another state "focused" which is like "free" but instead of it moving around, the world moves around it so the viewer can keep a fixed reference frame on the element.
 export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
 
+/*
+      center?: Readonly<Vector2D>;
+      diameter?: number;
+      centeredWithinParent?: boolean;
+      mass?: number;
+*/
 export type PhysicsSimulationElementProps = {
   state: PhysicsSimulationElementState;
+  simulation: PhysicsSimulation;
+  center?: Readonly<Vector2D>;
+  diameter?: number;
+  centeredWithinParent?: boolean;
+  mass?: number;
 };
 
 // TODO I think we need to extend HTMLElement here so the simulation can use ResizeObserver on it efficiently. See this answer about how to instantiate such an element from SolidJS: https://stackoverflow.com/questions/72238932/how-to-use-a-web-component-in-a-solid-js-project
 // Otherwise we need to do something like play() the simulation on every edit so that the sizes update.
 export class PhysicsSimulationElement
-  extends HTMLElement
+  extends HTMLDivElement
   implements Circle, PhysicsElement
 {
   static readonly TAG = "dust-physics-simulation-element";
 
   // readonly htmlElement: HTMLElement;
   state: PhysicsSimulationElementState;
+  readonly #simulation: PhysicsSimulation;
+
   readonly force: Vector2D = [0, 0]; // pixels/millis^2
   velocity: Readonly<Vector2D> = [0, 0]; // pixels/millis
 
@@ -30,21 +45,14 @@ export class PhysicsSimulationElement
   readonly #previousCssTranslate: Vector2D = [0, 0]; // pixels, rounded to nearest integers
   mass: number; // number of characters // TODO should update if the element's expression changes
 
-  constructor(
-    props: Readonly<{
-      state: PhysicsSimulationElementState;
-      center?: Readonly<Vector2D>;
-      diameter?: number;
-      centeredWithinParent?: boolean;
-      mass?: number;
-    }>
-  ) {
+  constructor(props: Readonly<PhysicsSimulationElementProps>) {
     super();
     const diameter = props.diameter || elementDiameter(this); // TODO should run in connectedCallback()
     const center = props.center || [0, 0];
     const centeredWithinParent = props.centeredWithinParent || false;
 
     this.state = props.state;
+    this.#simulation = props.simulation;
     this.mass = props.mass || diameter ** 2; // TODO
     this.#diameter = diameter;
     this.#center = center;
@@ -54,6 +62,18 @@ export class PhysicsSimulationElement
     setDiameter(this, diameter, centeredWithinParent);
   }
 
+  connectedCallback() {
+    // TODO check if this runs at the same time as onMount
+    console.log("PhysicsSimulationElement connectedCallback");
+    this.#simulation.addElement(this);
+  }
+
+  disconnectedCallback() {
+    // TODO check if this runs at the same time as onCleanup
+    console.log("PhysicsSimulationElement disconnectedCallback");
+    this.#simulation.removeElement(this);
+  }
+
   get center() {
     return this.#center;
   }
@@ -61,7 +81,7 @@ export class PhysicsSimulationElement
   set center(newCenter: Readonly<Vector2D>) {
     this.#center = newCenter;
     setTranslate(this, newCenter, this.#previousCssTranslate);
-    // TODO needs to also play the simulation...
+    this.#simulation.play();
   }
 
   get diameter() {
@@ -72,7 +92,7 @@ export class PhysicsSimulationElement
   set diameter(newDiameter: number) {
     this.#diameter = newDiameter;
     setDiameter(this, newDiameter, this.#centeredWithinParent);
-    // TODO needs to also play the simulation...
+    this.#simulation.play();
   }
 
   setBoundary(boundary: Circle) {
@@ -88,8 +108,21 @@ export class PhysicsSimulationElement
     this.#centeredWithinParent = newValue;
     if (newValue) {
       centerWithinParent(this, this.#diameter);
+      this.#simulation.play();
     }
   }
+}
+
+export function getPhysicsSimulationElements(
+  element: PhysicsSimulationElement
+): PhysicsSimulationElement[] {
+  const result: PhysicsSimulationElement[] = [];
+  for (const child of element.children) {
+    if (child instanceof PhysicsSimulationElement) {
+      result.push(child);
+    }
+  }
+  return result;
 }
 
 // TODO move these into a separate file

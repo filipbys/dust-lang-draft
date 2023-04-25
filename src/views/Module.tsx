@@ -1,4 +1,4 @@
-import { Component, ComponentProps, For, on } from "solid-js";
+import { Component, ComponentProps, For, on, Ref } from "solid-js";
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
 import { DustExpressionView } from "./DustExpressionView";
@@ -7,9 +7,15 @@ import {
   PhysicsSimulation,
 } from "../simulations/PhysicsSimulation";
 import {
+  getPhysicsSimulationElements,
   PhysicsSimulationElement,
+  PhysicsSimulationElementProps,
   PhysicsSimulationElementState,
 } from "../simulations/PhysicsSimulationElement";
+import {
+  addElementIfAbsent,
+  removeElementIfPresent,
+} from "../data-structures/Arrays";
 // import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 
 // TODO imported and exported values go around the outside.
@@ -23,29 +29,15 @@ import {
 
 declare module "solid-js" {
   namespace JSX {
+    interface PhysicsSimulationElementComponentProps
+      extends ComponentProps<"div">,
+        PhysicsSimulationElementProps {}
+
     interface IntrinsicElements {
-      [PhysicsSimulationElement.TAG]: ComponentProps<"div"> &
-        PhysicsSimulationElementProps;
+      [PhysicsSimulationElement.TAG]: PhysicsSimulationElementComponentProps;
     }
   }
 }
-
-const ModuleElement: Component<{
-  expression: DustExpression.Any;
-  id: string;
-  depthLimit: number;
-  simulation: PhysicsSimulation;
-}> = (props) => {
-  return (
-    // TODO use the custom dust-physics-simulation-element
-    <div
-      class="Dust moduleElement"
-      ref={(it) => mountModuleElement(it, props.simulation)}
-    >
-      <DustExpressionView {...props} />
-    </div>
-  );
-};
 
 export const Module: Component<{
   expression: DustExpression.Module;
@@ -59,78 +51,66 @@ export const Module: Component<{
   // - Set up MutationObservers and ResizeObservers to auto-play the simulation
   // - Auto-pause the simulation if every PhysicsElement has zero velocity
 
-  let moduleCircle: PhysicsSimulationElement | null = null;
+  const simulation = props.simulation;
 
-  const calculateForces = () => {
-    // TODO need a way to track the current PhysicsSimulationElements so we can calculate the forces
-  };
+  let moduleElement: PhysicsSimulationElement | null = null;
+
+  const forceCalculator = () => calculateForces(moduleElement!);
+
+  function calculateForces(moduleElement: PhysicsSimulationElement) {
+    // TODO calculate the forces in the childElements
+    const childElements: PhysicsSimulationElement[] =
+      getPhysicsSimulationElements(moduleElement);
+  }
+
+  function mountModule(element: PhysicsSimulationElement) {
+    console.log("Mounting Module:", element);
+    moduleElement = element;
+
+    // TODO make the moduleElement do this in its connectedCallback
+    props.simulation.addForceCalculator(forceCalculator);
+  }
+
+  onCleanup(() => {
+    console.log("Cleaning up Module:", moduleElement);
+    // TODO make the moduleElement do this in its disconnectedCallback
+    simulation.removeForceCalculator(forceCalculator);
+  });
 
   return (
-    <div
+    <dust-physics-simulation-element
       id={props.id}
       class="Dust module"
-      ref={(it) => mountModule(it, props.simulation, calculateForces)}
+      state="pinned"
+      simulation={props.simulation}
+      ref={(it) => mountModule(it as PhysicsSimulationElement)}
     >
-      <button onClick={() => (moduleCircle!.diameter += 20)}>grow</button>
-      <button onClick={() => (moduleCircle!.diameter -= 20)}>shrink</button>
+      <button onClick={() => (moduleElement!.diameter += 20)}>grow</button>
+      <button onClick={() => (moduleElement!.diameter -= 20)}>shrink</button>
       {/* TODO add a way to add and remove elements */}
 
-      <div
+      <dust-physics-simulation-element
         class="Dust moduleElement moduleName"
-        ref={(it) => mountModuleElement(it, props.simulation)}
+        state="pinned"
+        simulation={props.simulation}
       >
         {props.expression.name}
-      </div>
+      </dust-physics-simulation-element>
       <For each={props.expression.expressions}>
         {(expression, index) => (
-          <ModuleElement
-            expression={expression}
-            id={props.id + "/expressions/" + index()}
-            depthLimit={props.depthLimit - 1}
+          <dust-physics-simulation-element
+            class="Dust moduleElement"
+            state="free"
             simulation={props.simulation}
-          />
-          // TODO the "simulation!" might or might not work
+          >
+            <DustExpressionView
+              id={props.id + "/expressions/" + index()}
+              expression={expression}
+              depthLimit={props.depthLimit - 1}
+            />
+          </dust-physics-simulation-element>
         )}
       </For>
-    </div>
+    </dust-physics-simulation-element>
   );
 };
-
-function mountModuleElement(
-  htmlElement: HTMLElement,
-  simulation: PhysicsSimulation
-): PhysicsSimulationElement {
-  console.log("Mounting ModuleElement:", htmlElement);
-  const simulationElement = new PhysicsSimulationElement({
-    htmlElement,
-    state: "free",
-  });
-  simulation.addElement(simulationElement);
-
-  onCleanup(() => {
-    console.log("Cleaning up ModuleElement:", htmlElement);
-    simulation.removeElement(simulationElement);
-  });
-  return simulationElement;
-}
-
-function mountModule(
-  htmlElement: HTMLElement,
-  simulation: PhysicsSimulation,
-  calculateForces: ForceCalculator
-): PhysicsSimulationElement {
-  console.log("Mounting Module:", htmlElement);
-  const simulationElement = new PhysicsSimulationElement({
-    htmlElement,
-    state: "pinned",
-  });
-
-  simulation.addElement(simulationElement);
-  simulation.addForceCalculator(calculateForces);
-  onCleanup(() => {
-    console.log("Cleaning up Module:", htmlElement);
-    simulation.removeElement(simulationElement);
-    simulation.removeForceCalculator(calculateForces);
-  });
-  return simulationElement;
-}

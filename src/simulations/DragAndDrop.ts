@@ -3,7 +3,9 @@ import { Vector2D, X, Y } from "../math/Vectors";
 import type { PhysicsSimulationElement } from "./PhysicsSimulationElement";
 import { RollingAverage } from "../math/Stats";
 
-// TODO other elements should be draggable too, unless we want to wrap every other draggable element in a sort of "bubble" when dragging them? Alternatively we can add another class like MovableElement in the hierarchy between PhysicsSimulationElement and HTMLElement.
+// TODO other elements should be draggable too, unless we want to wrap every other draggable element in a sort of "bubble" when dragging them? Alternatively we can add another class like DraggableElement in the hierarchy between PhysicsSimulationElement and HTMLElement.
+// The other alternative would be to drag physics-simulation data separately and maintain a hashmap of element ID -> PhysicsSimulationElement
+// In the case of dragging, we wouldn't even need that since we have the DragState
 export function makeDraggable(element: PhysicsSimulationElement) {
   element.addEventListener("pointerdown", (event) => dragStart(event, element));
 }

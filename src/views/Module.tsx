@@ -2,20 +2,16 @@ import { Component, ComponentProps, For, on, Ref } from "solid-js";
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
 import { DustExpressionView } from "./DustExpressionView";
+import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 import {
-  ForceCalculator,
-  PhysicsSimulation,
-} from "../simulations/PhysicsSimulation";
-import {
-  getPhysicsSimulationElements,
   PhysicsSimulationElement,
   PhysicsSimulationElementProps,
-  PhysicsSimulationElementState,
 } from "../simulations/PhysicsSimulationElement";
 import {
   addElementIfAbsent,
   removeElementIfPresent,
 } from "../data-structures/Arrays";
+import { calculateForcesInModule } from "./Modules";
 // import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 
 // TODO imported and exported values go around the outside.
@@ -29,12 +25,9 @@ import {
 
 declare module "solid-js" {
   namespace JSX {
-    interface PhysicsSimulationElementComponentProps
-      extends ComponentProps<"div">,
-        PhysicsSimulationElementProps {}
-
     interface IntrinsicElements {
-      [PhysicsSimulationElement.TAG]: PhysicsSimulationElementComponentProps;
+      [PhysicsSimulationElement.TAG]: ComponentProps<"div"> &
+        PhysicsSimulationElementProps;
     }
   }
 }
@@ -55,27 +48,14 @@ export const Module: Component<{
 
   let moduleElement: PhysicsSimulationElement | null = null;
 
-  const forceCalculator = () => calculateForces(moduleElement!);
-
-  function calculateForces(moduleElement: PhysicsSimulationElement) {
-    // TODO calculate the forces in the childElements
-    const childElements: PhysicsSimulationElement[] =
-      getPhysicsSimulationElements(moduleElement);
+  function calculateForces(childElements: PhysicsSimulationElement[]) {
+    calculateForcesInModule(moduleElement!, childElements);
   }
 
-  function mountModule(element: PhysicsSimulationElement) {
+  function mountModule(element: HTMLDivElement) {
     console.log("Mounting Module:", element);
-    moduleElement = element;
-
-    // TODO make the moduleElement do this in its connectedCallback
-    props.simulation.addForceCalculator(forceCalculator);
+    moduleElement = element as PhysicsSimulationElement;
   }
-
-  onCleanup(() => {
-    console.log("Cleaning up Module:", moduleElement);
-    // TODO make the moduleElement do this in its disconnectedCallback
-    simulation.removeForceCalculator(forceCalculator);
-  });
 
   return (
     <dust-physics-simulation-element
@@ -83,7 +63,8 @@ export const Module: Component<{
       class="Dust module"
       state="pinned"
       simulation={props.simulation}
-      ref={(it) => mountModule(it as PhysicsSimulationElement)}
+      calculateForces={calculateForces}
+      ref={mountModule}
     >
       <button onClick={() => (moduleElement!.diameter += 20)}>grow</button>
       <button onClick={() => (moduleElement!.diameter -= 20)}>shrink</button>

@@ -12,16 +12,12 @@ import { RollingAverage } from "../math/Stats";
 import { X, Y } from "../math/Vectors";
 import { PhysicsSimulationElement } from "./PhysicsSimulationElement";
 
-export type ForceCalculator = () => any;
-
 const FIRST_FRAME_DELTA_MILLIS = 16;
 
 export class PhysicsSimulation {
   #playing: boolean = false;
 
   readonly #elements: PhysicsSimulationElement[] = [];
-
-  readonly #forceCalculators: ForceCalculator[] = [];
 
   readonly #frameCallback: FrameRequestCallback;
 
@@ -67,8 +63,10 @@ export class PhysicsSimulation {
         element.force[Y] = 0;
       }
 
-      for (const updateForces of simulation.#forceCalculators) {
-        updateForces();
+      for (const element of simulation.#elements) {
+        if (element.calculateForces !== undefined) {
+          element.calculateForces(getPhysicsSimulationElementChildren(element));
+        }
       }
     }
 
@@ -103,24 +101,6 @@ export class PhysicsSimulation {
     this.play();
   }
 
-  addForceCalculator(calculator: ForceCalculator) {
-    addElementIfAbsent(
-      this.#forceCalculators,
-      calculator,
-      "Simulation.addForceCalculator"
-    );
-    this.play();
-  }
-
-  removeForceCalculator(calculator: ForceCalculator) {
-    removeElementIfPresent(
-      this.#forceCalculators,
-      calculator,
-      "Simulation.removeForceCalculator"
-    );
-    this.play();
-  }
-
   play() {
     if (this.#playing) {
       return;
@@ -135,6 +115,18 @@ export class PhysicsSimulation {
     }
     this.#playing = false; // next frame callback will return early
   }
+}
+
+function getPhysicsSimulationElementChildren(
+  element: PhysicsSimulationElement
+): PhysicsSimulationElement[] {
+  const result: PhysicsSimulationElement[] = [];
+  for (const child of element.children) {
+    if (child instanceof PhysicsSimulationElement) {
+      result.push(child);
+    }
+  }
+  return result;
 }
 
 class SimulationPerformance {

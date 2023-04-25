@@ -1,7 +1,7 @@
 import { updateElementText } from "../development/Debugging";
 import { makeDraggable } from "../simulations/DragAndDrop";
 import { Springs } from "../math/Physics";
-import { PhysicsSimulationElement } from "../simulations/PhysicsSimulation";
+import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
 import { RollingAverage } from "../math/Stats";
 import { X, Y } from "../math/Vectors";
 
@@ -13,71 +13,6 @@ import { X, Y } from "../math/Vectors";
 //      - pinning
 
 // TODO extract a component with inputs for changing various forces (e.g. setting forces to zero to turn them off)
-
-// export type DustModule = {
-//   htmlElement: HTMLElement;
-// };
-
-// function createModule(moduleElements: HTMLElement[]): DustModule {
-//   return {
-//     htmlElement: div("module", moduleElements), // TODO
-//   };
-// }
-
-// TODO is there a way solidjs can help us with this so we don't have to manually add/remove elements?
-export class Simulation {
-  readonly moduleElement: PhysicsSimulationElement;
-  readonly moduleName: PhysicsSimulationElement;
-  #physicsElements: PhysicsSimulationElement[] = [];
-  get physicsElements() {
-    return this.#physicsElements;
-  }
-  #playing: boolean = false;
-  get playing() {
-    return this.#playing;
-  }
-
-  constructor(
-    moduleHTMLElement: HTMLElement,
-    moduleNameHTMLElement: HTMLElement
-  ) {
-    this.moduleElement = new PhysicsSimulationElement({
-      htmlElement: moduleHTMLElement,
-      state: "pinned",
-    });
-    this.moduleName = new PhysicsSimulationElement({
-      htmlElement: moduleNameHTMLElement,
-      state: "pinned",
-      centeredWithinParent: true,
-    });
-  }
-
-  addElement(htmlElement: HTMLElement) {
-    this.#physicsElements.push(
-      new PhysicsSimulationElement({
-        htmlElement,
-        state: "free",
-        centeredWithinParent: true,
-        // TODO make it remember the center position for each element. For now everything starts at the center and springs apart.
-      })
-    );
-  }
-
-  removeElement(htmlElement: HTMLElement) {
-    this.#physicsElements = this.#physicsElements.filter(
-      (element) => element.htmlElement !== htmlElement
-    );
-  }
-
-  play() {
-    this.#playing = true;
-    playSimulation(this);
-  }
-
-  pause() {
-    this.#playing = false; // will stop on next frame callback
-  }
-}
 
 function playSimulation(simulation: Simulation) {
   requestAnimationFrame(frameCallback);
@@ -135,6 +70,80 @@ const PHYSICS_CONSTANTS = {
   dragMultiplier: 0.995,
   frictionCoefficient: 0.01,
 } as const;
+
+export function calculateForcesInModule(
+  moduleElement: PhysicsSimulationElement,
+  physicsElements: PhysicsSimulationElement[]
+) {
+  const idealGapBetweenElements = 20;
+
+  const collisionSpringConstant = 100; // 1/(millis^2): strongly repel colliding elements
+
+  const spreadSpringConstant = 0.25; // gently spread all elements away from all others
+
+  const publicElementsToBorderSpringConstant = 100; // Strongly pull towards the module's border
+  const privateElementsToCenterSpringConstant = 20; // Strongly pull toowards the center
+
+  let sumOfPublicElementGapsToBorder = 0;
+  let sumOfPrivateElementGapsToBorder = 0;
+
+  for (const element of physicsElements) {
+    if (element.classList.contains("public")) {
+      Springs.connectBorders(
+        element,
+        moduleElement,
+        publicElementsToBorderSpringConstant,
+        -element.diameter
+      );
+      sumOfPublicElementGapsToBorder += Springs.keepWithin(
+        element,
+        moduleElement,
+        collisionSpringConstant * 2,
+        0
+      );
+    } else {
+      // TODO put this force on the moduleElement rather than the moduleName
+      Springs.connectBorders(
+        element,
+        moduleElement,
+        privateElementsToCenterSpringConstant,
+        -moduleElement.diameter / 2
+      );
+      sumOfPrivateElementGapsToBorder += Springs.keepWithin(
+        element,
+        moduleElement,
+        collisionSpringConstant * 2,
+        idealGapBetweenElements
+      );
+    }
+  }
+
+  let sumOfGapsBetweenElements = 0;
+  // TODO sumOfGapsBetweenNearbyElements
+  let sumOfGapsBetweenOverlappingElements = 0;
+  for (let i = 0; i < physicsElements.length; i++) {
+    const first = physicsElements[i];
+    for (let j = i + 1; j < physicsElements.length; j++) {
+      const second = physicsElements[j];
+      Springs.connectCenters(
+        first,
+        second,
+        spreadSpringConstant,
+        moduleElement.diameter
+      );
+      const gap = Springs.preventCollisions(
+        first,
+        second,
+        collisionSpringConstant,
+        idealGapBetweenElements
+      );
+      sumOfGapsBetweenElements += gap;
+      if (gap < 0) {
+        sumOfGapsBetweenOverlappingElements += gap;
+      }
+    }
+  }
+}
 
 function runOneStep(
   { moduleElement, moduleName, physicsElements }: Simulation,

@@ -3,10 +3,11 @@ import type { Circle } from "../math/Geometry";
 import { Vector2D, X, Y } from "../math/Vectors";
 import { PhysicsElement } from "../math/Physics";
 import { PhysicsSimulation } from "./PhysicsSimulation";
-import { filterMap } from "../data-structures/Arrays";
 
 // TODO add another state "focused" which is like "free" but instead of it moving around, the world moves around it so the viewer can keep a fixed reference frame on the element.
 export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
+
+export type ForceCalculator = (elements: PhysicsSimulationElement[]) => void;
 
 /*
       center?: Readonly<Vector2D>;
@@ -17,6 +18,7 @@ export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
 export type PhysicsSimulationElementProps = {
   state: PhysicsSimulationElementState;
   simulation: PhysicsSimulation;
+  calculateForces?: ForceCalculator;
   center?: Readonly<Vector2D>;
   diameter?: number;
   centeredWithinParent?: boolean;
@@ -34,6 +36,7 @@ export class PhysicsSimulationElement
   // readonly htmlElement: HTMLElement;
   state: PhysicsSimulationElementState;
   readonly #simulation: PhysicsSimulation;
+  readonly calculateForces?: ForceCalculator;
 
   readonly force: Vector2D = [0, 0]; // pixels/millis^2
   velocity: Readonly<Vector2D> = [0, 0]; // pixels/millis
@@ -43,6 +46,8 @@ export class PhysicsSimulationElement
   #diameter: number;
   #centeredWithinParent: boolean;
   readonly #previousCssTranslate: Vector2D = [0, 0]; // pixels, rounded to nearest integers
+
+  // TODO write a setter for this that plays the simulation
   mass: number; // number of characters // TODO should update if the element's expression changes
 
   constructor(props: Readonly<PhysicsSimulationElementProps>) {
@@ -53,6 +58,7 @@ export class PhysicsSimulationElement
 
     this.state = props.state;
     this.#simulation = props.simulation;
+    this.calculateForces = props.calculateForces;
     this.mass = props.mass || diameter ** 2; // TODO
     this.#diameter = diameter;
     this.#center = center;
@@ -64,13 +70,17 @@ export class PhysicsSimulationElement
 
   connectedCallback() {
     // TODO check if this runs at the same time as onMount
-    console.log("PhysicsSimulationElement connectedCallback");
-    this.#simulation.addElement(this);
+    console.log("PhysicsSimulationElement connected", this.isConnected);
+    if (this.isConnected) {
+      // must check isConnected: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements
+      this.#simulation.addElement(this);
+    }
   }
 
   disconnectedCallback() {
     // TODO check if this runs at the same time as onCleanup
-    console.log("PhysicsSimulationElement disconnectedCallback");
+    console.log("PhysicsSimulationElement disconnected", this.isConnected);
+    // TODO figure out if should check isConnected and how: is it supposed to be false by now?
     this.#simulation.removeElement(this);
   }
 
@@ -111,18 +121,6 @@ export class PhysicsSimulationElement
       this.#simulation.play();
     }
   }
-}
-
-export function getPhysicsSimulationElements(
-  element: PhysicsSimulationElement
-): PhysicsSimulationElement[] {
-  const result: PhysicsSimulationElement[] = [];
-  for (const child of element.children) {
-    if (child instanceof PhysicsSimulationElement) {
-      result.push(child);
-    }
-  }
-  return result;
 }
 
 // TODO move these into a separate file

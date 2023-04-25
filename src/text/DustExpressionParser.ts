@@ -1,8 +1,8 @@
-import type { Node, Group } from "./TextTree";
+import type { TextNode, TextGroup } from "./TextTree";
 import { toUTF8 } from "./TextTree";
 import type { Any } from "../types/DustExpression";
 
-export function parseExpression(textTree: Node): Any {
+export function parseExpression(textTree: TextNode): Any {
   if (textTree.kind === "leaf") {
     return Leaves.parseLeaf(textTree.text);
   } else {
@@ -66,7 +66,7 @@ function splitByWhitespace(text: string): string[] | undefined {
 }
 
 namespace Groups {
-  export function parseGroup(group: Group): Any {
+  export function parseGroup(group: TextGroup): Any {
     const groupType = group.groupType;
     // TODO for all of these, need to parse (a.bar b.foo) and possibly (a="bar" b=(2 + 42 - 2))?
     // But should this be here or at the TextTree level?
@@ -86,7 +86,7 @@ namespace Groups {
     throw `Unrecognized groupType ${groupType}`;
   }
 
-  function parseTextGroup(group: Group): Any {
+  function parseTextGroup(group: TextGroup): Any {
     const text = toUTF8(group);
     // TODO preserve ascii vs UTF-8
     // TODO interpolated text
@@ -94,8 +94,8 @@ namespace Groups {
   }
 
   function splitIfIsLeafAndContainsWhitespace(
-    node: Node
-  ): readonly Node[] | undefined {
+    node: TextNode
+  ): readonly TextNode[] | undefined {
     if (node.kind !== "leaf") {
       return undefined;
     }
@@ -105,8 +105,10 @@ namespace Groups {
   }
 
   // TODO may need to retain whether or not any leaves had a line break for ".vertical" styling?
-  function splitLeavesAtWhitespace(nodes: readonly Node[]): readonly Node[] {
-    const newNodes: Node[] = [];
+  function splitLeavesAtWhitespace(
+    nodes: readonly TextNode[]
+  ): readonly TextNode[] {
+    const newNodes: TextNode[] = [];
     nodes.forEach((node) => {
       const items = splitIfIsLeafAndContainsWhitespace(node);
       if (items !== undefined) {
@@ -182,7 +184,7 @@ namespace Groups {
     "",
   ];
 
-  function parseParenthesizedGroup(group: Group): Any {
+  function parseParenthesizedGroup(group: TextGroup): Any {
     // TODO need to parse Declarations differently
 
     const expressions: Any[] = [];
@@ -214,7 +216,7 @@ namespace Groups {
     };
   }
 
-  function parseList(kind: "block" | "array", group: Group): Any {
+  function parseList(kind: "block" | "array", group: TextGroup): Any {
     const expressions = splitLeavesAtWhitespace(group.nodes).map(
       parseExpression
     );

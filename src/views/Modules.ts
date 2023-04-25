@@ -1,7 +1,10 @@
 import { updateElementText } from "../development/Debugging";
 import { makeDraggable } from "../simulations/DragAndDrop";
 import { Springs } from "../math/Physics";
-import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
+import {
+  ForceCalculator,
+  PhysicsSimulationElement,
+} from "../simulations/PhysicsSimulationElement";
 import { RollingAverage } from "../math/Stats";
 import { X, Y } from "../math/Vectors";
 
@@ -12,69 +15,16 @@ import { X, Y } from "../math/Vectors";
 //      - drag and drop
 //      - pinning
 
-// TODO extract a component with inputs for changing various forces (e.g. setting forces to zero to turn them off)
-
-function playSimulation(simulation: Simulation) {
-  requestAnimationFrame(frameCallback);
-
-  let previousFrameTime: DOMHighResTimeStamp | undefined = undefined;
-
-  let runOneStepPerformance = new RollingAverage(30);
-  let frameDelta = new RollingAverage(30);
-  let debugFrameCounter = 0;
-
-  function frameCallback(time: DOMHighResTimeStamp) {
-    if (previousFrameTime === undefined) {
-      // first frame
-      runOneStep(simulation, 16);
-      previousFrameTime = time;
-      requestAnimationFrame(frameCallback);
-      return;
-    }
-    if (!simulation.playing) {
-      // TODO extract an animation module which automatically stops animations when they reach
-      // a steady state, and automatically resumes them if something changes (use ResizeObserver for size changes and also observe changes to the DustExpression)
-      console.log("simulation paused: exiting animation loop");
-      return;
-    }
-    if (time !== previousFrameTime) {
-      const deltaMillis = time - previousFrameTime;
-      performance.mark("runOneStep-start");
-      runOneStep(simulation, deltaMillis);
-      performance.mark("runOneStep-end");
-
-      const p = performance.measure(
-        "runOneStep",
-        "runOneStep-start",
-        "runOneStep-end"
-      );
-      runOneStepPerformance.add(p.duration);
-      frameDelta.add(deltaMillis);
-      debugFrameCounter++;
-      if (debugFrameCounter === 30) {
-        console.log(
-          `averages over the last 30 frames: runOneStep=${runOneStepPerformance.average()}, frameDelta=${frameDelta.average()}`
-        );
-        debugFrameCounter = 0;
-      }
-
-      previousFrameTime = time;
-    }
-    // Unconditionally request another callback, otherwise the animation could pause on its own.
-    requestAnimationFrame(frameCallback);
-  }
-}
-
 const PHYSICS_CONSTANTS = {
   maxVelocity: 2,
   dragMultiplier: 0.995,
   frictionCoefficient: 0.01,
 } as const;
 
-export function calculateForcesInModule(
+export const updateForcesInModule: ForceCalculator = (
   moduleElement: PhysicsSimulationElement,
   physicsElements: PhysicsSimulationElement[]
-) {
+) => {
   const idealGapBetweenElements = 20;
 
   const collisionSpringConstant = 100; // 1/(millis^2): strongly repel colliding elements
@@ -143,108 +93,16 @@ export function calculateForcesInModule(
       }
     }
   }
-}
 
-function runOneStep(
-  { moduleElement, moduleName, physicsElements }: Simulation,
-  deltaMillis: number
-) {
-  const idealGapBetweenElements = 20;
-
-  const collisionSpringConstant = 100; // 1/(millis^2): strongly repel colliding elements
-
-  const spreadSpringConstant = 0.25; // gently spread all elements away from all others
-
-  const publicElementsToBorderSpringConstant = 100; // Strongly pull towards the module's border
-  const privateElementsToCenterSpringConstant = 20; // Strongly pull toowards the center
-
-  let sumOfPublicElementGapsToBorder = 0;
-  let sumOfPrivateElementGapsToBorder = 0;
-
-  moduleElement.force[X] = 0;
-  moduleElement.force[Y] = 0;
-  moduleName.force[X] = 0;
-  moduleName.force[Y] = 0;
-  for (const element of physicsElements) {
-    element.force[X] = 0;
-    element.force[Y] = 0;
-
-    Springs.preventCollisions(element, moduleName, collisionSpringConstant);
-    if (element.htmlElement.classList.contains("public")) {
-      const idealGap = -element.diameter;
-      Springs.connectBorders(
-        element,
-        moduleElement,
-        publicElementsToBorderSpringConstant,
-        idealGap
-      );
-      sumOfPublicElementGapsToBorder += Springs.keepWithin(
-        element,
-        moduleElement,
-        collisionSpringConstant * 2,
-        0
-      );
-    } else {
-      // TODO put this force on the moduleElement rather than the moduleName
-      Springs.connectBorders(
-        element,
-        moduleName,
-        privateElementsToCenterSpringConstant,
-        idealGapBetweenElements
-      );
-      sumOfPrivateElementGapsToBorder += Springs.keepWithin(
-        element,
-        moduleElement,
-        collisionSpringConstant * 2,
-        idealGapBetweenElements
-      );
-    }
-  }
-
-  let sumOfGapsBetweenElements = 0;
-  // TODO sumOfGapsBetweenNearbyElements
-  let sumOfGapsBetweenOverlappingElements = 0;
-  for (let i = 0; i < physicsElements.length; i++) {
-    const first = physicsElements[i];
-    for (let j = i + 1; j < physicsElements.length; j++) {
-      const second = physicsElements[j];
-      Springs.connectCenters(
-        first,
-        second,
-        spreadSpringConstant,
-        moduleElement.diameter
-      );
-      const gap = Springs.preventCollisions(
-        first,
-        second,
-        collisionSpringConstant,
-        idealGapBetweenElements
-      );
-      sumOfGapsBetweenElements += gap;
-      if (gap < 0) {
-        sumOfGapsBetweenOverlappingElements += gap;
-      }
-    }
-  }
-
-  let totalEnergy = 0;
-  for (const element of physicsElements) {
-    element.updateVelocityAndPositionIfNeeded(PHYSICS_CONSTANTS, deltaMillis);
-
-    totalEnergy += element.kineticEnergy;
-    updateElementText(element);
-  }
   // TODO show the total force on the moduleElement as well. moduleName forces should be just from collisions
   // TODO calculate average overlap between elements, as well as average distance of public/private elements to border
-  updateElementText(moduleName, totalEnergy);
 
   // TODO use these to grow/shrink the module automatically
   // TODO calculate module area and compare it to sum of element areas
-  // console.log(`runOneStep end: deltaMillis=${deltaMillis} sumOfGapsBetweenElements=${sumOfGapsBetweenElements}, sumOfGapsBetweenOverlappingElements=${sumOfGapsBetweenOverlappingElements}, sumOfPublicElementGapsToBorder=${sumOfPublicElementGapsToBorder}, sumOfPrivateElementGapsToBorder=${sumOfPrivateElementGapsToBorder}`)
 
   // TODO use average distance of public elements to border to grow/shrink the module
   // also grow the module if any private elements end up touching the border
-}
+};
 
 /*
 function makeRandomPhysicsElement(

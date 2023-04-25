@@ -10,31 +10,46 @@ import {
 } from "../math/Physics";
 import { RollingAverage } from "../math/Stats";
 import { X, Y } from "../math/Vectors";
+import { updateDiametersIfNeeded } from "./BubbleElementResizeObserver";
 import { PhysicsSimulationElement } from "./PhysicsSimulationElement";
 
 const FIRST_FRAME_DELTA_MILLIS = 16;
 
 export class PhysicsSimulation {
-  #playing: boolean = false;
+  readonly #playing: () => boolean;
+  readonly #setPlaying: (playing: boolean) => void;
 
   readonly #elements: PhysicsSimulationElement[] = [];
 
   readonly #frameCallback: FrameRequestCallback;
 
+  // TODO for tests use https://stackoverflow.com/questions/64558062/how-to-mock-resizeobserver-to-work-in-unit-tests-using-react-testing-library
+  // TODO figure out a way to make this package-private
+  readonly bubbleElementResizeObserver = new ResizeObserver(
+    updateDiametersIfNeeded
+  );
+
   constructor({
     constants,
+    playingSignal: [playing, setPlaying],
     maxStillFramesBeforeAutoPause = 30,
   }: {
     constants: PhysicsConstants;
+    playingSignal: [
+      isPlaying: () => boolean,
+      setPlaying: (playing: boolean) => void
+    ];
     maxStillFramesBeforeAutoPause?: number;
   }) {
+    this.#playing = playing;
+    this.#setPlaying = setPlaying;
     this.#frameCallback = frameCallback;
 
     const simulation = this;
     let previousFrameTime: DOMHighResTimeStamp | undefined = undefined;
 
     function frameCallback(time: DOMHighResTimeStamp) {
-      if (!simulation.#playing) {
+      if (!simulation.playing) {
         console.log("simulation paused: exiting animation loop");
         return;
       }
@@ -64,9 +79,8 @@ export class PhysicsSimulation {
       }
 
       for (const element of simulation.#elements) {
-        if (element.calculateForces !== undefined) {
-          element.calculateForces(getPhysicsSimulationElementChildren(element));
-        }
+        // TODO need to potentially update diameter as well if the element is a "collection"
+        element.updateForces();
       }
     }
 
@@ -84,49 +98,37 @@ export class PhysicsSimulation {
 
     function autoPauseIfNeeded() {
       if (averageEnergy.isSaturated && averageEnergy.average() === 0) {
-        simulation.pause();
+        simulation.playing = false;
         averageEnergy.clear();
       }
     }
   }
 
-  // TODO I wonder if we can use solidjs's reactivity rather than having to write these add/remove method pairs...
+  // TODO figure out a way to make this package-private
   addElement(element: PhysicsSimulationElement) {
     addElementIfAbsent(this.#elements, element, "Simulation.addElement");
-    this.play();
+    this.playing = true;
   }
 
+  // TODO figure out a way to make this package-private
   removeElement(element: PhysicsSimulationElement) {
     removeElementIfPresent(this.#elements, element, "Simulation.removeElement");
-    this.play();
+    this.playing = true;
   }
 
-  play() {
-    if (this.#playing) {
+  get playing(): boolean {
+    return this.#playing();
+  }
+
+  set playing(value: boolean) {
+    if (this.#playing() === value) {
       return;
     }
-    this.#playing = true;
-    requestAnimationFrame(this.#frameCallback);
-  }
-
-  pause() {
-    if (!this.#playing) {
-      return;
-    }
-    this.#playing = false; // next frame callback will return early
-  }
-}
-
-function getPhysicsSimulationElementChildren(
-  element: PhysicsSimulationElement
-): PhysicsSimulationElement[] {
-  const result: PhysicsSimulationElement[] = [];
-  for (const child of element.children) {
-    if (child instanceof PhysicsSimulationElement) {
-      result.push(child);
+    this.#setPlaying(value);
+    if (value) {
+      requestAnimationFrame(this.#frameCallback);
     }
   }
-  return result;
 }
 
 class SimulationPerformance {

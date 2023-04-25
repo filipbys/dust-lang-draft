@@ -3,11 +3,10 @@ import { elementDiameter, smallestEnclosingCircle } from "../math/Geometry";
 import { createEffect, on } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
 import { DustExpressionView } from "./DustExpressionView";
-import {
-  PhysicsSimulation,
-  PhysicsSimulationElement,
-} from "../simulations/PhysicsSimulation";
+import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 import { PhysicsConstants } from "../math/Physics";
+import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
+import { makeDraggable } from "../simulations/DragAndDrop";
 
 // TODO window should have a toolbar with undo/redo, zoom in/out, insert, set depth limit, etc buttons
 
@@ -40,61 +39,19 @@ import { PhysicsConstants } from "../math/Physics";
 // \comment|    ==>  «|»
 //
 
-function setUpWindowContents(windowContents: HTMLElement) {
-  const elements: PhysicsSimulationElement[] = [];
-
-  const windowContentsPhysicsElement = new PhysicsSimulationElement({
-    htmlElement: windowContents,
-    state: "pinned",
-    diameter: 100,
-  });
-
-  function encircleWindowContents(): "proceed" {
+function setUpWindowContents(windowContents: PhysicsSimulationElement) {
+  function encircleWindowContents() {
     const boundary = smallestEnclosingCircle(elements);
-    windowContentsPhysicsElement.setBoundary(boundary);
-    return "proceed";
+    windowContents.setBoundary(boundary);
   }
 
-  // TODO for tests use https://stackoverflow.com/questions/64558062/how-to-mock-resizeobserver-to-work-in-unit-tests-using-react-testing-library
-  const resizeObserver = new ResizeObserver((entries) => {
-    console.log("DustWindows resizeObserver:", entries);
-    for (const entry of entries) {
-      const windowElement = entry.target.parentElement;
-      const borderBox = entry.borderBoxSize[0];
-      // TODO need to recover the PhysicsElement.
-      // May need to use customelements after all :(
-      //  -> that would allow us to write entry.target.parentElement as PhysicsElement
-      // for now we have to brute force (or use a hashmap):
-      for (const physicsElement of elements) {
-        if (physicsElement.htmlElement === windowElement) {
-          physicsElement.diameter = Math.hypot(
-            borderBox.blockSize,
-            borderBox.inlineSize
-          );
-        }
-      }
-    }
-  });
-
   for (const windowElement of windowContents.children) {
-    // const windowElement = DustDOM.div({ className: "windowElement" }, [
-    //   htmlElement,
-    // ]);
-
-    // windowContents.appendChild(windowElement);
-
-    const physicsElement = new PhysicsElement({
-      htmlElement: windowElement,
-      state: "free",
-      diameter: elementDiameter(htmlElement),
-    });
-
-    // TODO unobserve if the element is removed from the window
-    resizeObserver.observe(htmlElement, { box: "border-box" });
+    if (!(windowElement instanceof PhysicsSimulationElement)) {
+      continue;
+    }
 
     // TODO need some kind of callback so we can update the windowContents div
-    makeDraggable(physicsElement);
-    elements.push(physicsElement);
+    makeDraggable(windowElement);
   }
 
   // TODO need to call this every frame
@@ -104,28 +61,39 @@ function setUpWindowContents(windowContents: HTMLElement) {
 const WindowContents: Component<{
   id: string;
   expressions: readonly DustExpression.Any[];
-  simulation: PhysicsSimulation<HTMLCircle>;
+  simulation: PhysicsSimulation;
 }> = (props) => {
-  //  = <div class="windowContents"></div>;
-  // DustDOM.div({ className: "windowContents" }, []);
-  // const c = children(() => props.children);
-  // createEffect(() => c().forEach((item) => (item.style.color = props.color)));
-  // return <>{c()}</>;
   const depthLimit = 42; // TODO
+  function updateForces(
+    windowElement: PhysicsSimulationElement,
+    physicsElements: PhysicsSimulationElement[]
+  ) {
+    // TODO
+  }
   return (
-    <div class="Dust windowContents" ref={setUpWindowContents}>
+    <dust-physics-simulation-element
+      class="Dust windowContents"
+      state="free"
+      data={{ kind: "collection", updateForces, simulation: props.simulation }}
+      diameter={100}
+      ref={(it) => setUpWindowContents(it as PhysicsSimulationElement)}
+    >
       <For each={props.expressions}>
         {(expression, index) => (
-          <div class="windowElement">
+          <dust-physics-simulation-element
+            class="windowElement"
+            state="free"
+            data={{ kind: "bubble", simulation: props.simulation }}
+          >
             <DustExpressionView
               expression={expression}
               id={props.id + "/expressions/" + index()}
               depthLimit={depthLimit}
             />
-          </div>
+          </dust-physics-simulation-element>
         )}
       </For>
-    </div>
+    </dust-physics-simulation-element>
   );
 };
 
@@ -139,25 +107,21 @@ export const Window: Component<{
     dragMultiplier: 0.995,
     frictionCoefficient: 0.01,
   };
-  const simulation = new PhysicsSimulation<HTMLCircle>({
+  const simulation = new PhysicsSimulation({
     constants: physicsConstants,
+    playingSignal: createSignal(false),
   });
-  const [simulationPlaying, setSimulationPlaying] = createSignal(false);
 
-  createEffect(
-    on(simulationPlaying, (playing, wasPlaying) => {
-      if (playing && !wasPlaying) {
-        simulation.play();
-      }
-      if (!playing && wasPlaying) {
-        simulation.pause();
-      }
-    })
-  );
   return (
-    <div class="Dust window">
-      <button onClick={() => setSimulationPlaying(!simulationPlaying())}>
-        {simulationPlaying() ? "pause" : "play"} simulation
+    <div
+      classList={{
+        Dust: true,
+        window: true,
+        simulationPlaying: simulation.playing,
+      }}
+    >
+      <button onClick={() => (simulation.playing = !simulation.playing)}>
+        {simulation.playing ? "pause" : "play"} simulation
       </button>
       <WindowContents
         id={props.id}

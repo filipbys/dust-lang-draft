@@ -3,40 +3,47 @@ import type { Circle } from "../math/Geometry";
 import { Vector2D, X, Y } from "../math/Vectors";
 import { PhysicsElement } from "../math/Physics";
 import { PhysicsSimulation } from "./PhysicsSimulation";
+import { bubbleElementResizeObserverOptions } from "./BubbleElementResizeObserver";
 
 // TODO add another state "focused" which is like "free" but instead of it moving around, the world moves around it so the viewer can keep a fixed reference frame on the element.
 export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
 
-export type ForceCalculator = (elements: PhysicsSimulationElement[]) => void;
+// TODO there are really two kinds of elements:
+// Bubbles, which hold a single HTMLElement of any kind, and update their diameter whenever the wrapped value's size changes using a ResizeObserver.
+// Collections, which hold multiple other physics elements and have an updateForces() function
 
-/*
-      center?: Readonly<Vector2D>;
-      diameter?: number;
-      centeredWithinParent?: boolean;
-      mass?: number;
-*/
-export type PhysicsSimulationElementProps = {
+export type PhysicsSimulationElementData = (
+  | {
+      kind: "bubble"; // Holds a single HTMLElement of any kind, and observes it using the simulation's ResizeObserver.
+    }
+  | {
+      kind: "collection"; // Holds a collection of other PhysicsSimulationElements and updates their forces when needed using the given ForceCalculator.
+      updateForces: ForceCalculator;
+    }
+) & { simulation: PhysicsSimulation };
+
+export type ForceCalculator = (
+  parentElement: PhysicsSimulationElement,
+  childElements: PhysicsSimulationElement[]
+) => void;
+
+export type PhysicsSimulationElementProps = Readonly<{
   state: PhysicsSimulationElementState;
-  simulation: PhysicsSimulation;
-  calculateForces?: ForceCalculator;
+  data: Readonly<PhysicsSimulationElementData>;
   center?: Readonly<Vector2D>;
   diameter?: number;
   centeredWithinParent?: boolean;
   mass?: number;
-};
+}>;
 
-// TODO I think we need to extend HTMLElement here so the simulation can use ResizeObserver on it efficiently. See this answer about how to instantiate such an element from SolidJS: https://stackoverflow.com/questions/72238932/how-to-use-a-web-component-in-a-solid-js-project
-// Otherwise we need to do something like play() the simulation on every edit so that the sizes update.
 export class PhysicsSimulationElement
   extends HTMLDivElement
   implements Circle, PhysicsElement
 {
   static readonly TAG = "dust-physics-simulation-element";
 
-  // readonly htmlElement: HTMLElement;
   state: PhysicsSimulationElementState;
-  readonly #simulation: PhysicsSimulation;
-  readonly calculateForces?: ForceCalculator;
+  readonly #data: Readonly<PhysicsSimulationElementData>;
 
   readonly force: Vector2D = [0, 0]; // pixels/millis^2
   velocity: Readonly<Vector2D> = [0, 0]; // pixels/millis
@@ -57,8 +64,7 @@ export class PhysicsSimulationElement
     const centeredWithinParent = props.centeredWithinParent || false;
 
     this.state = props.state;
-    this.#simulation = props.simulation;
-    this.calculateForces = props.calculateForces;
+    this.#data = props.data;
     this.mass = props.mass || diameter ** 2; // TODO
     this.#diameter = diameter;
     this.#center = center;
@@ -71,9 +77,19 @@ export class PhysicsSimulationElement
   connectedCallback() {
     // TODO check if this runs at the same time as onMount
     console.log("PhysicsSimulationElement connected", this.isConnected);
-    if (this.isConnected) {
+    if (!this.isConnected) {
       // must check isConnected: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements
-      this.#simulation.addElement(this);
+      return;
+    }
+    this.#data.simulation.addElement(this);
+    if (this.#data.kind === "bubble") {
+      if (this.childElementCount !== 1) {
+        throw "TODO"; // TODO
+      }
+      this.#data.simulation.bubbleElementResizeObserver.observe(
+        this.firstElementChild!,
+        bubbleElementResizeObserverOptions
+      );
     }
   }
 
@@ -81,7 +97,12 @@ export class PhysicsSimulationElement
     // TODO check if this runs at the same time as onCleanup
     console.log("PhysicsSimulationElement disconnected", this.isConnected);
     // TODO figure out if should check isConnected and how: is it supposed to be false by now?
-    this.#simulation.removeElement(this);
+    this.#data.simulation.removeElement(this);
+    if (this.#data.kind === "bubble") {
+      this.#data.simulation.bubbleElementResizeObserver.unobserve(
+        this.firstElementChild!
+      );
+    }
   }
 
   get center() {
@@ -91,7 +112,7 @@ export class PhysicsSimulationElement
   set center(newCenter: Readonly<Vector2D>) {
     this.#center = newCenter;
     setTranslate(this, newCenter, this.#previousCssTranslate);
-    this.#simulation.play();
+    this.#data.simulation.playing = true;
   }
 
   get diameter() {
@@ -102,7 +123,7 @@ export class PhysicsSimulationElement
   set diameter(newDiameter: number) {
     this.#diameter = newDiameter;
     setDiameter(this, newDiameter, this.#centeredWithinParent);
-    this.#simulation.play();
+    this.#data.simulation.playing = true;
   }
 
   setBoundary(boundary: Circle) {
@@ -118,9 +139,27 @@ export class PhysicsSimulationElement
     this.#centeredWithinParent = newValue;
     if (newValue) {
       centerWithinParent(this, this.#diameter);
-      this.#simulation.play();
+      this.#data.simulation.playing = true;
     }
   }
+
+  updateForces() {
+    if (this.#data.kind === "collection") {
+      this.#data.updateForces(this, getPhysicsSimulationElementChildren(this));
+    }
+  }
+}
+
+function getPhysicsSimulationElementChildren(
+  element: PhysicsSimulationElement
+): PhysicsSimulationElement[] {
+  const result: PhysicsSimulationElement[] = [];
+  for (const child of element.children) {
+    if (child instanceof PhysicsSimulationElement) {
+      result.push(child);
+    }
+  }
+  return result;
 }
 
 // TODO move these into a separate file

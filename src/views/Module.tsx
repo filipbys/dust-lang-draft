@@ -5,14 +5,10 @@ import { DustExpressionView } from "./DustExpressionView";
 import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 import {
   PhysicsSimulationElement,
-  PhysicsSimulationElementProps,
+  PhysicsSimulationElementData,
 } from "../simulations/PhysicsSimulationElement";
-import {
-  addElementIfAbsent,
-  removeElementIfPresent,
-} from "../data-structures/Arrays";
-import { calculateForcesInModule } from "./Modules";
-// import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
+
+import { updateForcesInModule } from "./Modules";
 
 // TODO imported and exported values go around the outside.
 // Private values are only visible when editing the module, so you
@@ -23,34 +19,13 @@ import { calculateForcesInModule } from "./Modules";
 // When you zoom out and even the imports/exports get too small to read, they are hidden as well and the module is just shown as a circle around the name, with arrows displaying the flow of dependencies in your project
 // TODO should do a similar thing for function definitions: when zooming out, the body should animate out, leaving just the function signature
 
-declare module "solid-js" {
-  namespace JSX {
-    interface IntrinsicElements {
-      [PhysicsSimulationElement.TAG]: ComponentProps<"div"> &
-        PhysicsSimulationElementProps;
-    }
-  }
-}
-
 export const Module: Component<{
   expression: DustExpression.Module;
   id: string;
   depthLimit: number;
   simulation: PhysicsSimulation;
 }> = (props) => {
-  // TODO:
-  // - Create a signal for whether the simulation is playing
-  // - Toggle a class on the module element if simulation is playing
-  // - Set up MutationObservers and ResizeObservers to auto-play the simulation
-  // - Auto-pause the simulation if every PhysicsElement has zero velocity
-
-  const simulation = props.simulation;
-
   let moduleElement: PhysicsSimulationElement | null = null;
-
-  function calculateForces(childElements: PhysicsSimulationElement[]) {
-    calculateForcesInModule(moduleElement!, childElements);
-  }
 
   function mountModule(element: HTMLDivElement) {
     console.log("Mounting Module:", element);
@@ -62,8 +37,11 @@ export const Module: Component<{
       id={props.id}
       class="Dust module"
       state="pinned"
-      simulation={props.simulation}
-      calculateForces={calculateForces}
+      data={{
+        kind: "collection",
+        updateForces: updateForcesInModule,
+        simulation: props.simulation,
+      }}
       ref={mountModule}
     >
       <button onClick={() => (moduleElement!.diameter += 20)}>grow</button>
@@ -73,7 +51,7 @@ export const Module: Component<{
       <dust-physics-simulation-element
         class="Dust moduleElement moduleName"
         state="pinned"
-        simulation={props.simulation}
+        data={{ kind: "bubble", simulation: props.simulation }}
       >
         {props.expression.name}
       </dust-physics-simulation-element>
@@ -82,7 +60,7 @@ export const Module: Component<{
           <dust-physics-simulation-element
             class="Dust moduleElement"
             state="free"
-            simulation={props.simulation}
+            data={{ kind: "bubble", simulation: props.simulation }}
           >
             <DustExpressionView
               id={props.id + "/expressions/" + index()}

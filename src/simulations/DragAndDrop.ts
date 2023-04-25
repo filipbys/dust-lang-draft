@@ -3,10 +3,9 @@ import { Vector2D, X, Y } from "../math/Vectors";
 import type { PhysicsSimulationElement } from "./PhysicsSimulationElement";
 import { RollingAverage } from "../math/Stats";
 
+// TODO other elements should be draggable too, unless we want to wrap every other draggable element in a sort of "bubble" when dragging them? Alternatively we can add another class like MovableElement in the hierarchy between PhysicsSimulationElement and HTMLElement.
 export function makeDraggable(element: PhysicsSimulationElement) {
-  element.htmlElement.addEventListener("pointerdown", (event) =>
-    dragStart(event, element)
-  );
+  element.addEventListener("pointerdown", (event) => dragStart(event, element));
 }
 
 type DragState = {
@@ -21,7 +20,7 @@ type DragState = {
 };
 
 function addListeners(event: PointerEvent, dragState: DragState) {
-  const htmlElement = dragState.element.htmlElement;
+  const htmlElement = dragState.element;
   htmlElement.addEventListener("pointermove", dragState.dragMove);
   htmlElement.addEventListener("pointerup", dragState.dragEnd);
   htmlElement.addEventListener("pointercancel", dragState.dragEnd);
@@ -30,7 +29,7 @@ function addListeners(event: PointerEvent, dragState: DragState) {
 }
 
 function removeListeners(event: PointerEvent, dragState: DragState) {
-  const htmlElement = dragState.element.htmlElement;
+  const htmlElement = dragState.element;
   htmlElement.releasePointerCapture(event.pointerId);
   htmlElement.removeEventListener("pointermove", dragState.dragMove);
   htmlElement.removeEventListener("pointerup", dragState.dragEnd);

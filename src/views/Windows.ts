@@ -35,20 +35,14 @@ function makeWindowContents(htmlElements: HTMLElement[]): WindowContents {
   const resizeObserver = new ResizeObserver((entries) => {
     console.log("DustWindows resizeObserver:", entries);
     for (const entry of entries) {
-      const windowElement = entry.target.parentElement;
+      const windowPhysicsElement = entry.target
+        .parentElement as PhysicsSimulationElement;
       const borderBox = entry.borderBoxSize[0];
-      // TODO need to recover the PhysicsElement.
-      // May need to use customelements after all :(
-      //  -> that would allow us to write entry.target.parentElement as PhysicsElement
-      // for now we have to brute force (or use a hashmap):
-      for (const physicsElement of elements) {
-        if (physicsElement.htmlElement === windowElement) {
-          physicsElement.diameter = Math.hypot(
-            borderBox.blockSize,
-            borderBox.inlineSize
-          );
-        }
-      }
+
+      windowPhysicsElement.diameter = Math.hypot(
+        borderBox.blockSize,
+        borderBox.inlineSize
+      );
     }
   });
 

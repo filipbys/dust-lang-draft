@@ -1,13 +1,15 @@
-import { Component, For, on } from "solid-js";
+import { Component, ComponentProps, For, on } from "solid-js";
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
 import { DustExpressionView } from "./DustExpressionView";
 import {
   ForceCalculator,
   PhysicsSimulation,
-  PhysicsSimulationElement,
 } from "../simulations/PhysicsSimulation";
-import { Simulation } from "./Modules";
+import {
+  PhysicsSimulationElement,
+  PhysicsSimulationElementState,
+} from "../simulations/PhysicsSimulationElement";
 // import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 
 // TODO imported and exported values go around the outside.
@@ -19,6 +21,15 @@ import { Simulation } from "./Modules";
 // When you zoom out and even the imports/exports get too small to read, they are hidden as well and the module is just shown as a circle around the name, with arrows displaying the flow of dependencies in your project
 // TODO should do a similar thing for function definitions: when zooming out, the body should animate out, leaving just the function signature
 
+declare module "solid-js" {
+  namespace JSX {
+    interface IntrinsicElements {
+      [PhysicsSimulationElement.TAG]: ComponentProps<"div"> &
+        PhysicsSimulationElementProps;
+    }
+  }
+}
+
 const ModuleElement: Component<{
   expression: DustExpression.Any;
   id: string;
@@ -26,6 +37,7 @@ const ModuleElement: Component<{
   simulation: PhysicsSimulation;
 }> = (props) => {
   return (
+    // TODO use the custom dust-physics-simulation-element
     <div
       class="Dust moduleElement"
       ref={(it) => mountModuleElement(it, props.simulation)}

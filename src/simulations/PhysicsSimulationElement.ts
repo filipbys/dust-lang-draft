@@ -3,17 +3,22 @@ import type { Circle } from "../math/Geometry";
 import { Vector2D, X, Y } from "../math/Vectors";
 import { PhysicsElement } from "../math/Physics";
 
+// TODO add another state "focused" which is like "free" but instead of it moving around, the world moves around it so the viewer can keep a fixed reference frame on the element.
 export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
 
-// TODO! decouple HTML part from the math part. Math part belongs in the math/ folder.
-
-// TODO add another state "focused" which is like "free" but instead of it moving around, the world moves around it so the viewer can keep a fixed reference frame on the element.
-// export type PhysicsState = "free" | "pinned" | "dragged";
+export type PhysicsSimulationElementProps = {
+  state: PhysicsSimulationElementState;
+};
 
 // TODO I think we need to extend HTMLElement here so the simulation can use ResizeObserver on it efficiently. See this answer about how to instantiate such an element from SolidJS: https://stackoverflow.com/questions/72238932/how-to-use-a-web-component-in-a-solid-js-project
 // Otherwise we need to do something like play() the simulation on every edit so that the sizes update.
-export class PhysicsSimulationElement implements Circle, PhysicsElement {
-  readonly htmlElement: HTMLElement;
+export class PhysicsSimulationElement
+  extends HTMLElement
+  implements Circle, PhysicsElement
+{
+  static readonly TAG = "dust-physics-simulation-element";
+
+  // readonly htmlElement: HTMLElement;
   state: PhysicsSimulationElementState;
   readonly force: Vector2D = [0, 0]; // pixels/millis^2
   velocity: Readonly<Vector2D> = [0, 0]; // pixels/millis
@@ -25,30 +30,28 @@ export class PhysicsSimulationElement implements Circle, PhysicsElement {
   readonly #previousCssTranslate: Vector2D = [0, 0]; // pixels, rounded to nearest integers
   mass: number; // number of characters // TODO should update if the element's expression changes
 
-  constructor({
-    htmlElement,
-    state,
-    center = [0, 0],
-    diameter = elementDiameter(htmlElement),
-    centeredWithinParent = false,
-    mass = diameter ** 2, // TODO
-  }: Readonly<{
-    htmlElement: HTMLElement;
-    state: PhysicsSimulationElementState;
-    center?: Readonly<Vector2D>;
-    diameter?: number;
-    centeredWithinParent?: boolean;
-    mass?: number;
-  }>) {
-    this.htmlElement = htmlElement;
-    this.state = state;
-    this.mass = mass;
+  constructor(
+    props: Readonly<{
+      state: PhysicsSimulationElementState;
+      center?: Readonly<Vector2D>;
+      diameter?: number;
+      centeredWithinParent?: boolean;
+      mass?: number;
+    }>
+  ) {
+    super();
+    const diameter = props.diameter || elementDiameter(this); // TODO should run in connectedCallback()
+    const center = props.center || [0, 0];
+    const centeredWithinParent = props.centeredWithinParent || false;
+
+    this.state = props.state;
+    this.mass = props.mass || diameter ** 2; // TODO
     this.#diameter = diameter;
     this.#center = center;
     this.#centeredWithinParent = centeredWithinParent;
 
-    setTranslate(htmlElement, center, this.#previousCssTranslate);
-    setDiameter(htmlElement, diameter, centeredWithinParent);
+    setTranslate(this, center, this.#previousCssTranslate);
+    setDiameter(this, diameter, centeredWithinParent);
   }
 
   get center() {
@@ -57,7 +60,7 @@ export class PhysicsSimulationElement implements Circle, PhysicsElement {
 
   set center(newCenter: Readonly<Vector2D>) {
     this.#center = newCenter;
-    setTranslate(this.htmlElement, newCenter, this.#previousCssTranslate);
+    setTranslate(this, newCenter, this.#previousCssTranslate);
     // TODO needs to also play the simulation...
   }
 
@@ -68,7 +71,7 @@ export class PhysicsSimulationElement implements Circle, PhysicsElement {
   // TODO instead of setting the diameter based on the htmlElement's size, maybe set the padding instead?
   set diameter(newDiameter: number) {
     this.#diameter = newDiameter;
-    setDiameter(this.htmlElement, newDiameter, this.#centeredWithinParent);
+    setDiameter(this, newDiameter, this.#centeredWithinParent);
     // TODO needs to also play the simulation...
   }
 
@@ -84,7 +87,7 @@ export class PhysicsSimulationElement implements Circle, PhysicsElement {
   set centeredWithinParent(newValue: boolean) {
     this.#centeredWithinParent = newValue;
     if (newValue) {
-      centerWithinParent(this.htmlElement, this.#diameter);
+      centerWithinParent(this, this.#diameter);
     }
   }
 }

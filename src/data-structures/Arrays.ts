@@ -1,3 +1,9 @@
+export interface ReadonlyArray<T> {
+  readonly length: number;
+  readonly [n: number]: T;
+  [Symbol.iterator](): Iterator<T>;
+}
+
 export function addElementIfAbsent<T>(
   array: T[],
   element: T,

@@ -19,6 +19,10 @@ export class PhysicsSimulation {
   readonly #playing: () => boolean;
   readonly #setPlaying: (playing: boolean) => void;
 
+  // TODO use something like
+  // window.getElementsByTagName(PhysicsSimulationElement.TAG) as HTMLCollectionOf<PhysicsSimulationElement>
+  // Honestly, we could just have one simulation for the whole Window and use a live HTMLCollection to call every element's frame callback on every frame while the simulation is playing.
+  // Consider automatically detecting collisions for all element pairs, since there should only ever be so many PhysicsSimulationElement in the Window anyway. Dust should remove those DOM elements when the Dust expressions are not visible to the user, either because they're at a different zoom level or because they're outside of the Window's bounds.
   readonly #elements: PhysicsSimulationElement[] = [];
 
   readonly #frameCallback: FrameRequestCallback;
@@ -33,10 +37,7 @@ export class PhysicsSimulation {
     maxStillFramesBeforeAutoPause = 30,
   }: {
     constants: PhysicsConstants;
-    playingSignal: [
-      isPlaying: () => boolean,
-      setPlaying: (playing: boolean) => void
-    ];
+    playingSignal: [() => boolean, (playing: boolean) => void];
     maxStillFramesBeforeAutoPause?: number;
   }) {
     this.#playing = playing;

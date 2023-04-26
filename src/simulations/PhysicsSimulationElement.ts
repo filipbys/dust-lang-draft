@@ -36,6 +36,21 @@ export type PhysicsSimulationElementProps = Readonly<{
   mass?: number;
 }>;
 
+// TODO instead of debugging resizeobservers and tracking everything manually,
+// let's try reimplementing the whole thing in just solidJS:
+// - From the ground up, only render DOM elements when they're within the window boundary
+// - Use solid's createEffect() to play the simulation as needed
+// - On every frame while playing the simulation, go through all the visible elements and collect the PhysicsElements, then:
+//    - Reset all forces to zero
+//    - Call every element's frame callback
+//      - bubbles update their diameters
+//      - collections update their diameters and also all of their elements' forces
+//    - Update every free element's velocity and position
+//    - Call collections' frame callbacks
+// Depending on how it goes, we might not even need the custom HTMLElement, e.g. if we can track all the physics data separately using solidJS (e.g. using https://www.solidjs.com/docs/latest#maparray). But if we do, we can use:
+// window.getElementsByTagName(PhysicsSimulationElement.TAG) as HTMLCollectionOf<PhysicsSimulationElement>
+
+// BUUUUT still keep this code around in case there's no way to implement it in solidJS efficiently.
 export class PhysicsSimulationElement
   extends HTMLElement
   implements Circle, PhysicsElement
@@ -109,6 +124,7 @@ export class PhysicsSimulationElement
     if (this.childElementCount !== 1) {
       throw "TODO"; // TODO
     }
+    // TODO elements aren't getting unobserved correctly. Do we need to use a MutationObserver?
     data.simulation.bubbleElementResizeObserver.observe(
       this.firstElementChild!,
       bubbleElementResizeObserverOptions

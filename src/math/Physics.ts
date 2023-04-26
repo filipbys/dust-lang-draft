@@ -12,7 +12,7 @@ import {
 
 // TODO consider switching to different units like mm instead of px
 export interface PhysicsElement {
-  readonly diameter: number; // pixels
+  diameter: number; // pixels
   center: Readonly<Vector2D>; // pixels
   velocity: Readonly<Vector2D>; // pixels/millis.
   readonly force: Vector2D; // characters * pixels/(millis^2). Mutable since it changes the most often per frame

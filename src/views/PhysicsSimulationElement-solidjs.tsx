@@ -1,10 +1,8 @@
 import type { Component, ComponentProps, ParentProps, Ref } from "solid-js";
-import type {
-  PhysicsSimulationElement,
-  PhysicsSimulationElementProps,
-} from "../simulations/PhysicsSimulationElement";
+
 import { ExpressionProps } from "./DustExpressionView";
 import type * as DustExpression from "../types/DustExpression";
+import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationV2";
 
 type PhysicsSimulationElementComponentProps = ComponentProps<"element"> &
   ParentProps<{
@@ -19,6 +17,8 @@ declare module "solid-js" {
     }
   }
 }
+
+
 
 export const PhysicsSimulationElementComponent: Component<PhysicsSimulationElementComponentProps> =
   (props) => {

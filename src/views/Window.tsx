@@ -86,6 +86,7 @@ const WindowContents: Component<{
     >
       <For each={props.expressions}>
         {(expression, index) => (
+          // TODO don't wrap in a bubble if the element is already a physicsElement (e.g. modules)
           <PhysicsSimulationElementComponent
             class="windowElement"
             physicsProps={{

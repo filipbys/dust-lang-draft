@@ -3,13 +3,21 @@ import { ReadonlyArray } from "../data-structures/Arrays";
 import {
   kineticEnergy,
   PhysicsConstants,
+  PhysicsElement,
   updateVelocityAndPosition,
 } from "../math/Physics";
 import { RollingAverage } from "../math/Stats";
 import { X, Y } from "../math/Vectors";
-import { PhysicsSimulationElement } from "./PhysicsSimulationElementV2";
 
 const FIRST_FRAME_DELTA_MILLIS = 16;
+
+// TODO add another state "focused" which is like "free" but instead of it moving around, the world moves around it so the viewer can keep a fixed reference frame on the element.
+export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
+
+export interface PhysicsSimulationElement extends PhysicsElement {
+  state: PhysicsSimulationElementState;
+  frameCallback(): void;
+}
 
 export type PhysicsSimulationProps = Readonly<{
   constants: PhysicsConstants;

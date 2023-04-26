@@ -7,17 +7,17 @@ export interface ReadonlyArray<T> {
 export function addElementIfAbsent<T>(
   array: T[],
   element: T,
-  logMessage?: string
+  description?: string
 ): boolean {
   if (!array.includes(element)) {
     array.push(element);
-    if (logMessage) {
-      console.log(`${logMessage}: added element`, element);
+    if (description) {
+      console.log(`Added ${description} element`, element);
     }
     return true;
   }
-  if (logMessage) {
-    console.warn(`${logMessage}: element already present`, element);
+  if (description) {
+    console.warn(`${description} element already present`, element);
   }
   return false;
 }
@@ -25,17 +25,17 @@ export function addElementIfAbsent<T>(
 export function removeElementIfPresent<T>(
   array: T[],
   element: T,
-  logMessage?: string
+  description?: string
 ): boolean {
   if (array.includes(element)) {
     array.splice(array.indexOf(element), 1);
-    if (logMessage) {
-      console.log(`${logMessage}: removed element`, element);
+    if (description) {
+      console.log(`Removed ${description} element`, element);
     }
     return true;
   }
-  if (logMessage) {
-    console.warn(`${logMessage}: element not found`, element);
+  if (description) {
+    console.warn(`${description} element not found`, element);
   }
   return false;
 }

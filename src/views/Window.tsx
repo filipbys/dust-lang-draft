@@ -1,12 +1,16 @@
 import { Component, createSignal, For } from "solid-js";
-import { elementDiameter, smallestEnclosingCircle } from "../math/Geometry";
-import { createEffect, on } from "solid-js";
+import { smallestEnclosingCircle } from "../math/Geometry";
 import type * as DustExpression from "../types/DustExpression";
-import { DustExpressionView } from "./DustExpressionView";
+import {
+  DustComponentProps,
+  DustExpressionView,
+  EventCallback,
+} from "./DustExpressionView";
 import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 import { PhysicsConstants } from "../math/Physics";
 import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
 import { makeDraggable } from "../simulations/DragAndDrop";
+import { PhysicsSimulationElementComponent } from "./PhysicsSimulationElement-solidjs";
 
 // TODO window should have a toolbar with undo/redo, zoom in/out, insert, set depth limit, etc buttons
 
@@ -40,11 +44,6 @@ import { makeDraggable } from "../simulations/DragAndDrop";
 //
 
 function setUpWindowContents(windowContents: PhysicsSimulationElement) {
-  function encircleWindowContents() {
-    const boundary = smallestEnclosingCircle(elements);
-    windowContents.setBoundary(boundary);
-  }
-
   for (const windowElement of windowContents.children) {
     if (!(windowElement instanceof PhysicsSimulationElement)) {
       continue;
@@ -55,50 +54,63 @@ function setUpWindowContents(windowContents: PhysicsSimulationElement) {
   }
 
   // TODO need to call this every frame
-  encircleWindowContents();
+  // encircleWindowContents();
 }
 
 const WindowContents: Component<{
-  id: string;
+  baseProps: DustComponentProps;
   expressions: readonly DustExpression.Any[];
   simulation: PhysicsSimulation;
 }> = (props) => {
-  const depthLimit = 42; // TODO
   function updateForces(
     windowElement: PhysicsSimulationElement,
     physicsElements: PhysicsSimulationElement[]
   ) {
-    // TODO
+    // TODO update ForceCalculator terminology to reflect that we do more than just update forces. Maybe something like FrameCallback?
+    const boundary = smallestEnclosingCircle(physicsElements);
+    windowElement.setBoundary(boundary);
   }
   return (
-    <dust-physics-simulation-element
+    <PhysicsSimulationElementComponent
       class="Dust windowContents"
-      state="free"
-      data={{ kind: "collection", updateForces, simulation: props.simulation }}
-      diameter={100}
+      physicsProps={{
+        state: "free",
+        diameter: 100,
+        data: {
+          kind: "collection",
+          updateForces,
+          simulation: props.simulation,
+        },
+      }}
       ref={(it) => setUpWindowContents(it as PhysicsSimulationElement)}
     >
       <For each={props.expressions}>
         {(expression, index) => (
-          <dust-physics-simulation-element
+          <PhysicsSimulationElementComponent
             class="windowElement"
-            state="free"
-            data={{ kind: "bubble", simulation: props.simulation }}
+            physicsProps={{
+              state: "free",
+              diameter: 100,
+              data: { kind: "bubble", simulation: props.simulation },
+            }}
           >
             <DustExpressionView
-              expression={expression}
-              id={props.id + "/expressions/" + index()}
-              depthLimit={depthLimit}
+              {...{
+                ...props.baseProps,
+                id: props.baseProps.id + "/expressions/" + index(),
+                expression,
+                simulation: props.simulation,
+              }}
             />
-          </dust-physics-simulation-element>
+          </PhysicsSimulationElementComponent>
         )}
       </For>
-    </dust-physics-simulation-element>
+    </PhysicsSimulationElementComponent>
   );
 };
 
 export const Window: Component<{
-  id: string;
+  baseProps: DustComponentProps;
   expressions: DustExpression.Any[]; // TODO Dust.WindowExpression?
 }> = (props) => {
   // TODO add inputs for these as well for debugging
@@ -123,11 +135,7 @@ export const Window: Component<{
       <button onClick={() => (simulation.playing = !simulation.playing)}>
         {simulation.playing ? "pause" : "play"} simulation
       </button>
-      <WindowContents
-        id={props.id}
-        expressions={props.expressions}
-        simulation={simulation}
-      />
+      <WindowContents {...{ ...props, simulation }} />
     </div>
   );
 };

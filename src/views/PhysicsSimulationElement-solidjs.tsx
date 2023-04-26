@@ -6,24 +6,33 @@ import type {
 import { ExpressionProps } from "./DustExpressionView";
 import type * as DustExpression from "../types/DustExpression";
 
+type PhysicsSimulationElementComponentProps = ComponentProps<"element"> &
+  ParentProps<{
+    ref?: (element: PhysicsSimulationElement) => void;
+    physicsProps: PhysicsSimulationElementProps;
+  }>;
+
 declare module "solid-js" {
   namespace JSX {
     interface IntrinsicElements {
-      [PhysicsSimulationElement.TAG]: ParentProps & {
-        ref: Ref<PhysicsSimulationElement>;
-      };
+      "dust-physics-simulation-element": PhysicsSimulationElementComponentProps;
     }
   }
 }
 
-type PhysicsSimulationElementComponentProps = PhysicsSimulationElementProps &
-  ParentProps &
-  ExpressionProps<DustExpression.Any>;
-
 export const PhysicsSimulationElementComponent: Component<PhysicsSimulationElementComponentProps> =
   (props) => {
     return (
-      <dust-physics-simulation-element ref={(it) => it.init(props)}>
+      <dust-physics-simulation-element
+        {...props}
+        ref={(it) => {
+          console.log("PhysicsSimulationElementComponent ref", it);
+          it.initialize(props.physicsProps);
+          if (props.ref) {
+            props.ref(it);
+          }
+        }}
+      >
         {props.children}
       </dust-physics-simulation-element>
     );

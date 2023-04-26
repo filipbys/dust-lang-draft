@@ -37,7 +37,7 @@ export type PhysicsSimulationElementProps = Readonly<{
 }>;
 
 export class PhysicsSimulationElement
-  extends HTMLDivElement
+  extends HTMLElement
   implements Circle, PhysicsElement
 {
   static readonly TAG = "dust-physics-simulation-element";
@@ -58,7 +58,7 @@ export class PhysicsSimulationElement
   // TODO write a setter for this that plays the simulation
   mass: number = 0; // number of characters // TODO should update if the element's expression changes
 
-  init(props: Readonly<PhysicsSimulationElementProps>) {
+  initialize(props: Readonly<PhysicsSimulationElementProps>) {
     console.log("PhysicsSimulationElement.init:", this, props);
     const diameter = props.diameter || elementDiameter(this);
     const center = props.center || [0, 0];

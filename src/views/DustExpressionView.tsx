@@ -15,15 +15,18 @@ export function computeCssClass(
 
 export type EventCallback<T extends Element, E> = (this: T, ev: E) => any;
 
-export interface ExpressionProps<
-  T extends DustExpression.Any = DustExpression.Any
-> {
+export interface DustComponentProps {
   readonly id: string; // TODO add a data-json-path to each element instead of using id? Unless we want to be able to query any element by id...
-  readonly expression: T;
   readonly depthLimit: number;
-  readonly simulation: PhysicsSimulation;
   readonly onFocusIn?: EventCallback<HTMLSpanElement, FocusEvent>;
   readonly onFocusOut?: EventCallback<HTMLSpanElement, FocusEvent>;
+}
+
+export interface ExpressionProps<
+  T extends DustExpression.Any = DustExpression.Any
+> extends DustComponentProps {
+  readonly expression: T;
+  readonly simulation: PhysicsSimulation;
 }
 
 // TODO add the "vertical" class where needed, BUT ALSO

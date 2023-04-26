@@ -16,6 +16,7 @@ import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
 
 import * as jsonpatch from "fast-json-patch";
 import { TextTreeView } from "./views/TextTreeView";
+import { Window } from "./views/Window";
 
 function applyJsonPatch<T>(
   setStore: SetStoreFunction<T>,
@@ -124,21 +125,25 @@ const PlainTextEditor: Component = () => {
       </div>
       <br />
       <div contentEditable={true} onBeforeInput={beforeExpressionViewInput}>
-        <DustExpressionView
-          expression={expression}
-          id="plain-text-editor-output"
-          depthLimit={42}
-          onFocusIn={onElementFocusIn}
-          onFocusOut={onElementFocusOut}
+        <Window
+          expressions={[expression]}
+          baseProps={{
+            id: "plain-text-editor-output",
+            depthLimit: 42,
+            onFocusIn: onElementFocusIn,
+            onFocusOut: onElementFocusOut,
+          }}
         />
       </div>
       <br />
       {/* Readonly view to make sure updates are reflected */}
       <div>
-        <DustExpressionView
-          expression={expression}
-          id="plain-text-editor-output"
-          depthLimit={42}
+        <Window
+          expressions={[expression]}
+          baseProps={{
+            id: "plain-text-editor-output-readonly",
+            depthLimit: 42,
+          }}
         />
       </div>
       {/* TODO depthLimit */}

@@ -10,7 +10,7 @@ import {
 } from "../math/Physics";
 import { RollingAverage } from "../math/Stats";
 import { X, Y } from "../math/Vectors";
-import { updateDiametersIfNeeded } from "./BubbleElementResizeObserver";
+import { createBubbleElementResizeObserver } from "./BubbleElementResizeObserver";
 import { PhysicsSimulationElement } from "./PhysicsSimulationElement";
 
 const FIRST_FRAME_DELTA_MILLIS = 16;
@@ -25,9 +25,7 @@ export class PhysicsSimulation {
 
   // TODO for tests use https://stackoverflow.com/questions/64558062/how-to-mock-resizeobserver-to-work-in-unit-tests-using-react-testing-library
   // TODO figure out a way to make this package-private
-  readonly bubbleElementResizeObserver = new ResizeObserver(
-    updateDiametersIfNeeded
-  );
+  readonly bubbleElementResizeObserver = createBubbleElementResizeObserver();
 
   constructor({
     constants,

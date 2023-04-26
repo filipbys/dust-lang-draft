@@ -22,5 +22,5 @@ class DustLangEditor extends HTMLElement {
 
 // TODO find a better place for all this
 
-customElements.define("dust-lang-editor", DustLangEditor);
 customElements.define(PhysicsSimulationElement.TAG, PhysicsSimulationElement);
+customElements.define("dust-lang-editor", DustLangEditor);

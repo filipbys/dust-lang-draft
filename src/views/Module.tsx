@@ -35,11 +35,13 @@ export const Module: Component<ModuleProps> = (props) => {
     <PhysicsSimulationElementComponent
       id={props.id}
       class="Dust module"
-      state="pinned"
-      data={{
-        kind: "collection",
-        updateForces: updateForcesInModule,
-        simulation: props.simulation,
+      physicsProps={{
+        state: "pinned",
+        data: {
+          kind: "collection",
+          updateForces: updateForcesInModule,
+          simulation: props.simulation,
+        },
       }}
       ref={mountModule}
     >
@@ -49,8 +51,13 @@ export const Module: Component<ModuleProps> = (props) => {
 
       <PhysicsSimulationElementComponent
         class="Dust moduleElement moduleName"
-        state="pinned"
-        data={{ kind: "bubble", simulation: props.simulation }}
+        physicsProps={{
+          state: "pinned",
+          data: {
+            kind: "bubble",
+            simulation: props.simulation,
+          },
+        }}
       >
         <DustExpressionView
           {...{
@@ -96,8 +103,10 @@ const ModuleElementList: Component<{
           moduleElement: true,
           [props.visibility]: true,
         }}
-        state="free"
-        data={{ kind: "bubble", simulation: props.baseProps.simulation }}
+        physicsProps={{
+          state: "free",
+          data: { kind: "bubble", simulation: props.baseProps.simulation },
+        }}
       >
         <DustExpressionView
           {...{

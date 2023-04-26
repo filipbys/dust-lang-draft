@@ -1,12 +1,13 @@
-import { roundToString } from "./Numbers";
-import { vectorToString } from "./Vectors";
-import type { PhysicsElement } from "./Physics";
+import { roundToString } from "../math/Numbers";
+import { vectorToString } from "../math/Vectors";
+import { kineticEnergy, PhysicsElement } from "../math/Physics";
+import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
 
 export function updateElementText(
-  element: PhysicsElement,
-  energy: number = element.kineticEnergy
+  element: PhysicsSimulationElement,
+  energy: number = kineticEnergy(element)
 ) {
-  const debugInfo = element.htmlElement.querySelector("#debug_info");
+  const debugInfo = element.querySelector("#debug_info");
   if (debugInfo === null) {
     return;
   }

@@ -1,7 +1,7 @@
 import { Component, ComponentProps, For, on, Ref } from "solid-js";
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
-import { DustExpressionView } from "./DustExpressionView";
+import { DustExpressionView, ExpressionProps } from "./DustExpressionView";
 import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 import {
   PhysicsSimulationElement,
@@ -19,12 +19,9 @@ import { updateForcesInModule } from "./Modules";
 // When you zoom out and even the imports/exports get too small to read, they are hidden as well and the module is just shown as a circle around the name, with arrows displaying the flow of dependencies in your project
 // TODO should do a similar thing for function definitions: when zooming out, the body should animate out, leaving just the function signature
 
-export const Module: Component<{
-  expression: DustExpression.Module;
-  id: string;
-  depthLimit: number;
-  simulation: PhysicsSimulation;
-}> = (props) => {
+export type ModuleProps = ExpressionProps<DustExpression.Module>;
+
+export const Module: Component<ModuleProps> = (props) => {
   let moduleElement: PhysicsSimulationElement | null = null;
 
   function mountModule(element: HTMLDivElement) {
@@ -53,23 +50,61 @@ export const Module: Component<{
         state="pinned"
         data={{ kind: "bubble", simulation: props.simulation }}
       >
-        {props.expression.name}
+        <DustExpressionView
+          {...{
+            ...props,
+            id: props.id + "/name",
+            expression: props.expression.name,
+            depthLimit: props.depthLimit - 1,
+          }}
+        />
       </dust-physics-simulation-element>
-      <For each={props.expression.expressions}>
-        {(expression, index) => (
-          <dust-physics-simulation-element
-            class="Dust moduleElement"
-            state="free"
-            data={{ kind: "bubble", simulation: props.simulation }}
-          >
-            <DustExpressionView
-              id={props.id + "/expressions/" + index()}
-              expression={expression}
-              depthLimit={props.depthLimit - 1}
-            />
-          </dust-physics-simulation-element>
-        )}
-      </For>
+      <ModuleElementList
+        baseProps={{
+          ...props,
+          id: props.id + "/publicElements/",
+          depthLimit: props.depthLimit - 1,
+        }}
+        visibility="public"
+        expressions={props.expression.publicElements}
+      />
+      <ModuleElementList
+        baseProps={{
+          ...props,
+          id: props.id + "/privateElements/",
+          depthLimit: props.depthLimit - 1,
+        }}
+        visibility="private"
+        expressions={props.expression.privateElements}
+      />
     </dust-physics-simulation-element>
   );
 };
+
+const ModuleElementList: Component<{
+  baseProps: ModuleProps;
+  visibility: "public" | "private";
+  expressions: readonly DustExpression.Any[];
+}> = (props) => (
+  <For each={props.expressions}>
+    {(expression, index) => (
+      <dust-physics-simulation-element
+        classList={{
+          Dust: true,
+          moduleElement: true,
+          [props.visibility]: true,
+        }}
+        state="free"
+        data={{ kind: "bubble", simulation: props.baseProps.simulation }}
+      >
+        <DustExpressionView
+          {...{
+            ...props.baseProps,
+            id: props.baseProps.id + index(),
+            expression,
+          }}
+        />
+      </dust-physics-simulation-element>
+    )}
+  </For>
+);

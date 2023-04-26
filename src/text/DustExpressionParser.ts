@@ -1,6 +1,7 @@
 import type { TextNode, TextGroup } from "./TextTree";
 import { toUTF8 } from "./TextTree";
 import type { Any } from "../types/DustExpression";
+import { isOdd } from "../math/Numbers";
 
 export function parseExpression(textTree: TextNode): Any {
   if (textTree.kind === "leaf") {
@@ -88,8 +89,8 @@ namespace Groups {
 
   function parseTextGroup(group: TextGroup): Any {
     const text = toUTF8(group);
-    // TODO preserve ascii vs UTF-8
-    // TODO interpolated text
+    // TODO preserve the text tree: there may be interpolated sections within it
+    // In fact maybe we should look for those sections here.
     return { kind: "text", text, totalLength: text.length };
   }
 
@@ -192,7 +193,7 @@ namespace Groups {
 
     splitLeavesAtWhitespace(group.nodes).forEach((node, index) => {
       if (
-        index > 0 &&
+        isOdd(index) &&
         node.kind === "leaf" &&
         BINARY_OPERATORS.includes(node.text)
       ) {
@@ -203,6 +204,39 @@ namespace Groups {
 
     if (expressions.length === 1) {
       return expressions[0]; // TODO explain
+    }
+
+    if (expressions.length > 1) {
+      const first = expressions[0];
+
+      if (
+        functionCallKind === "prefix" &&
+        first.kind === "identifier" &&
+        first.identifier === "module"
+      ) {
+        if (expressions.length !== 4) {
+          throw `Module must have three parameters, got ${
+            expressions.length - 1
+          }`;
+        }
+        const publicElements = expressions[2];
+        const privateElements = expressions[3];
+
+        if (
+          publicElements.kind !== "array" ||
+          privateElements.kind != "array"
+        ) {
+          throw `Last 2 parameters to module must be arrays, got ${publicElements.kind}, ${privateElements.kind}`;
+        }
+
+        return {
+          kind: "module",
+          name: expressions[1],
+          publicElements: publicElements.expressions,
+          privateElements: privateElements.expressions,
+          totalLength: group.totalLength,
+        };
+      }
     }
 
     // TODO if kind === 'binary', ensure that every odd element is a binary operator

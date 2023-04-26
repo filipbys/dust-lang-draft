@@ -41,25 +41,26 @@ export class PhysicsSimulationElement
   implements Circle, PhysicsElement
 {
   static readonly TAG = "dust-physics-simulation-element";
+  #attachedToSimulation = false;
 
-  state: PhysicsSimulationElementState;
-  readonly #data: Readonly<PhysicsSimulationElementData>;
+  state: PhysicsSimulationElementState = "pinned";
+  #data?: Readonly<PhysicsSimulationElementData>;
 
   readonly force: Vector2D = [0, 0]; // pixels/millis^2
   velocity: Readonly<Vector2D> = [0, 0]; // pixels/millis
 
   // TODO support relative positions?
-  #center: Readonly<Vector2D>;
-  #diameter: number;
-  #centeredWithinParent: boolean;
+  #center: Readonly<Vector2D> = [0, 0];
+  #diameter: number = 100;
+  #centeredWithinParent: boolean = false;
   readonly #previousCssTranslate: Vector2D = [0, 0]; // pixels, rounded to nearest integers
 
   // TODO write a setter for this that plays the simulation
-  mass: number; // number of characters // TODO should update if the element's expression changes
+  mass: number = 0; // number of characters // TODO should update if the element's expression changes
 
-  constructor(props: Readonly<PhysicsSimulationElementProps>) {
-    super();
-    const diameter = props.diameter || elementDiameter(this); // TODO should run in connectedCallback()
+  init(props: Readonly<PhysicsSimulationElementProps>) {
+    console.log("PhysicsSimulationElement.init:", this, props);
+    const diameter = props.diameter || elementDiameter(this);
     const center = props.center || [0, 0];
     const centeredWithinParent = props.centeredWithinParent || false;
 
@@ -72,37 +73,66 @@ export class PhysicsSimulationElement
 
     setTranslate(this, center, this.#previousCssTranslate);
     setDiameter(this, diameter, centeredWithinParent);
+
+    this.attachToSimulationIfNeeded();
+
+    // TODO if isConnected, add to simulation, otherwise wait for connectedCallback()
   }
 
   connectedCallback() {
     // TODO check if this runs at the same time as onMount
-    console.log("PhysicsSimulationElement connected", this.isConnected);
-    if (!this.isConnected) {
-      // must check isConnected: https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements
-      return;
-    }
-    this.#data.simulation.addElement(this);
-    if (this.#data.kind === "bubble") {
-      if (this.childElementCount !== 1) {
-        throw "TODO"; // TODO
-      }
-      this.#data.simulation.bubbleElementResizeObserver.observe(
-        this.firstElementChild!,
-        bubbleElementResizeObserverOptions
-      );
-    }
+    console.log(
+      "PhysicsSimulationElement connected",
+      this.isConnected,
+      this.#attachedToSimulation
+    );
+    this.attachToSimulationIfNeeded();
   }
 
   disconnectedCallback() {
     // TODO check if this runs at the same time as onCleanup
     console.log("PhysicsSimulationElement disconnected", this.isConnected);
-    // TODO figure out if should check isConnected and how: is it supposed to be false by now?
-    this.#data.simulation.removeElement(this);
-    if (this.#data.kind === "bubble") {
-      this.#data.simulation.bubbleElementResizeObserver.unobserve(
-        this.firstElementChild!
-      );
+    this.detachFromSimulationIfNeeded();
+  }
+
+  private attachToSimulationIfNeeded() {
+    const data = this.#data;
+    if (this.#attachedToSimulation || !this.isConnected || data === undefined) {
+      return;
     }
+    data.simulation.addElement(this);
+    this.#attachedToSimulation = true;
+
+    if (data.kind !== "bubble") {
+      return;
+    }
+    if (this.childElementCount !== 1) {
+      throw "TODO"; // TODO
+    }
+    data.simulation.bubbleElementResizeObserver.observe(
+      this.firstElementChild!,
+      bubbleElementResizeObserverOptions
+    );
+  }
+
+  private detachFromSimulationIfNeeded() {
+    if (!this.#attachedToSimulation) {
+      return;
+    }
+    const data = this.#data!;
+    data.simulation.removeElement(this);
+    this.#attachedToSimulation = false;
+
+    if (data.kind !== "bubble") {
+      return;
+    }
+    data.simulation.bubbleElementResizeObserver.unobserve(
+      this.firstElementChild!
+    );
+  }
+
+  private playSimulation() {
+    this.#data!.simulation.playing = true;
   }
 
   get center() {
@@ -112,7 +142,7 @@ export class PhysicsSimulationElement
   set center(newCenter: Readonly<Vector2D>) {
     this.#center = newCenter;
     setTranslate(this, newCenter, this.#previousCssTranslate);
-    this.#data.simulation.playing = true;
+    this.playSimulation();
   }
 
   get diameter() {
@@ -123,7 +153,7 @@ export class PhysicsSimulationElement
   set diameter(newDiameter: number) {
     this.#diameter = newDiameter;
     setDiameter(this, newDiameter, this.#centeredWithinParent);
-    this.#data.simulation.playing = true;
+    this.playSimulation();
   }
 
   setBoundary(boundary: Circle) {
@@ -139,13 +169,14 @@ export class PhysicsSimulationElement
     this.#centeredWithinParent = newValue;
     if (newValue) {
       centerWithinParent(this, this.#diameter);
-      this.#data.simulation.playing = true;
+      this.playSimulation();
     }
   }
 
   updateForces() {
-    if (this.#data.kind === "collection") {
-      this.#data.updateForces(this, getPhysicsSimulationElementChildren(this));
+    const data = this.#data!;
+    if (data.kind === "collection") {
+      data.updateForces(this, getPhysicsSimulationElementChildren(this));
     }
   }
 }

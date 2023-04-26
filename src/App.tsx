@@ -50,7 +50,8 @@ const PlainTextEditor: Component = () => {
     [123 456 789] 
     [4 (a + (f b)) [1 2 3] (f [1 2 3])]
   )
-/ 42 
+/ 42
+- (module Foo [] [])
 + (f x y z)
 `);
 

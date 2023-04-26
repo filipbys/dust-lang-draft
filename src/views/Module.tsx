@@ -1,4 +1,4 @@
-import { Component, ComponentProps, For, on, Ref } from "solid-js";
+import { Component, ComponentProps, For, on, ParentProps, Ref } from "solid-js";
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
 import { DustExpressionView, ExpressionProps } from "./DustExpressionView";
@@ -6,9 +6,11 @@ import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 import {
   PhysicsSimulationElement,
   PhysicsSimulationElementData,
+  PhysicsSimulationElementProps,
 } from "../simulations/PhysicsSimulationElement";
 
 import { updateForcesInModule } from "./Modules";
+import { PhysicsSimulationElementComponent } from "./PhysicsSimulationElement-solidjs";
 
 // TODO imported and exported values go around the outside.
 // Private values are only visible when editing the module, so you
@@ -24,13 +26,13 @@ export type ModuleProps = ExpressionProps<DustExpression.Module>;
 export const Module: Component<ModuleProps> = (props) => {
   let moduleElement: PhysicsSimulationElement | null = null;
 
-  function mountModule(element: HTMLDivElement) {
+  function mountModule(element: HTMLElement) {
     console.log("Mounting Module:", element);
     moduleElement = element as PhysicsSimulationElement;
   }
 
   return (
-    <dust-physics-simulation-element
+    <PhysicsSimulationElementComponent
       id={props.id}
       class="Dust module"
       state="pinned"
@@ -45,7 +47,7 @@ export const Module: Component<ModuleProps> = (props) => {
       <button onClick={() => (moduleElement!.diameter -= 20)}>shrink</button>
       {/* TODO add a way to add and remove elements */}
 
-      <dust-physics-simulation-element
+      <PhysicsSimulationElementComponent
         class="Dust moduleElement moduleName"
         state="pinned"
         data={{ kind: "bubble", simulation: props.simulation }}
@@ -58,7 +60,7 @@ export const Module: Component<ModuleProps> = (props) => {
             depthLimit: props.depthLimit - 1,
           }}
         />
-      </dust-physics-simulation-element>
+      </PhysicsSimulationElementComponent>
       <ModuleElementList
         baseProps={{
           ...props,
@@ -77,7 +79,7 @@ export const Module: Component<ModuleProps> = (props) => {
         visibility="private"
         expressions={props.expression.privateElements}
       />
-    </dust-physics-simulation-element>
+    </PhysicsSimulationElementComponent>
   );
 };
 
@@ -88,7 +90,7 @@ const ModuleElementList: Component<{
 }> = (props) => (
   <For each={props.expressions}>
     {(expression, index) => (
-      <dust-physics-simulation-element
+      <PhysicsSimulationElementComponent
         classList={{
           Dust: true,
           moduleElement: true,
@@ -104,7 +106,7 @@ const ModuleElementList: Component<{
             expression,
           }}
         />
-      </dust-physics-simulation-element>
+      </PhysicsSimulationElementComponent>
     )}
   </For>
 );

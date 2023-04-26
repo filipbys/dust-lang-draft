@@ -1,4 +1,4 @@
-import { Component, Match, Switch } from "solid-js";
+import { Component, JSX, Match, Switch } from "solid-js";
 import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 import type * as DustExpression from "../types/DustExpression";
 import { isListLike, List, ListProps } from "./List";

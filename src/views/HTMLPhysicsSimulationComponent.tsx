@@ -5,25 +5,7 @@ import {
   PhysicsSimulationElementProps,
 } from "../simulations/HTMLPhysicsSimulationElement";
 
-type HTMLPhysicsSimulationElementProps = ComponentProps<"element"> &
-  ParentProps<{
-    ref?: (element: HTMLPhysicsSimulationElement) => void;
-  }>;
-
-declare module "solid-js" {
-  namespace JSX {
-    interface IntrinsicElements {
-      [HTMLPhysicsSimulationElement.TAG]: HTMLPhysicsSimulationElementProps;
-    }
-  }
-}
-
-type PhysicsSimulationElementComponentProps =
-  HTMLPhysicsSimulationElementProps & {
-    dynamicProps: PhysicsSimulationElementProps;
-  };
-
-export const PhysicsSimulationElementComponent: Component<PhysicsSimulationElementComponentProps> =
+export const HTMLPhysicsSimulationComponent: Component<PhysicsSimulationElementComponentProps> =
   (props) => {
     return (
       <dust-physics-simulation-element
@@ -40,3 +22,21 @@ export const PhysicsSimulationElementComponent: Component<PhysicsSimulationEleme
       </dust-physics-simulation-element>
     );
   };
+
+export type PhysicsSimulationElementComponentProps =
+  HTMLPhysicsSimulationElementProps & {
+    dynamicProps: PhysicsSimulationElementProps;
+  };
+
+ty3=wpe HTMLPhysicsSimulationElementProps = ComponentProps<"element"> &
+  ParentProps<{
+    ref?: (element: HTMLPhysicsSimulationElement) => void;
+  }>;
+
+declare module "solid-js" {
+  namespace JSX {
+    interface IntrinsicElements {
+      [HTMLPhysicsSimulationElement.TAG]: HTMLPhysicsSimulationElementProps;
+    }
+  }
+}

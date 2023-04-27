@@ -10,7 +10,6 @@ import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 import { PhysicsConstants } from "../math/Physics";
 import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
 import { makeDraggable } from "../simulations/DragAndDrop";
-import { PhysicsSimulationElementComponent } from "./PhysicsSimulationElement-solidjs";
 
 // TODO window should have a toolbar with undo/redo, zoom in/out, insert, set depth limit, etc buttons
 

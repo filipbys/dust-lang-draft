@@ -36,6 +36,7 @@ export const IntoHTMLPhysicsSimulationComponent: Component<
           ...props,
           ref(element) {
             element.state = "free";
+            element.centeredWithinParent = true;
             element.setDynamicProperties({
               simulationFrameCallback: updateWrapperDiameter,
               playSimulation: props.playSimulation,
@@ -61,4 +62,10 @@ export function updateWrapperDiameter(wrapper: HTMLPhysicsSimulationElement) {
   // TODO set the element's mass based on the number of characters in the expression
 }
 
-function bubbleSimulationFrameCallback() {}
+export function getDirectPhysicsElementChildren(
+  element: HTMLPhysicsSimulationElement
+): HTMLCollectionOf<HTMLPhysicsSimulationElement> {
+  return element.getElementsByTagName(
+    HTMLPhysicsSimulationElement.TAG
+  ) as HTMLCollectionOf<HTMLPhysicsSimulationElement>;
+}

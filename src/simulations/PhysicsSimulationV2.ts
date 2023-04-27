@@ -17,6 +17,7 @@ import { RollingAverage } from "../math/Stats";
 import { X, Y } from "../math/Vectors";
 
 // TODO add another state "focused" which is like "free" but instead of it moving around, the world moves around it so the viewer can keep a fixed reference frame on the element.
+// TODO add another state that's like "pinned" but can still be dragged
 export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
 
 export interface PhysicsSimulationElement extends PhysicsElement {
@@ -27,14 +28,12 @@ export interface PhysicsSimulationElement extends PhysicsElement {
 export type PhysicsSimulationProps = Readonly<{
   constants: PhysicsConstants;
   elements: ReadonlyArray<PhysicsSimulationElement>;
+  playingSignal: Signal<boolean>;
   maxStillFramesBeforeAutoPause?: number;
 }>;
 
-export function createSimulation(
-  props: PhysicsSimulationProps
-): Signal<boolean> {
-  const playingSignal: Signal<boolean> = createSignal(false);
-  const [isPlaying, setPlaying] = playingSignal;
+export function createSimulation(props: PhysicsSimulationProps) {
+  const [isPlaying, setPlaying] = props.playingSignal;
 
   const rollingAverageEnergy = new RollingAverage(
     props.maxStillFramesBeforeAutoPause || 30
@@ -60,7 +59,6 @@ export function createSimulation(
       // Else: frameCallback will automatically pause itself on the next frame
     })
   );
-  return playingSignal;
 }
 
 const FIRST_FRAME_DELTA_MILLIS = 16;

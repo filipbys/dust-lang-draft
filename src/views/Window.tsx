@@ -1,10 +1,13 @@
-import { Component, For } from "solid-js";
+import { Component, createSignal, For, Signal } from "solid-js";
 import { smallestEnclosingCircle } from "../math/Geometry";
 import type * as DustExpression from "../types/DustExpression";
 import { DustComponentProps, DustExpressionView } from "./DustExpressionView";
 import { PhysicsConstants } from "../math/Physics";
 import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
-import { IntoHTMLPhysicsSimulationComponent } from "./HTMLPhysicsSimulationComponent";
+import {
+  getDirectPhysicsElementChildren,
+  IntoHTMLPhysicsSimulationComponent,
+} from "./HTMLPhysicsSimulationComponent";
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
 import { createSimulation } from "../simulations/PhysicsSimulationV2";
 
@@ -56,14 +59,29 @@ function setUpWindowContents(windowContents: HTMLPhysicsSimulationElement) {
 const WindowContents: Component<{
   baseProps: DustComponentProps;
   expressions: readonly DustExpression.Any[];
-  playSimulation: () => void;
+  playingSignal: Signal<boolean>;
 }> = (props) => {
+  const [_, setPlaying] = props.playingSignal;
+  const playSimulation = () => setPlaying(true);
   return (
     <dust-physics-simulation-element
       class="Dust windowContents"
       ref={(element) => {
+        // TODO add inputs for these as well for debugging
+        const physicsConstants: PhysicsConstants = {
+          maxVelocity: 2,
+          dragMultiplier: 0.995,
+          frictionCoefficient: 0.01,
+        };
+
+        createSimulation({
+          constants: physicsConstants,
+          elements: getDirectPhysicsElementChildren(element),
+          playingSignal: props.playingSignal,
+        });
+
         element.setDynamicProperties({
-          playSimulation: props.playSimulation,
+          playSimulation,
           simulationFrameCallback: () => {
             // TODO prevent collisions, encircleWindowContents(), etc
           },
@@ -73,15 +91,13 @@ const WindowContents: Component<{
       <For each={props.expressions}>
         {(expression, index) => (
           // TODO don't wrap in a bubble if the element is already a physicsElement (e.g. modules)
-          <IntoHTMLPhysicsSimulationComponent
-            playSimulation={props.playSimulation}
-          >
+          <IntoHTMLPhysicsSimulationComponent {...{ playSimulation }}>
             <DustExpressionView
               {...{
                 ...props.baseProps,
                 id: props.baseProps.id + "/expressions/" + index(),
                 expression,
-                playSimulation: props.playSimulation,
+                playSimulation,
               }}
             />
           </IntoHTMLPhysicsSimulationComponent>
@@ -95,19 +111,9 @@ export const Window: Component<{
   baseProps: DustComponentProps;
   expressions: DustExpression.Any[]; // TODO Dust.WindowExpression?
 }> = (props) => {
-  // TODO add inputs for these as well for debugging
-  const physicsConstants: PhysicsConstants = {
-    maxVelocity: 2,
-    dragMultiplier: 0.995,
-    frictionCoefficient: 0.01,
-  };
+  const playingSignal = createSignal(false);
 
-  const [simulationPlaying, setSimulationPlaying] = createSimulation({
-    constants: physicsConstants,
-    elements: document.getElementsByTagName(
-      HTMLPhysicsSimulationElement.TAG
-    ) as HTMLCollectionOf<HTMLPhysicsSimulationElement>,
-  });
+  const [simulationPlaying, setSimulationPlaying] = playingSignal;
 
   return (
     <div
@@ -120,9 +126,7 @@ export const Window: Component<{
       <button onClick={() => setSimulationPlaying(!simulationPlaying())}>
         {simulationPlaying() ? "pause" : "play"} simulation
       </button>
-      <WindowContents
-        {...{ ...props, playSimulation: () => setSimulationPlaying(true) }}
-      />
+      <WindowContents {...{ ...props, playingSignal }} />
     </div>
   );
 };

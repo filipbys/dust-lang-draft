@@ -1,12 +1,5 @@
-import { updateElementText } from "../development/Debugging";
-import { makeDraggable } from "../simulations/DragAndDrop";
 import { Springs } from "../math/Physics";
-import {
-  ForceCalculator,
-  PhysicsSimulationElement,
-} from "../simulations/PhysicsSimulationElement";
-import { RollingAverage } from "../math/Stats";
-import { X, Y } from "../math/Vectors";
+
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
 import { filterByType } from "../data-structures/Arrays";
 

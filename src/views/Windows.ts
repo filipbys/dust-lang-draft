@@ -68,8 +68,6 @@ function makeWindowContents(htmlElements: HTMLElement[]): WindowContents {
     // TODO unobserve if the element is removed from the window
     resizeObserver.observe(htmlElement, { box: "border-box" });
 
-    // TODO need some kind of callback so we can update the windowContents div
-    makeDraggable(physicsElement);
     elements.push(physicsElement);
   }
 

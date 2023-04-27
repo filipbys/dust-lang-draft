@@ -9,6 +9,7 @@ import {
   PhysicsSimulationElementState,
 } from "./PhysicsSimulationV2";
 import { centerWithinParent, setDiameter, setTranslate } from "./HTMLHelpers";
+import { makeDraggable } from "./DragAndDrop";
 
 // TODO there are really two kinds of elements:
 // Bubbles, which hold a single HTMLElement of any kind, and update their diameter whenever the wrapped value's size changes using a ResizeObserver.
@@ -25,7 +26,10 @@ export class HTMLPhysicsSimulationElement
 {
   static readonly TAG = "dust-physics-simulation-element";
 
-  state: PhysicsSimulationElementState = "pinned"; // TODO should also play the simulation when set, right?
+  // TODO set the state as a css class or attribute
+  // TODO should also play the simulation when set, right?
+  state: PhysicsSimulationElementState = "pinned";
+
   #dynamicProperties?: HTMLPhysicsSimulationElementProps;
 
   readonly force: Vector2D = [0, 0]; // pixels/millis^2
@@ -45,6 +49,7 @@ export class HTMLPhysicsSimulationElement
 
     // TODO make the element draggable!
     // So maybe rename this method back to initialize()
+    makeDraggable(this);
   }
 
   get center() {

@@ -1,19 +1,11 @@
-import { Component, createSignal, For } from "solid-js";
+import { Component, For } from "solid-js";
 import { smallestEnclosingCircle } from "../math/Geometry";
 import type * as DustExpression from "../types/DustExpression";
 import { DustComponentProps, DustExpressionView } from "./DustExpressionView";
-import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 import { PhysicsConstants } from "../math/Physics";
 import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
-import { makeDraggable } from "../simulations/DragAndDrop";
-import {
-  HTMLPhysicsSimulationComponent,
-  IntoHTMLPhysicsSimulationComponent,
-} from "./HTMLPhysicsSimulationComponent";
-import {
-  HTMLPhysicsSimulationElement,
-  HTMLPhysicsSimulationElementProps,
-} from "../simulations/HTMLPhysicsSimulationElement";
+import { IntoHTMLPhysicsSimulationComponent } from "./HTMLPhysicsSimulationComponent";
+import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
 import { createSimulation } from "../simulations/PhysicsSimulationV2";
 
 // TODO window should have a toolbar with undo/redo, zoom in/out, insert, set depth limit, etc buttons
@@ -67,15 +59,16 @@ const WindowContents: Component<{
   playSimulation: () => void;
 }> = (props) => {
   return (
-    <HTMLPhysicsSimulationComponent
+    <dust-physics-simulation-element
       class="Dust windowContents"
-      dynamicProps={{
-        playSimulation: props.playSimulation,
-        simulationFrameCallback: () => {
-          // TODO prevent collisions, encircleWindowContents(), etc
-        },
+      ref={(element) => {
+        element.setDynamicProperties({
+          playSimulation: props.playSimulation,
+          simulationFrameCallback: () => {
+            // TODO prevent collisions, encircleWindowContents(), etc
+          },
+        });
       }}
-      ref={setUpWindowContents}
     >
       <For each={props.expressions}>
         {(expression, index) => (
@@ -88,12 +81,13 @@ const WindowContents: Component<{
                 ...props.baseProps,
                 id: props.baseProps.id + "/expressions/" + index(),
                 expression,
+                playSimulation: props.playSimulation,
               }}
             />
           </IntoHTMLPhysicsSimulationComponent>
         )}
       </For>
-    </HTMLPhysicsSimulationComponent>
+    </dust-physics-simulation-element>
   );
 };
 
@@ -107,6 +101,7 @@ export const Window: Component<{
     dragMultiplier: 0.995,
     frictionCoefficient: 0.01,
   };
+
   const [simulationPlaying, setSimulationPlaying] = createSimulation({
     constants: physicsConstants,
     elements: document.getElementsByTagName(

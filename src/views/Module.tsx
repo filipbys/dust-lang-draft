@@ -1,16 +1,13 @@
-import { Component, ComponentProps, For, on, ParentProps, Ref } from "solid-js";
-import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { Component, For } from "solid-js";
+import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
 import type * as DustExpression from "../types/DustExpression";
 import { DustExpressionView, ExpressionProps } from "./DustExpressionView";
-import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 import {
-  PhysicsSimulationElement,
-  PhysicsSimulationElementData,
-  PhysicsSimulationElementProps,
-} from "../simulations/PhysicsSimulationElement";
+  IntoHTMLPhysicsSimulationComponent,
+  updateWrapperDiameter,
+} from "./HTMLPhysicsSimulationComponent";
 
 import { updateForcesInModule } from "./Modules";
-import { PhysicsSimulationElementComponent } from "./PhysicsSimulationElement-solidjs";
 
 // TODO imported and exported values go around the outside.
 // Private values are only visible when editing the module, so you
@@ -24,39 +21,36 @@ import { PhysicsSimulationElementComponent } from "./PhysicsSimulationElement-so
 export type ModuleProps = ExpressionProps<DustExpression.Module>;
 
 export const Module: Component<ModuleProps> = (props) => {
-  let moduleElement: PhysicsSimulationElement | null = null;
+  let moduleElementRef: HTMLPhysicsSimulationElement | null = null;
 
-  function mountModule(element: HTMLElement) {
-    console.log("Mounting Module:", element);
-    moduleElement = element as PhysicsSimulationElement;
+  function mountModule(moduleElement: HTMLPhysicsSimulationElement) {
+    console.log("Mounting Module:", moduleElement);
+    moduleElementRef = moduleElement;
+    moduleElement.state = "free";
+    moduleElement.setDynamicProperties({
+      simulationFrameCallback: updateForcesInModule,
+      playSimulation: props.playSimulation,
+    });
   }
 
   return (
-    <PhysicsSimulationElementComponent
+    <dust-physics-simulation-element
       id={props.id}
       class="Dust module"
-      physicsProps={{
-        state: "pinned",
-        data: {
-          kind: "collection",
-          updateForces: updateForcesInModule,
-          simulation: props.simulation,
-        },
-      }}
       ref={mountModule}
     >
-      <button onClick={() => (moduleElement!.diameter += 20)}>grow</button>
-      <button onClick={() => (moduleElement!.diameter -= 20)}>shrink</button>
+      <button onClick={() => (moduleElementRef!.diameter += 20)}>grow</button>
+      <button onClick={() => (moduleElementRef!.diameter -= 20)}>shrink</button>
       {/* TODO add a way to add and remove elements */}
 
-      <PhysicsSimulationElementComponent
+      <dust-physics-simulation-element
         class="Dust moduleElement moduleName"
-        physicsProps={{
-          state: "pinned",
-          data: {
-            kind: "bubble",
-            simulation: props.simulation,
-          },
+        ref={(moduleName) => {
+          moduleName.state = "pinned";
+          moduleName.setDynamicProperties({
+            simulationFrameCallback: updateWrapperDiameter,
+            playSimulation: props.playSimulation,
+          });
         }}
       >
         <DustExpressionView
@@ -67,7 +61,7 @@ export const Module: Component<ModuleProps> = (props) => {
             depthLimit: props.depthLimit - 1,
           }}
         />
-      </PhysicsSimulationElementComponent>
+      </dust-physics-simulation-element>
       <ModuleElementList
         baseProps={{
           ...props,
@@ -86,7 +80,7 @@ export const Module: Component<ModuleProps> = (props) => {
         visibility="private"
         expressions={props.expression.privateElements}
       />
-    </PhysicsSimulationElementComponent>
+    </dust-physics-simulation-element>
   );
 };
 
@@ -105,16 +99,13 @@ const ModuleElementList: Component<{
       //  <PhysicsSimulationElementComponent>
       //    <DustExpressionView expression/>
       //  </PhysicsSimulationElementComponent>
-      <PhysicsSimulationElementComponent
+      <IntoHTMLPhysicsSimulationComponent
         classList={{
           Dust: true,
           moduleElement: true,
           [props.visibility]: true,
         }}
-        physicsProps={{
-          state: "free",
-          data: { kind: "bubble", simulation: props.baseProps.simulation },
-        }}
+        playSimulation={props.baseProps.playSimulation}
       >
         <DustExpressionView
           {...{
@@ -123,7 +114,7 @@ const ModuleElementList: Component<{
             expression,
           }}
         />
-      </PhysicsSimulationElementComponent>
+      </IntoHTMLPhysicsSimulationComponent>
     )}
   </For>
 );

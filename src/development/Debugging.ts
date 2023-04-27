@@ -1,10 +1,10 @@
 import { roundToString } from "../math/Numbers";
 import { vectorToString } from "../math/Vectors";
-import { kineticEnergy, PhysicsElement } from "../math/Physics";
-import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
+import { kineticEnergy } from "../math/Physics";
+import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
 
 export function updateElementText(
-  element: PhysicsSimulationElement,
+  element: HTMLPhysicsSimulationElement,
   energy: number = kineticEnergy(element)
 ) {
   const debugInfo = element.querySelector("#debug_info");

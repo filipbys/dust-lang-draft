@@ -7,6 +7,8 @@ import {
 } from "../simulations/PhysicsSimulationElement";
 import { RollingAverage } from "../math/Stats";
 import { X, Y } from "../math/Vectors";
+import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
+import { filterByType } from "../data-structures/Arrays";
 
 // TODO create a similar simulation for unordered containers/collections which has only public elements and just distributes them as evenly as possible
 // ==> Extract shared code between them into other namespaces:
@@ -21,10 +23,13 @@ const PHYSICS_CONSTANTS = {
   frictionCoefficient: 0.01,
 } as const;
 
-export const updateForcesInModule: ForceCalculator = (
-  moduleElement: PhysicsSimulationElement,
-  physicsElements: PhysicsSimulationElement[]
-) => {
+export function updateForcesInModule(
+  moduleElement: HTMLPhysicsSimulationElement
+) {
+  const physicsElements: HTMLPhysicsSimulationElement[] = filterByType(
+    moduleElement.children,
+    HTMLPhysicsSimulationElement
+  );
   const idealGapBetweenElements = 20;
 
   const collisionSpringConstant = 100; // 1/(millis^2): strongly repel colliding elements
@@ -102,7 +107,7 @@ export const updateForcesInModule: ForceCalculator = (
 
   // TODO use average distance of public elements to border to grow/shrink the module
   // also grow the module if any private elements end up touching the border
-};
+}
 
 /*
 function makeRandomPhysicsElement(

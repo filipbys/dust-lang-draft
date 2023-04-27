@@ -1,5 +1,4 @@
-import { Component, JSX, Match, Switch } from "solid-js";
-import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
+import { Component, Match, Switch } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
 import { isListLike, List, ListProps } from "./List";
 import { Module, ModuleProps } from "./Module";
@@ -20,13 +19,13 @@ export interface DustComponentProps {
   readonly depthLimit: number;
   readonly onFocusIn?: EventCallback<HTMLSpanElement, FocusEvent>;
   readonly onFocusOut?: EventCallback<HTMLSpanElement, FocusEvent>;
-  readonly playSimulation: () => void;
 }
 
 export interface ExpressionProps<
   T extends DustExpression.Any = DustExpression.Any
 > extends DustComponentProps {
   readonly expression: T;
+  readonly playSimulation: () => void;
 }
 
 // TODO add the "vertical" class where needed, BUT ALSO

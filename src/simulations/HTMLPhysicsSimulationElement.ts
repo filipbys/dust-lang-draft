@@ -32,9 +32,9 @@ export class HTMLPhysicsSimulationElement
   velocity: Readonly<Vector2D> = [0, 0]; // pixels/millis
 
   #center: Readonly<Vector2D> = [0, 0];
-  #diameter: number = 100;
+  #diameter: number = 200;
   #mass: number = 100; // TODO
-  #centeredWithinParent: boolean = false;
+  #centeredWithinParent: boolean = true;
 
   #previousCssDiameter: number = 0; // pixels, rounded to nearest integer
   #previousCssTranslate: Readonly<Vector2D> = [0, 0]; // pixels, rounded to nearest integers

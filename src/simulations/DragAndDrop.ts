@@ -1,17 +1,15 @@
 import { updateElementText } from "../development/Debugging";
 import { Vector2D, X, Y } from "../math/Vectors";
-import type { PhysicsSimulationElement } from "./PhysicsSimulationElement";
 import { RollingAverage } from "../math/Stats";
+import { HTMLPhysicsSimulationElement } from "./HTMLPhysicsSimulationElement";
 
 // TODO other elements should be draggable too, unless we want to wrap every other draggable element in a sort of "bubble" when dragging them? Alternatively we can add another class like DraggableElement in the hierarchy between PhysicsSimulationElement and HTMLElement.
-// The other alternative would be to drag physics-simulation data separately and maintain a hashmap of element ID -> PhysicsSimulationElement
-// In the case of dragging, we wouldn't even need that since we have the DragState
-export function makeDraggable(element: PhysicsSimulationElement) {
+export function makeDraggable(element: HTMLPhysicsSimulationElement) {
   element.addEventListener("pointerdown", (event) => dragStart(event, element));
 }
 
 type DragState = {
-  readonly element: PhysicsSimulationElement;
+  readonly element: HTMLPhysicsSimulationElement;
   readonly pointerId: number;
   readonly pointerOffset: Vector2D;
   readonly velocityX: RollingAverage;
@@ -38,7 +36,7 @@ function removeListeners(event: PointerEvent, dragState: DragState) {
   htmlElement.removeEventListener("pointercancel", dragState.dragEnd);
 }
 
-function dragStart(event: PointerEvent, element: PhysicsSimulationElement) {
+function dragStart(event: PointerEvent, element: HTMLPhysicsSimulationElement) {
   if (element.state !== "free") {
     return;
   }

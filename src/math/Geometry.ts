@@ -29,7 +29,7 @@ export function rectangleDiameter(rectangle: Rectangle): number {
 
 export function smallestEnclosingCircle(circles: readonly Circle[]): Circle {
   return {
-    center: { x: 0, y: 0 }, // TODO
+    center: [0, 0], // TODO
     diameter: 700, // TODO
   };
 }

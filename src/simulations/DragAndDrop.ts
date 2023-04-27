@@ -3,9 +3,11 @@ import { Vector2D, X, Y } from "../math/Vectors";
 import { RollingAverage } from "../math/Stats";
 import { HTMLPhysicsSimulationElement } from "./HTMLPhysicsSimulationElement";
 import { safeCast } from "../type-utils/DynamicTypeChecks";
+import { raise } from "../development/Errors";
 
 // TODO other elements should be draggable too, unless we want to wrap every other draggable element in a sort of "bubble" when dragging them? Alternatively we can add another class like DraggableElement in the hierarchy between PhysicsSimulationElement and HTMLElement.
 export function makeDraggable(element: HTMLPhysicsSimulationElement) {
+  console.info("Making this draggable:", element);
   element.addEventListener("pointerdown", dragStart);
 }
 
@@ -42,9 +44,29 @@ function removeListeners(
   htmlElement.removeEventListener("pointercancel", dragState.dragEnd);
 }
 
+function getClosestPhysicsElement(
+  event: PointerEvent
+): HTMLPhysicsSimulationElement {
+  let element = safeCast(event.target, HTMLElement);
+  if (element instanceof HTMLPhysicsSimulationElement) {
+    return element;
+  }
+
+  // TODO make element.state queryable by CSS so we can find the closest free element
+  return (
+    element.closest<HTMLPhysicsSimulationElement>(
+      HTMLPhysicsSimulationElement.TAG
+    ) ||
+    raise(
+      "Element does not have any draggable ancestors, and yet a drag listener was added to it: " +
+        element
+    )
+  );
+}
+
 function dragStart(event: PointerEvent) {
-  const element = safeCast(event.target, HTMLPhysicsSimulationElement);
-  console.log("dragStart", element.state, event);
+  console.info("dragStart", event);
+  const element = getClosestPhysicsElement(event);
   if (element.state !== "free") {
     return;
   }
@@ -68,9 +90,9 @@ function dragStart(event: PointerEvent) {
 }
 
 function dragMove(event: PointerEvent, dragState: DragState) {
-  const element = safeCast(event.target, HTMLPhysicsSimulationElement);
+  const element = getClosestPhysicsElement(event);
 
-  console.log("dragMove", element.state, dragState, event);
+  console.debug("dragMove", element.state, dragState, event);
   console.assert(element.state === "dragged");
   if (event.pointerId !== dragState.pointerId) {
     return;
@@ -86,8 +108,8 @@ function dragMove(event: PointerEvent, dragState: DragState) {
 }
 
 function dragEnd(event: PointerEvent, dragState: DragState) {
-  const element = safeCast(event.target, HTMLPhysicsSimulationElement);
-  console.log("dragEnd", element.state, dragState, event);
+  const element = getClosestPhysicsElement(event);
+  console.info("dragEnd", element.state, dragState, event);
   console.assert(element.state === "dragged");
   if (event.pointerId !== dragState.pointerId) {
     return;

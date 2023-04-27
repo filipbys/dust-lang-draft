@@ -1,15 +1,20 @@
 import { Component, createSignal, For } from "solid-js";
 import { smallestEnclosingCircle } from "../math/Geometry";
 import type * as DustExpression from "../types/DustExpression";
-import {
-  DustComponentProps,
-  DustExpressionView,
-  EventCallback,
-} from "./DustExpressionView";
+import { DustComponentProps, DustExpressionView } from "./DustExpressionView";
 import { PhysicsSimulation } from "../simulations/PhysicsSimulation";
 import { PhysicsConstants } from "../math/Physics";
 import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
 import { makeDraggable } from "../simulations/DragAndDrop";
+import {
+  HTMLPhysicsSimulationComponent,
+  IntoHTMLPhysicsSimulationComponent,
+} from "./HTMLPhysicsSimulationComponent";
+import {
+  HTMLPhysicsSimulationElement,
+  HTMLPhysicsSimulationElementProps,
+} from "../simulations/HTMLPhysicsSimulationElement";
+import { createSimulation } from "../simulations/PhysicsSimulationV2";
 
 // TODO window should have a toolbar with undo/redo, zoom in/out, insert, set depth limit, etc buttons
 
@@ -42,14 +47,14 @@ import { makeDraggable } from "../simulations/DragAndDrop";
 // \comment|    ==>  «|»
 //
 
-function setUpWindowContents(windowContents: PhysicsSimulationElement) {
-  for (const windowElement of windowContents.children) {
-    if (!(windowElement instanceof PhysicsSimulationElement)) {
-      continue;
-    }
-
-    // TODO need some kind of callback so we can update the windowContents div
-    makeDraggable(windowElement);
+function setUpWindowContents(windowContents: HTMLPhysicsSimulationElement) {
+  function updateForces(
+    windowElement: PhysicsSimulationElement,
+    physicsElements: PhysicsSimulationElement[]
+  ) {
+    // TODO update ForceCalculator terminology to reflect that we do more than just update forces. Maybe something like FrameCallback?
+    const boundary = smallestEnclosingCircle(physicsElements);
+    windowElement.setBoundary(boundary);
   }
 
   // TODO need to call this every frame
@@ -59,53 +64,36 @@ function setUpWindowContents(windowContents: PhysicsSimulationElement) {
 const WindowContents: Component<{
   baseProps: DustComponentProps;
   expressions: readonly DustExpression.Any[];
-  simulation: PhysicsSimulation;
+  playSimulation: () => void;
 }> = (props) => {
-  function updateForces(
-    windowElement: PhysicsSimulationElement,
-    physicsElements: PhysicsSimulationElement[]
-  ) {
-    // TODO update ForceCalculator terminology to reflect that we do more than just update forces. Maybe something like FrameCallback?
-    const boundary = smallestEnclosingCircle(physicsElements);
-    windowElement.setBoundary(boundary);
-  }
   return (
-    <PhysicsSimulationElementComponent
+    <HTMLPhysicsSimulationComponent
       class="Dust windowContents"
-      physicsProps={{
-        state: "free",
-        diameter: 100,
-        data: {
-          kind: "collection",
-          updateForces,
-          simulation: props.simulation,
+      dynamicProps={{
+        playSimulation: props.playSimulation,
+        simulationFrameCallback: () => {
+          // TODO prevent collisions, encircleWindowContents(), etc
         },
       }}
-      ref={(it) => setUpWindowContents(it as PhysicsSimulationElement)}
+      ref={setUpWindowContents}
     >
       <For each={props.expressions}>
         {(expression, index) => (
           // TODO don't wrap in a bubble if the element is already a physicsElement (e.g. modules)
-          <PhysicsSimulationElementComponent
-            class="windowElement"
-            physicsProps={{
-              state: "free",
-              diameter: 100,
-              data: { kind: "bubble", simulation: props.simulation },
-            }}
+          <IntoHTMLPhysicsSimulationComponent
+            playSimulation={props.playSimulation}
           >
             <DustExpressionView
               {...{
                 ...props.baseProps,
                 id: props.baseProps.id + "/expressions/" + index(),
                 expression,
-                simulation: props.simulation,
               }}
             />
-          </PhysicsSimulationElementComponent>
+          </IntoHTMLPhysicsSimulationComponent>
         )}
       </For>
-    </PhysicsSimulationElementComponent>
+    </HTMLPhysicsSimulationComponent>
   );
 };
 
@@ -119,9 +107,11 @@ export const Window: Component<{
     dragMultiplier: 0.995,
     frictionCoefficient: 0.01,
   };
-  const simulation = new PhysicsSimulation({
+  const [simulationPlaying, setSimulationPlaying] = createSimulation({
     constants: physicsConstants,
-    playingSignal: createSignal(false),
+    elements: document.getElementsByTagName(
+      HTMLPhysicsSimulationElement.TAG
+    ) as HTMLCollectionOf<HTMLPhysicsSimulationElement>,
   });
 
   return (
@@ -129,13 +119,15 @@ export const Window: Component<{
       classList={{
         Dust: true,
         window: true,
-        simulationPlaying: simulation.playing,
+        simulationPlaying: simulationPlaying(),
       }}
     >
-      <button onClick={() => (simulation.playing = !simulation.playing)}>
-        {simulation.playing ? "pause" : "play"} simulation
+      <button onClick={() => setSimulationPlaying(!simulationPlaying())}>
+        {simulationPlaying() ? "pause" : "play"} simulation
       </button>
-      <WindowContents {...{ ...props, simulation }} />
+      <WindowContents
+        {...{ ...props, playSimulation: () => setSimulationPlaying(true) }}
+      />
     </div>
   );
 };

@@ -20,13 +20,13 @@ export interface DustComponentProps {
   readonly depthLimit: number;
   readonly onFocusIn?: EventCallback<HTMLSpanElement, FocusEvent>;
   readonly onFocusOut?: EventCallback<HTMLSpanElement, FocusEvent>;
+  readonly playSimulation: () => void;
 }
 
 export interface ExpressionProps<
   T extends DustExpression.Any = DustExpression.Any
 > extends DustComponentProps {
   readonly expression: T;
-  readonly simulation: PhysicsSimulation;
 }
 
 // TODO add the "vertical" class where needed, BUT ALSO

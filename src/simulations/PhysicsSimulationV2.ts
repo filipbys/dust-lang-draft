@@ -28,7 +28,6 @@ export type PhysicsSimulationProps = Readonly<{
   constants: PhysicsConstants;
   elements: ReadonlyArray<PhysicsSimulationElement>;
   maxStillFramesBeforeAutoPause?: number;
-  setPlaying: (value: boolean) => void;
 }>;
 
 export function createSimulation(

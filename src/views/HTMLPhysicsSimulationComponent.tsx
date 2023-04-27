@@ -1,9 +1,14 @@
-import type { Component, ComponentProps, ParentProps, Ref } from "solid-js";
-
 import {
-  HTMLPhysicsSimulationElement,
-  PhysicsSimulationElementProps,
-} from "../simulations/HTMLPhysicsSimulationElement";
+  Component,
+  ComponentProps,
+  Match,
+  ParentProps,
+  Ref,
+  Switch,
+} from "solid-js";
+import { elementDiameter } from "../math/Geometry";
+
+import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
 
 export const HTMLPhysicsSimulationComponent: Component<PhysicsSimulationElementComponentProps> =
   (props) => {
@@ -25,10 +30,10 @@ export const HTMLPhysicsSimulationComponent: Component<PhysicsSimulationElementC
 
 export type PhysicsSimulationElementComponentProps =
   HTMLPhysicsSimulationElementProps & {
-    dynamicProps: PhysicsSimulationElementProps;
+    dynamicProps: HTMLPhysicsSimulationElementProps;
   };
 
-ty3=wpe HTMLPhysicsSimulationElementProps = ComponentProps<"element"> &
+type HTMLPhysicsSimulationElementProps = ComponentProps<"element"> &
   ParentProps<{
     ref?: (element: HTMLPhysicsSimulationElement) => void;
   }>;
@@ -40,3 +45,40 @@ declare module "solid-js" {
     }
   }
 }
+
+export const IntoHTMLPhysicsSimulationComponent: Component<
+  ParentProps & {
+    playSimulation: () => void;
+  }
+> = (props) => (
+  <Switch>
+    <Match when={props.children instanceof HTMLPhysicsSimulationElement}>
+      {props.children}
+    </Match>
+    <Match when={!(props.children instanceof HTMLPhysicsSimulationElement)}>
+      <HTMLPhysicsSimulationComponent
+        {...{
+          dynamicProps: {
+            simulationFrameCallback: (
+              element: HTMLPhysicsSimulationElement
+            ) => {
+              if (element.childElementCount !== 1) {
+                throw `Wrapper physics element must have exactly 1 child, got ${element.childElementCount}`;
+              }
+              const wrappedElement = element.firstElementChild!;
+              element.diameter = elementDiameter(wrappedElement);
+            },
+            playSimulation: props.playSimulation,
+          },
+          ref(element) {
+            element.state = "free";
+            element.centeredWithinParent = true;
+            // TODO try to preserve the current position?
+          },
+        }}
+      />
+    </Match>
+  </Switch>
+);
+
+function bubbleSimulationFrameCallback() {}

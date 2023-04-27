@@ -14,8 +14,8 @@ import { centerWithinParent, setDiameter, setTranslate } from "./HTMLHelpers";
 // Bubbles, which hold a single HTMLElement of any kind, and update their diameter whenever the wrapped value's size changes using a ResizeObserver.
 // Collections, which hold multiple other physics elements and have an updateForces() function
 
-export type PhysicsSimulationElementProps = Readonly<{
-  simulationFrameCallback: () => void;
+export type HTMLPhysicsSimulationElementProps = Readonly<{
+  simulationFrameCallback: (element: HTMLPhysicsSimulationElement) => void;
   playSimulation: () => void;
 }>;
 
@@ -25,8 +25,8 @@ export class HTMLPhysicsSimulationElement
 {
   static readonly TAG = "dust-physics-simulation-element";
 
-  state: PhysicsSimulationElementState = "pinned";
-  #dynamicProperties?: PhysicsSimulationElementProps;
+  state: PhysicsSimulationElementState = "pinned"; // TODO should also play the simulation when set, right?
+  #dynamicProperties?: HTMLPhysicsSimulationElementProps;
 
   readonly force: Vector2D = [0, 0]; // pixels/millis^2
   velocity: Readonly<Vector2D> = [0, 0]; // pixels/millis
@@ -39,9 +39,12 @@ export class HTMLPhysicsSimulationElement
   #previousCssDiameter: number = 0; // pixels, rounded to nearest integer
   #previousCssTranslate: Readonly<Vector2D> = [0, 0]; // pixels, rounded to nearest integers
 
-  setDynamicProperties(props: PhysicsSimulationElementProps) {
+  setDynamicProperties(props: HTMLPhysicsSimulationElementProps) {
     console.log("PhysicsSimulationElement.init:", this, props);
     this.#dynamicProperties = props;
+
+    // TODO make the element draggable!
+    // So maybe rename this method back to initialize()
   }
 
   get center() {
@@ -113,6 +116,6 @@ export class HTMLPhysicsSimulationElement
       this.#previousCssTranslate = newTranslate;
     }
 
-    this.#dynamicProperties?.simulationFrameCallback();
+    this.#dynamicProperties?.simulationFrameCallback(this);
   }
 }

@@ -6,7 +6,7 @@ import {
   Ref,
   Switch,
 } from "solid-js";
-import { elementDiameter } from "../math/Geometry";
+import { elementDiameter, rectangleDiameter } from "../math/Geometry";
 import { centerRectangleWithinParent } from "../simulations/HTMLHelpers";
 
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
@@ -57,10 +57,10 @@ export function updateWrapperDiameter(wrapper: HTMLPhysicsSimulationElement) {
   if (wrapper.childElementCount !== 1) {
     throw `Wrapper physics element must have exactly 1 child, got ${wrapper.childElementCount}`;
   }
-  const wrappedElement = wrapper.firstElementChild!;
-  wrapper.diameter = elementDiameter(wrappedElement);
-
-  centerRectangleWithinParent(wrappedElement);
+  const wrappedElement = wrapper.firstElementChild! as HTMLElement;
+  const boundingBox = wrappedElement.getBoundingClientRect();
+  wrapper.diameter = rectangleDiameter(boundingBox);
+  centerRectangleWithinParent(wrappedElement, boundingBox);
 
   // TODO set the element's mass based on the number of characters in the expression
 }

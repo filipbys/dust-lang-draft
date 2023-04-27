@@ -2,14 +2,14 @@ import { updateElementText } from "../development/Debugging";
 import { Vector2D, X, Y } from "../math/Vectors";
 import { RollingAverage } from "../math/Stats";
 import { HTMLPhysicsSimulationElement } from "./HTMLPhysicsSimulationElement";
+import { safeCast } from "../type-utils/DynamicTypeChecks";
 
 // TODO other elements should be draggable too, unless we want to wrap every other draggable element in a sort of "bubble" when dragging them? Alternatively we can add another class like DraggableElement in the hierarchy between PhysicsSimulationElement and HTMLElement.
 export function makeDraggable(element: HTMLPhysicsSimulationElement) {
-  element.addEventListener("pointerdown", (event) => dragStart(event, element));
+  element.addEventListener("pointerdown", dragStart);
 }
 
 type DragState = {
-  readonly element: HTMLPhysicsSimulationElement;
   readonly pointerId: number;
   readonly pointerOffset: Vector2D;
   readonly velocityX: RollingAverage;
@@ -19,8 +19,11 @@ type DragState = {
   readonly dragEnd: (event: PointerEvent) => any;
 };
 
-function addListeners(event: PointerEvent, dragState: DragState) {
-  const htmlElement = dragState.element;
+function addListeners(
+  htmlElement: HTMLElement,
+  event: PointerEvent,
+  dragState: DragState
+) {
   htmlElement.addEventListener("pointermove", dragState.dragMove);
   htmlElement.addEventListener("pointerup", dragState.dragEnd);
   htmlElement.addEventListener("pointercancel", dragState.dragEnd);
@@ -28,15 +31,20 @@ function addListeners(event: PointerEvent, dragState: DragState) {
   // TODO need to also add scroll listeners to any ancestor elements that can scroll
 }
 
-function removeListeners(event: PointerEvent, dragState: DragState) {
-  const htmlElement = dragState.element;
+function removeListeners(
+  htmlElement: HTMLElement,
+  event: PointerEvent,
+  dragState: DragState
+) {
   htmlElement.releasePointerCapture(event.pointerId);
   htmlElement.removeEventListener("pointermove", dragState.dragMove);
   htmlElement.removeEventListener("pointerup", dragState.dragEnd);
   htmlElement.removeEventListener("pointercancel", dragState.dragEnd);
 }
 
-function dragStart(event: PointerEvent, element: HTMLPhysicsSimulationElement) {
+function dragStart(event: PointerEvent) {
+  const element = safeCast(event.target, HTMLPhysicsSimulationElement);
+  console.log("dragStart", element.state, event);
   if (element.state !== "free") {
     return;
   }
@@ -45,7 +53,6 @@ function dragStart(event: PointerEvent, element: HTMLPhysicsSimulationElement) {
 
   const rollingAverageSize = 5;
   const dragState: DragState = {
-    element,
     pointerId: event.pointerId,
     pointerOffset: [
       event.pageX - element.center[X],
@@ -57,41 +64,50 @@ function dragStart(event: PointerEvent, element: HTMLPhysicsSimulationElement) {
     dragMove: (event) => dragMove(event, dragState),
     dragEnd: (event) => dragEnd(event, dragState),
   };
-  addListeners(event, dragState);
+  addListeners(element, event, dragState);
 }
 
 function dragMove(event: PointerEvent, dragState: DragState) {
-  console.assert(dragState.element.state === "dragged");
+  const element = safeCast(event.target, HTMLPhysicsSimulationElement);
+
+  console.log("dragMove", element.state, dragState, event);
+  console.assert(element.state === "dragged");
   if (event.pointerId !== dragState.pointerId) {
     return;
   }
-  updatePositionAndVelocity(event, dragState);
+
+  updatePositionAndVelocity(element, event, dragState);
   // TODO if element reaches the edge of the window while dragging, pan the window automatically
   // by applying a force to it. That way it speeds up over time
 
   event.stopPropagation(); // TODO try removing this
 
-  updateElementText(dragState.element);
+  updateElementText(element);
 }
 
 function dragEnd(event: PointerEvent, dragState: DragState) {
-  console.assert(dragState.element.state === "dragged");
+  const element = safeCast(event.target, HTMLPhysicsSimulationElement);
+  console.log("dragEnd", element.state, dragState, event);
+  console.assert(element.state === "dragged");
   if (event.pointerId !== dragState.pointerId) {
     return;
   }
-  dragState.element.state = "free";
-  removeListeners(event, dragState);
-  updateElementText(dragState.element);
+  element.state = "free";
+  removeListeners(element, event, dragState);
+  updateElementText(element);
 }
 
-function updatePositionAndVelocity(event: PointerEvent, dragState: DragState) {
+function updatePositionAndVelocity(
+  element: HTMLPhysicsSimulationElement,
+  event: PointerEvent,
+  dragState: DragState
+) {
   const deltaMillis = Math.max(
     1,
     event.timeStamp - dragState.previousTimeStampMillis
   );
   dragState.previousTimeStampMillis = event.timeStamp;
 
-  const element = dragState.element;
   // TODO pageX/Y works when the whole document is scrolled/zoomed,
   // but I don't think it will work if a different ancestor element
   // of htmlElement is scrolled (e.g. a DustWindow within a DustWindowGroup or similar)

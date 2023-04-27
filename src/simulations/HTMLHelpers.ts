@@ -42,7 +42,7 @@ export function centerWithinParent(htmlElement: HTMLElement, diameter: number) {
 
 export function centerRectangleWithinParent(
   htmlElement: HTMLElement,
-  rectangle: Rectangle = htmlElement.getBoundingClientRect()
+  rectangle: Rectangle
 ) {
   // Center the element on its parent (movement within parent uses css transform: translate)
   const style = htmlElement.style;

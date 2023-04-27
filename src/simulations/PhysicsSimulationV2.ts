@@ -1,5 +1,6 @@
 import {
   Accessor,
+  batch,
   createEffect,
   createSignal,
   on,
@@ -42,12 +43,14 @@ export function createSimulation(props: PhysicsSimulationProps) {
 
   function runAndMeasureOneStep(deltaMillis: number) {
     simulationPerformance.startClock(deltaMillis);
-    runOneStep(
-      deltaMillis,
-      props.constants,
-      props.elements,
-      rollingAverageEnergy,
-      setPlaying
+    batch(() =>
+      runOneStep(
+        deltaMillis,
+        props.constants,
+        props.elements,
+        rollingAverageEnergy,
+        setPlaying
+      )
     );
     simulationPerformance.stopClock();
   }

@@ -1,11 +1,9 @@
+import { TypeConstructor } from "../type-utils/DynamicTypeChecks";
+
 export interface ReadonlyArray<T> {
   readonly length: number;
   readonly [n: number]: T;
   [Symbol.iterator](): Iterator<T>;
-}
-
-interface TypeConstructor<T> extends Function {
-  prototype: T;
 }
 
 export function filterByType<T, U>(

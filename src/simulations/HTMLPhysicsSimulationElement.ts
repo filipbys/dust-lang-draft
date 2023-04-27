@@ -36,7 +36,7 @@ export class HTMLPhysicsSimulationElement
   velocity: Readonly<Vector2D> = [0, 0]; // pixels/millis
 
   #center: Readonly<Vector2D> = [0, 0];
-  #diameter: number = 200;
+  #diameter: number = 100;
   #mass: number = 100; // TODO
   #centeredWithinParent: boolean = true;
 
@@ -46,9 +46,8 @@ export class HTMLPhysicsSimulationElement
   initialize(props: HTMLPhysicsSimulationElementProps) {
     console.log("PhysicsSimulationElement.init:", this, props);
     this.#dynamicProperties = props;
-
-    // TODO rename this method back to initialize()
     makeDraggable(this);
+    this.setBoundary(this);
   }
 
   get center() {

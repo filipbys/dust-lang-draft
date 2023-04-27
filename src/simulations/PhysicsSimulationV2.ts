@@ -27,7 +27,7 @@ export interface PhysicsSimulationElement extends PhysicsElement {
 }
 
 export type PhysicsSimulationProps = Readonly<{
-  constants: PhysicsConstants;
+  physicsConstants: PhysicsConstants;
   elements: ReadonlyArray<PhysicsSimulationElement>;
   playingSignal: Signal<boolean>;
   maxStillFramesBeforeAutoPause?: number;
@@ -46,7 +46,7 @@ export function createSimulation(props: PhysicsSimulationProps) {
     batch(() =>
       runOneStep(
         deltaMillis,
-        props.constants,
+        props.physicsConstants,
         props.elements,
         rollingAverageEnergy,
         setPlaying

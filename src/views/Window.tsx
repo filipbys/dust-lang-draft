@@ -5,7 +5,7 @@ import { DustComponentProps, DustExpressionView } from "./DustExpressionView";
 import { PhysicsConstants } from "../math/Physics";
 import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
 import {
-  getDirectPhysicsElementChildren,
+  getAllPhysicsElements,
   IntoHTMLPhysicsSimulationComponent,
 } from "./HTMLPhysicsSimulationComponent";
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
@@ -58,16 +58,28 @@ function setUpWindowContents(windowContents: HTMLPhysicsSimulationElement) {
   // encircleWindowContents();
 }
 
-const WindowContents: Component<{
+export const Window: Component<{
   baseProps: DustComponentProps;
-  expressions: readonly DustExpression.Any[];
-  playingSignal: Signal<boolean>;
+  expressions: DustExpression.Any[]; // TODO Dust.WindowExpression?
 }> = (props) => {
-  const [_, setPlaying] = props.playingSignal;
+  const playingSignal = createSignal(false);
+
+  const [simulationPlaying, setSimulationPlaying] = playingSignal;
   const playSimulation = () => {}; // TODO setPlaying(true);
   let runOneSimulationStep: ((deltaMillis: number) => void) | null = null;
+
+  // TODO make the returned div resizable
   return (
-    <>
+    <div
+      classList={{
+        Dust: true,
+        window: true,
+        simulationPlaying: simulationPlaying(),
+      }}
+    >
+      <button onClick={() => setSimulationPlaying(!simulationPlaying())}>
+        {simulationPlaying() ? "pause" : "play"} simulation
+      </button>
       <button onClick={() => runOneSimulationStep!(16)}>
         Run one simulation step
       </button>
@@ -82,9 +94,9 @@ const WindowContents: Component<{
           };
 
           runOneSimulationStep = createSimulation({
-            constants: physicsConstants,
-            elements: getDirectPhysicsElementChildren(element),
-            playingSignal: props.playingSignal,
+            physicsConstants,
+            elements: getAllPhysicsElements(element),
+            playingSignal,
           });
 
           element.initialize({
@@ -111,30 +123,6 @@ const WindowContents: Component<{
           )}
         </For>
       </dust-physics-simulation-element>
-    </>
-  );
-};
-
-export const Window: Component<{
-  baseProps: DustComponentProps;
-  expressions: DustExpression.Any[]; // TODO Dust.WindowExpression?
-}> = (props) => {
-  const playingSignal = createSignal(false);
-
-  const [simulationPlaying, setSimulationPlaying] = playingSignal;
-
-  return (
-    <div
-      classList={{
-        Dust: true,
-        window: true,
-        simulationPlaying: simulationPlaying(),
-      }}
-    >
-      <button onClick={() => setSimulationPlaying(!simulationPlaying())}>
-        {simulationPlaying() ? "pause" : "play"} simulation
-      </button>
-      <WindowContents {...{ ...props, playingSignal }} />
     </div>
   );
 };

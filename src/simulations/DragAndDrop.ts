@@ -66,7 +66,7 @@ function getClosestPhysicsElement(
 
 function dragStart(event: PointerEvent) {
   console.info("dragStart", event);
-  const element = getClosestPhysicsElement(event);
+  const element = getClosestPhysicsElement(event); // TODO this probably isn't actually what we want: if something other than a physics element gets dragged, we want to temporarily wrap it inside of a physics element bubble and only drag that bubble. Currently it drags the closest ancestor which will end up dragging all of the element's siblings as well
   if (element.state !== "free") {
     return;
   }

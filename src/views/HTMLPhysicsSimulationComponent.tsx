@@ -6,7 +6,8 @@ import {
   Ref,
   Switch,
 } from "solid-js";
-import { elementDiameter, rectangleDiameter } from "../math/Geometry";
+import { filterByType } from "../data-structures/Arrays";
+import { rectangleDiameter } from "../math/Geometry";
 import { centerRectangleWithinParent } from "../simulations/HTMLHelpers";
 
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
@@ -65,10 +66,16 @@ export function updateWrapperDiameter(wrapper: HTMLPhysicsSimulationElement) {
   // TODO set the element's mass based on the number of characters in the expression
 }
 
-export function getDirectPhysicsElementChildren(
+export function getAllPhysicsElements(
   element: HTMLPhysicsSimulationElement
 ): HTMLCollectionOf<HTMLPhysicsSimulationElement> {
   return element.getElementsByTagName(
     HTMLPhysicsSimulationElement.TAG
   ) as HTMLCollectionOf<HTMLPhysicsSimulationElement>;
+}
+
+export function getDirectPhysicsElementChildren(
+  element: HTMLPhysicsSimulationElement
+): HTMLPhysicsSimulationElement[] {
+  return filterByType(element.children, HTMLPhysicsSimulationElement);
 }

@@ -1,3 +1,4 @@
+import { elementDiameter, Rectangle } from "../math/Geometry";
 import { Vector2D, X, Y } from "../math/Vectors";
 
 // TODO move these into a separate file
@@ -34,6 +35,18 @@ export function centerWithinParent(htmlElement: HTMLElement, diameter: number) {
   // Center the element on its parent (movement within parent uses css transform: translate)
   const roundedRadius = Math.round(diameter / 2);
   const style = htmlElement.style;
+  style.position = "absolute";
   style.left = `calc(50% - ${roundedRadius}px)`;
   style.top = `calc(50% - ${roundedRadius}px)`;
+}
+
+export function centerRectangleWithinParent(
+  htmlElement: HTMLElement,
+  rectangle: Rectangle = htmlElement.getBoundingClientRect()
+) {
+  // Center the element on its parent (movement within parent uses css transform: translate)
+  const style = htmlElement.style;
+  style.position = "absolute";
+  style.left = `calc(50% - ${rectangle.width / 2}px)`;
+  style.top = `calc(50% - ${rectangle.height / 2}px)`;
 }

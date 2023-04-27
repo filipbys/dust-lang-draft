@@ -27,7 +27,7 @@ export const Module: Component<ModuleProps> = (props) => {
     console.log("Mounting Module:", moduleElement);
     moduleElementRef = moduleElement;
     moduleElement.state = "free";
-    moduleElement.setDynamicProperties({
+    moduleElement.initialize({
       simulationFrameCallback: updateForcesInModule,
       playSimulation: props.playSimulation,
     });
@@ -47,7 +47,7 @@ export const Module: Component<ModuleProps> = (props) => {
         class="Dust moduleElement moduleName"
         ref={(moduleName) => {
           moduleName.state = "pinned";
-          moduleName.setDynamicProperties({
+          moduleName.initialize({
             simulationFrameCallback: updateWrapperDiameter,
             playSimulation: props.playSimulation,
           });

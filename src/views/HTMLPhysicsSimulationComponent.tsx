@@ -7,6 +7,7 @@ import {
   Switch,
 } from "solid-js";
 import { elementDiameter } from "../math/Geometry";
+import { centerRectangleWithinParent } from "../simulations/HTMLHelpers";
 
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
 
@@ -37,7 +38,7 @@ export const IntoHTMLPhysicsSimulationComponent: Component<
           ref(element) {
             element.state = "free";
             element.centeredWithinParent = true;
-            element.setDynamicProperties({
+            element.initialize({
               simulationFrameCallback: updateWrapperDiameter,
               playSimulation: props.playSimulation,
             });
@@ -58,6 +59,8 @@ export function updateWrapperDiameter(wrapper: HTMLPhysicsSimulationElement) {
   }
   const wrappedElement = wrapper.firstElementChild!;
   wrapper.diameter = elementDiameter(wrappedElement);
+
+  centerRectangleWithinParent(wrappedElement);
 
   // TODO set the element's mass based on the number of characters in the expression
 }

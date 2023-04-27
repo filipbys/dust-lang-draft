@@ -40,7 +40,7 @@ export function createSimulation(props: PhysicsSimulationProps) {
   );
   const simulationPerformance = new SimulationPerformance();
 
-  const frameCallback = createFrameCallback(isPlaying, (deltaMillis) => {
+  function runAndMeasureOneStep(deltaMillis: number) {
     simulationPerformance.startClock(deltaMillis);
     runOneStep(
       deltaMillis,
@@ -50,7 +50,9 @@ export function createSimulation(props: PhysicsSimulationProps) {
       setPlaying
     );
     simulationPerformance.stopClock();
-  });
+  }
+
+  const frameCallback = createFrameCallback(isPlaying, runAndMeasureOneStep);
   createEffect(
     on(isPlaying, (isPlaying, wasPlaying) => {
       if (isPlaying && !wasPlaying) {
@@ -59,6 +61,7 @@ export function createSimulation(props: PhysicsSimulationProps) {
       // Else: frameCallback will automatically pause itself on the next frame
     })
   );
+  return runAndMeasureOneStep;
 }
 
 const FIRST_FRAME_DELTA_MILLIS = 16;

@@ -43,12 +43,11 @@ export class HTMLPhysicsSimulationElement
   #previousCssDiameter: number = 0; // pixels, rounded to nearest integer
   #previousCssTranslate: Readonly<Vector2D> = [0, 0]; // pixels, rounded to nearest integers
 
-  setDynamicProperties(props: HTMLPhysicsSimulationElementProps) {
+  initialize(props: HTMLPhysicsSimulationElementProps) {
     console.log("PhysicsSimulationElement.init:", this, props);
     this.#dynamicProperties = props;
 
-    // TODO make the element draggable!
-    // So maybe rename this method back to initialize()
+    // TODO rename this method back to initialize()
     makeDraggable(this);
   }
 
@@ -58,7 +57,12 @@ export class HTMLPhysicsSimulationElement
 
   set center(newCenter: Readonly<Vector2D>) {
     this.#center = newCenter;
-    if (!vectorsEqual(this.#previousCssTranslate, rounded(newCenter))) {
+
+    const newTranslate = rounded(newCenter);
+    if (!vectorsEqual(this.#previousCssTranslate, newTranslate)) {
+      // TODO observe jank and measure perf with/without this optimization
+      setTranslate(this, newTranslate);
+      this.#previousCssTranslate = newTranslate;
       this.#dynamicProperties!.playSimulation();
     }
   }
@@ -72,7 +76,11 @@ export class HTMLPhysicsSimulationElement
       throw new RangeError(`Diameter must be positive, got ${newDiameter}`);
     }
     this.#diameter = newDiameter;
-    if (this.#previousCssDiameter !== Math.round(newDiameter)) {
+
+    const roundedDiameter = Math.round(newDiameter);
+    if (this.#previousCssDiameter !== roundedDiameter) {
+      setDiameter(this, roundedDiameter, this.#centeredWithinParent);
+      this.#previousCssDiameter = roundedDiameter;
       this.#dynamicProperties!.playSimulation();
     }
   }
@@ -103,24 +111,14 @@ export class HTMLPhysicsSimulationElement
   set centeredWithinParent(newValue: boolean) {
     if (this.#centeredWithinParent !== newValue) {
       this.#centeredWithinParent = newValue;
+      if (newValue) {
+        centerWithinParent(this, this.diameter);
+      }
       this.#dynamicProperties!.playSimulation();
     }
   }
 
   simulationFrameCallback() {
-    const newDiameter = Math.round(this.#diameter);
-    if (this.#previousCssDiameter !== newDiameter) {
-      setDiameter(this, this.#diameter, this.#centeredWithinParent);
-      this.#previousCssDiameter = newDiameter;
-    }
-
-    const newTranslate = rounded(this.#center);
-    if (!vectorsEqual(this.#previousCssTranslate, newTranslate)) {
-      // TODO observe jank and measure perf with/without this optimization
-      setTranslate(this, newTranslate);
-      this.#previousCssTranslate = newTranslate;
-    }
-
-    this.#dynamicProperties?.simulationFrameCallback(this);
+    this.#dynamicProperties!.simulationFrameCallback(this);
   }
 }

@@ -3,11 +3,7 @@ import { render } from "solid-js/web";
 import "./index.css";
 import App from "./App";
 
-import type { ComponentProps } from "solid-js";
-import {
-  PhysicsSimulationElement,
-  PhysicsSimulationElementState,
-} from "./simulations/PhysicsSimulationElement";
+import { HTMLPhysicsSimulationElement } from "./simulations/HTMLPhysicsSimulationElement";
 
 class DustLangEditor extends HTMLElement {
   constructor() {
@@ -21,6 +17,8 @@ class DustLangEditor extends HTMLElement {
 }
 
 // TODO find a better place for all this
-
-customElements.define(PhysicsSimulationElement.TAG, PhysicsSimulationElement);
+customElements.define(
+  HTMLPhysicsSimulationElement.TAG,
+  HTMLPhysicsSimulationElement
+);
 customElements.define("dust-lang-editor", DustLangEditor);

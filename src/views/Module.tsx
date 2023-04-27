@@ -98,6 +98,13 @@ const ModuleElementList: Component<{
   <For each={props.expressions}>
     {(expression, index) => (
       // TODO don't wrap in a bubble if the element is already a physicsElement (e.g. modules)
+      // Something like: Switch
+      // Match when={isPhysicsElement(expression)}
+      //    <DustExpressionView expression/>
+      // Else
+      //  <PhysicsSimulationElementComponent>
+      //    <DustExpressionView expression/>
+      //  </PhysicsSimulationElementComponent>
       <PhysicsSimulationElementComponent
         classList={{
           Dust: true,

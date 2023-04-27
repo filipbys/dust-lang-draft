@@ -1,24 +1,27 @@
 import type { Component, ComponentProps, ParentProps, Ref } from "solid-js";
 
-import { ExpressionProps } from "./DustExpressionView";
-import type * as DustExpression from "../types/DustExpression";
-import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationV2";
+import {
+  HTMLPhysicsSimulationElement,
+  PhysicsSimulationElementProps,
+} from "../simulations/HTMLPhysicsSimulationElement";
 
-type PhysicsSimulationElementComponentProps = ComponentProps<"element"> &
+type HTMLPhysicsSimulationElementProps = ComponentProps<"element"> &
   ParentProps<{
-    ref?: (element: PhysicsSimulationElement) => void;
-    physicsProps: PhysicsSimulationElementProps;
+    ref?: (element: HTMLPhysicsSimulationElement) => void;
   }>;
 
 declare module "solid-js" {
   namespace JSX {
     interface IntrinsicElements {
-      "dust-physics-simulation-element": PhysicsSimulationElementComponentProps;
+      [HTMLPhysicsSimulationElement.TAG]: HTMLPhysicsSimulationElementProps;
     }
   }
 }
 
-
+type PhysicsSimulationElementComponentProps =
+  HTMLPhysicsSimulationElementProps & {
+    dynamicProps: PhysicsSimulationElementProps;
+  };
 
 export const PhysicsSimulationElementComponent: Component<PhysicsSimulationElementComponentProps> =
   (props) => {
@@ -27,7 +30,7 @@ export const PhysicsSimulationElementComponent: Component<PhysicsSimulationEleme
         {...props}
         ref={(it) => {
           console.log("PhysicsSimulationElementComponent ref", it);
-          it.initialize(props.physicsProps);
+          it.setDynamicProperties(props.dynamicProps);
           if (props.ref) {
             props.ref(it);
           }

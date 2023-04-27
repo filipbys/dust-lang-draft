@@ -1,4 +1,11 @@
-import { createEffect, createSignal, on, Signal } from "solid-js";
+import {
+  Accessor,
+  createEffect,
+  createSignal,
+  on,
+  Setter,
+  Signal,
+} from "solid-js";
 import { ReadonlyArray } from "../data-structures/Arrays";
 import {
   kineticEnergy,
@@ -16,7 +23,7 @@ export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
 
 export interface PhysicsSimulationElement extends PhysicsElement {
   state: PhysicsSimulationElementState;
-  frameCallback(): void;
+  simulationFrameCallback(): void;
 }
 
 export type PhysicsSimulationProps = Readonly<{
@@ -30,33 +37,43 @@ export function createSimulation(
   props: PhysicsSimulationProps
 ): Signal<boolean> {
   const playingSignal: Signal<boolean> = createSignal(false);
-  const frameCallback = createFrameCallback(props, playingSignal);
-  let requestHandle: number;
+  const [isPlaying, setPlaying] = playingSignal;
+
+  const rollingAverageEnergy = new RollingAverage(
+    props.maxStillFramesBeforeAutoPause || 30
+  );
+  const simulationPerformance = new SimulationPerformance();
+
+  const frameCallback = createFrameCallback(isPlaying, (deltaMillis) => {
+    simulationPerformance.startClock(deltaMillis);
+    runOneStep(
+      deltaMillis,
+      props.constants,
+      props.elements,
+      rollingAverageEnergy,
+      setPlaying
+    );
+    simulationPerformance.stopClock();
+  });
   createEffect(
-    on(playingSignal[0], (isPlaying, wasPlaying) => {
+    on(isPlaying, (isPlaying, wasPlaying) => {
       if (isPlaying && !wasPlaying) {
-        requestHandle = requestAnimationFrame(frameCallback);
+        requestAnimationFrame(frameCallback);
       }
-      if (!isPlaying && wasPlaying) {
-        cancelAnimationFrame(requestHandle);
-      }
+      // Else: frameCallback will automatically pause itself on the next frame
     })
   );
   return playingSignal;
 }
 
 function createFrameCallback(
-  {
-    constants,
-    elements,
-    maxStillFramesBeforeAutoPause = 30,
-  }: PhysicsSimulationProps,
-  [playing, setPlaying]: Signal<boolean>
+  isPlaying: Accessor<boolean>,
+  runOneStep: (deltaMillis: number) => void
 ): FrameRequestCallback {
   let previousFrameTime: DOMHighResTimeStamp | undefined = undefined;
 
   function frameCallback(time: DOMHighResTimeStamp) {
-    if (!playing()) {
+    if (!isPlaying()) {
       console.log("simulation paused: exiting animation loop");
       return;
     }
@@ -70,49 +87,36 @@ function createFrameCallback(
     requestAnimationFrame(frameCallback);
   }
 
-  const simulationPerformance = new SimulationPerformance();
-  function runOneStep(deltaMillis: number) {
-    simulationPerformance.startClock(deltaMillis);
-    recalculateForces();
-    updateVelocitiesAndPositions(deltaMillis);
-    autoPauseIfNeeded();
-    simulationPerformance.stopClock();
-  }
-
-  function recalculateForces() {
-    // TODO consider automatically detecting collisions for all element pairs, since there should only ever be so many PhysicsSimulationElement in the Window anyway. Dust should remove those DOM elements when the Dust expressions are not visible to the user, either because they're at a different zoom level or because they're outside of the Window's bounds.
-
-    for (const element of elements) {
-      element.force[X] = 0;
-      element.force[Y] = 0;
-    }
-
-    for (const element of elements) {
-      // TODO need to potentially update diameter as well if the element is a "collection"
-      element.frameCallback();
-    }
-  }
-
-  const averageEnergy = new RollingAverage(maxStillFramesBeforeAutoPause);
-  function updateVelocitiesAndPositions(deltaMillis: number) {
-    let totalEnergy = 0;
-    for (const element of elements) {
-      if (element.state === "free") {
-        updateVelocityAndPosition(element, constants, deltaMillis);
-      }
-      totalEnergy += kineticEnergy(element);
-    }
-    averageEnergy.add(totalEnergy);
-  }
-
-  function autoPauseIfNeeded() {
-    if (averageEnergy.isSaturated && averageEnergy.average() === 0) {
-      setPlaying(false);
-      averageEnergy.clear();
-    }
-  }
-
   return frameCallback;
+}
+
+function runOneStep(
+  deltaMillis: number,
+  constants: PhysicsConstants,
+  elements: ReadonlyArray<PhysicsSimulationElement>,
+  averageEnergy: RollingAverage,
+  setPlaying: Setter<boolean>
+) {
+  for (const element of elements) {
+    element.force[X] = 0;
+    element.force[Y] = 0;
+  }
+  for (const element of elements) {
+    element.simulationFrameCallback();
+  }
+
+  let totalEnergy = 0;
+  for (const element of elements) {
+    if (element.state === "free") {
+      updateVelocityAndPosition(element, constants, deltaMillis);
+    }
+    totalEnergy += kineticEnergy(element);
+  }
+  averageEnergy.add(totalEnergy);
+  if (averageEnergy.isSaturated && averageEnergy.average() === 0) {
+    setPlaying(false);
+    averageEnergy.clear();
+  }
 }
 
 class SimulationPerformance {

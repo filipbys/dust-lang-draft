@@ -6,6 +6,17 @@ export const Y: Vector2DIndex = 1;
 
 export type Vector2D = [x: number, y: number];
 
+export function vectorsEqual(
+  first: Readonly<Vector2D>,
+  second: Readonly<Vector2D>
+): boolean {
+  return first[X] === second[X] && first[Y] === second[Y];
+}
+
+export function rounded(vector: Readonly<Vector2D>): Vector2D {
+  return [Math.round(vector[X]), Math.round(vector[Y])];
+}
+
 export function vectorToString(
   [x, y]: Readonly<Vector2D>,
   fractionDigits: number = 0

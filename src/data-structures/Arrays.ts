@@ -4,6 +4,34 @@ export interface ReadonlyArray<T> {
   [Symbol.iterator](): Iterator<T>;
 }
 
+interface TypeConstructor<T> extends Function {
+  prototype: T;
+}
+
+export function filterByType<T, U>(
+  array: ReadonlyArray<T>,
+  typeConstructor: TypeConstructor<U>
+): U[] {
+  const result: U[] = [];
+  for (const element of array) {
+    if (element instanceof typeConstructor) {
+      result.push(element);
+    }
+  }
+  return result;
+}
+
+export function forEachPair<T>(
+  array: ReadonlyArray<T>,
+  callbackfn: (first: T, second: T) => void
+) {
+  for (let i = 0; i < array.length; i++) {
+    for (let j = i + 1; j < array.length; j++) {
+      callbackfn(array[i], array[j]);
+    }
+  }
+}
+
 export function addElementIfAbsent<T>(
   array: T[],
   element: T,

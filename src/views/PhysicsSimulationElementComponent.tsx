@@ -49,6 +49,7 @@ interface CollectionProps extends PhysicsSimulationElement {
 }
 
 // TODO a custom HTML element would still be useful even here: we wouldn't need to maintain the mutable allElements list, and it would make it easier for Collections to track their direct children for frameCallbacks
+// The advantage this has over tracking those elements by className is that we don't have to maintain a map from DOM element to PhysicsData and FrameCallback
 export const Collection: Component<CollectionProps> = (props) => {
   function mountElement(collection: HTMLDivElement) {
     addElementIfAbsent(props.allSimulationElements, props, "Collection");

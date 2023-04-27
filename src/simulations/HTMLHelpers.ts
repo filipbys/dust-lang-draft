@@ -3,24 +3,14 @@ import { Vector2D, X, Y } from "../math/Vectors";
 // TODO move these into a separate file
 export function setTranslate(
   htmlElement: HTMLElement,
-  newTranslate: Readonly<Vector2D>,
-  previousTranslate: Vector2D
+  newTranslate: Readonly<Vector2D>
 ) {
-  const x = Math.round(newTranslate[X]);
-  const y = Math.round(newTranslate[Y]);
-  // TODO observe jank and measure perf with/without this optimization
-  if (x === previousTranslate[X] && y === previousTranslate[Y]) {
-    return;
-  }
-
   // TODO try using custom css properties:
   // - js: style.setPropery("--translate-x", x + "px")
   //       style.setPropery("--translate-y", y + "px")
   // - css: transform: translate(var(--translate-x), var(--translate-y))
   // see https://thomaswilburn.github.io/wc-book/sd-behavioral.html
-  htmlElement.style.transform = `translate(${x}px, ${y}px)`;
-  previousTranslate[X] = x;
-  previousTranslate[Y] = y;
+  htmlElement.style.transform = `translate(${newTranslate[X]}px, ${newTranslate[Y]}px)`;
 }
 
 export function setDiameter(

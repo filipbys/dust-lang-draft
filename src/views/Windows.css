@@ -1,42 +1,44 @@
 .Dust.window {
-    display: inline-block;
-    /* direction: rtl; */
+  display: inline-block;
+  min-width: 500px;
+  min-height: 500px;
 }
 
-
 .Dust.windowToolbar {
-    position: relative;
-    left: 0px;
-    top: 0px;
+  position: relative;
+  left: 0px;
+  top: 0px;
 }
 
 .Dust.windowContentArea {
-    display: inline-block;
-    min-width: 75px;
-    min-height: 75px;
-    resize: both;
-    overflow: auto;
+  display: inline-block;
+  position: relative;
+  min-width: 75px;
+  min-height: 75px;
+  resize: both;
+  overflow: auto;
 
-    border: 2px solid;
-    padding-inline-start: 20px;
-    padding-top: 20px;
+  border: 2px solid;
+  padding-inline-start: 20px;
+  padding-top: 20px;
 }
-
 
 .Dust.windowContents {
-    position: relative;
-    transform-origin: top left;
-    display: inline-block;
-    padding-inline-end: 20px;
-    padding-bottom: 20px;
-    border: 4px solid rgba(0, 0, 0, 0.1);
+  position: relative;
+  transform-origin: top left;
+  display: inline-block;
+  padding-inline-end: 20px;
+  padding-bottom: 20px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
 }
 
-.Dust.windowContents>.Dust.windowElement {
-    border: 4px solid rgba(0, 0, 0, 0.1);
-    /* display: inline-grid; */
-    display: inline-flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: center;
+.Dust.windowContents > .Dust.windowElement {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  /* display: inline-grid; */
+  display: inline-flex;
+  flex-wrap: nowrap;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
 }

@@ -138,7 +138,7 @@ const PlainTextEditor: Component = () => {
         <TextTreeView node={textTree} />
       </div>
       <br />
-      <div contentEditable={true} onBeforeInput={beforeExpressionViewInput}>
+      <div contentEditable={false} onBeforeInput={beforeExpressionViewInput}>
         <Window
           expressions={[expression]}
           baseProps={{
@@ -151,7 +151,7 @@ const PlainTextEditor: Component = () => {
       </div>
       <br />
       {/* Readonly view to make sure updates are reflected */}
-      <div>
+      {/* <div>
         <Window
           expressions={[expression]}
           baseProps={{
@@ -159,7 +159,7 @@ const PlainTextEditor: Component = () => {
             depthLimit: 42,
           }}
         />
-      </div>
+      </div> */}
       {/* TODO depthLimit */}
     </div>
   );

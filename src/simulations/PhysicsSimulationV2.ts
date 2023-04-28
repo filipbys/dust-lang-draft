@@ -57,6 +57,7 @@ export function createSimulation(props: PhysicsSimulationProps) {
 
   const frameCallback = createFrameCallback(isPlaying, runAndMeasureOneStep);
   createEffect(
+    // TODO does this need to be createRenderEffect?
     on(isPlaying, (isPlaying, wasPlaying) => {
       if (isPlaying && !wasPlaying) {
         requestAnimationFrame(frameCallback);

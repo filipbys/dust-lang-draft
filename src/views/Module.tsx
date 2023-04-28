@@ -24,13 +24,13 @@ export const Module: Component<ModuleProps> = (props) => {
   let moduleElementRef: HTMLPhysicsSimulationElement | null = null;
 
   function mountModule(moduleElement: HTMLPhysicsSimulationElement) {
-    console.log("Mounting Module:", moduleElement);
+    console.debug("Mounting Module:", moduleElement);
     moduleElementRef = moduleElement;
     moduleElement.state = "free";
-    moduleElement.initialize({
-      simulationFrameCallback: updateForcesInModule,
+    moduleElement.callbacks = {
+      onSimulationFrame: updateForcesInModule,
       playSimulation: props.playSimulation,
-    });
+    };
   }
 
   return (
@@ -49,14 +49,14 @@ export const Module: Component<ModuleProps> = (props) => {
         class="Dust moduleElement moduleName"
         ref={(moduleName) => {
           moduleName.state = "pinned";
-          moduleName.initialize({
-            simulationFrameCallback: updateWrapperDiameter,
+          moduleName.centeredWithinParent = true;
+          moduleName.callbacks = {
+            onSimulationFrame: updateWrapperDiameter,
             playSimulation: props.playSimulation,
-          });
+          };
         }}
       >
         <span id="debug_info"></span>
-
         <DustExpressionView
           {...{
             ...props,

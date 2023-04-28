@@ -1,9 +1,5 @@
-import { elementDiameter } from "../math/Geometry";
 import type { Circle } from "../math/Geometry";
 import { rounded, Vector2D, vectorsEqual, X, Y } from "../math/Vectors";
-import { PhysicsElement } from "../math/Physics";
-import { PhysicsSimulation } from "./PhysicsSimulation";
-import { bubbleElementResizeObserverOptions } from "./BubbleElementResizeObserver";
 import {
   PhysicsSimulationElement,
   PhysicsSimulationElementState,
@@ -11,13 +7,9 @@ import {
 import { centerWithinParent, setDiameter, setTranslate } from "./HTMLHelpers";
 import { makeDraggable } from "./DragAndDrop";
 
-// TODO there are really two kinds of elements:
-// Bubbles, which hold a single HTMLElement of any kind, and update their diameter whenever the wrapped value's size changes using a ResizeObserver.
-// Collections, which hold multiple other physics elements and have an updateForces() function
-
-export type HTMLPhysicsSimulationElementProps = Readonly<{
-  simulationFrameCallback: (element: HTMLPhysicsSimulationElement) => void;
-  playSimulation: () => void;
+export type HTMLPhysicsSimulationElementCallbacks = Readonly<{
+  onSimulationFrame(element: HTMLPhysicsSimulationElement): void;
+  playSimulation(): void;
 }>;
 
 export class HTMLPhysicsSimulationElement
@@ -30,7 +22,7 @@ export class HTMLPhysicsSimulationElement
   // TODO should also play the simulation when set, right?
   state: PhysicsSimulationElementState = "pinned";
 
-  #dynamicProperties?: HTMLPhysicsSimulationElementProps;
+  #callbacks?: HTMLPhysicsSimulationElementCallbacks;
 
   readonly force: Vector2D = [0, 0]; // pixels/millis^2
   velocity: Readonly<Vector2D> = [0, 0]; // pixels/millis
@@ -38,19 +30,18 @@ export class HTMLPhysicsSimulationElement
   #center: Readonly<Vector2D> = [0, 0];
   #diameter: number = 100;
   #mass: number = 100; // TODO
-  #centeredWithinParent: boolean = true;
+  #centeredWithinParent: boolean = false;
 
   #previousCssDiameter: number = 0; // pixels, rounded to nearest integer
   #previousCssTranslate: Readonly<Vector2D> = [0, 0]; // pixels, rounded to nearest integers
 
-  initialize(props: HTMLPhysicsSimulationElementProps) {
-    console.log("PhysicsSimulationElement.init:", this, props);
-    this.#dynamicProperties = props;
-    this.#updateHTMLProperties();
+  constructor() {
+    super();
     makeDraggable(this);
+    this.#updateStyle();
   }
 
-  #updateHTMLProperties(): boolean {
+  #updateStyle(): boolean {
     let changed = false;
 
     const roundedCenter = rounded(this.#center);
@@ -71,14 +62,18 @@ export class HTMLPhysicsSimulationElement
     return changed;
   }
 
+  set callbacks(callbacks: HTMLPhysicsSimulationElementCallbacks) {
+    this.#callbacks = callbacks;
+  }
+
   get center() {
     return this.#center;
   }
 
   set center(newCenter: Readonly<Vector2D>) {
     this.#center = newCenter;
-    if (this.#updateHTMLProperties()) {
-      this.#dynamicProperties!.playSimulation();
+    if (this.#updateStyle()) {
+      this.#callbacks?.playSimulation();
     }
   }
 
@@ -92,8 +87,8 @@ export class HTMLPhysicsSimulationElement
     }
     this.#diameter = newDiameter;
 
-    if (this.#updateHTMLProperties()) {
-      this.#dynamicProperties!.playSimulation();
+    if (this.#updateStyle()) {
+      this.#callbacks?.playSimulation();
     }
   }
 
@@ -107,7 +102,7 @@ export class HTMLPhysicsSimulationElement
     }
     if (this.#mass !== newMass) {
       this.#mass = newMass;
-      this.#dynamicProperties!.playSimulation();
+      this.#callbacks?.playSimulation();
     }
   }
 
@@ -126,12 +121,12 @@ export class HTMLPhysicsSimulationElement
       if (newValue) {
         centerWithinParent(this, this.diameter);
       }
-      this.#dynamicProperties!.playSimulation();
+      this.#callbacks?.playSimulation();
     }
   }
 
   simulationFrameCallback() {
-    this.#updateHTMLProperties();
-    this.#dynamicProperties!.simulationFrameCallback(this);
+    this.#updateStyle();
+    this.#callbacks?.onSimulationFrame(this);
   }
 }

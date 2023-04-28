@@ -77,52 +77,57 @@ export const Window: Component<{
         simulationPlaying: simulationPlaying(),
       }}
     >
-      <button onClick={() => setSimulationPlaying(!simulationPlaying())}>
-        {simulationPlaying() ? "pause" : "play"} simulation
-      </button>
-      <button onClick={() => runOneSimulationStep!(16)}>
-        Run one simulation step
-      </button>
-      <dust-physics-simulation-element
-        class="Dust windowContents"
-        ref={(element) => {
-          // TODO add inputs for these as well for debugging
-          const physicsConstants: PhysicsConstants = {
-            maxVelocity: 2,
-            dragMultiplier: 0.995,
-            frictionCoefficient: 0.01,
-          };
+      <div class="Dust windowToolbar">
+        <button onClick={() => setSimulationPlaying(!simulationPlaying())}>
+          {simulationPlaying() ? "pause" : "play"} simulation
+        </button>
+        <button onClick={() => runOneSimulationStep!(16)}>
+          Run one simulation step
+        </button>
+      </div>
+      <div class="Dust windowContentArea">
+        <dust-physics-simulation-element
+          class="Dust windowContents"
+          ref={(element) => {
+            // TODO add inputs for these as well for debugging
+            const physicsConstants: PhysicsConstants = {
+              maxVelocity: 2,
+              dragMultiplier: 0.995,
+              frictionCoefficient: 0.01,
+            };
 
-          runOneSimulationStep = createSimulation({
-            physicsConstants,
-            elements: getAllPhysicsElements(element),
-            playingSignal,
-          });
+            runOneSimulationStep = createSimulation({
+              physicsConstants,
+              elements: getAllPhysicsElements(element),
+              playingSignal,
+            });
 
-          element.initialize({
-            playSimulation,
-            simulationFrameCallback: () => {
-              // TODO prevent collisions, encircleWindowContents(), etc
-            },
-          });
-        }}
-      >
-        <For each={props.expressions}>
-          {(expression, index) => (
-            // TODO don't wrap in a bubble if the element is already a physicsElement (e.g. modules)
-            <IntoHTMLPhysicsSimulationComponent {...{ playSimulation }}>
-              <DustExpressionView
-                {...{
-                  ...props.baseProps,
-                  id: props.baseProps.id + "/expressions/" + index(),
-                  expression,
-                  playSimulation,
-                }}
-              />
-            </IntoHTMLPhysicsSimulationComponent>
-          )}
-        </For>
-      </dust-physics-simulation-element>
+            element.centeredWithinParent = true;
+            element.callbacks = {
+              playSimulation,
+              onSimulationFrame: () => {
+                // TODO prevent collisions, encircleWindowContents(), etc
+              },
+            };
+          }}
+        >
+          <For each={props.expressions}>
+            {(expression, index) => (
+              // TODO don't wrap in a bubble if the element is already a physicsElement (e.g. modules)
+              <IntoHTMLPhysicsSimulationComponent {...{ playSimulation }}>
+                <DustExpressionView
+                  {...{
+                    ...props.baseProps, // TODO may want to use mergeProps instead
+                    id: props.baseProps.id + "/expressions/" + index(),
+                    expression,
+                    playSimulation,
+                  }}
+                />
+              </IntoHTMLPhysicsSimulationComponent>
+            )}
+          </For>
+        </dust-physics-simulation-element>
+      </div>
     </div>
   );
 };

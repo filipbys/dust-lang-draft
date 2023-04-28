@@ -7,10 +7,11 @@ import {
   Switch,
 } from "solid-js";
 import { filterByType } from "../data-structures/Arrays";
-import { rectangleDiameter } from "../math/Geometry";
+import { elementDiameter, rectangleDiameter } from "../math/Geometry";
 import { centerRectangleWithinParent } from "../simulations/HTMLHelpers";
 
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
+import { safeCast } from "../type-utils/DynamicTypeChecks";
 
 type HTMLPhysicsSimulationElementProps = ComponentProps<"element"> &
   ParentProps<{
@@ -48,6 +49,7 @@ export const IntoHTMLPhysicsSimulationComponent: Component<
         }}
       >
         {props.children}
+        <span id="debug_info"></span>
       </dust-physics-simulation-element>
     </Match>
   </Switch>
@@ -55,13 +57,14 @@ export const IntoHTMLPhysicsSimulationComponent: Component<
 
 // TODO export a BubbleWrapper component instead
 export function updateWrapperDiameter(wrapper: HTMLPhysicsSimulationElement) {
-  if (wrapper.childElementCount !== 1) {
-    throw `Wrapper physics element must have exactly 1 child, got ${wrapper.childElementCount}`;
-  }
-  const wrappedElement = wrapper.firstElementChild! as HTMLElement;
-  const boundingBox = wrappedElement.getBoundingClientRect();
-  wrapper.diameter = rectangleDiameter(boundingBox);
-  centerRectangleWithinParent(wrappedElement, boundingBox);
+  // TODO uncomment
+  // if (wrapper.childElementCount !== 1) {
+  //   throw `Wrapper physics element must have exactly 1 child, got ${wrapper.childElementCount}`;
+  // }
+  console.info("updateWrapperDiameter", wrapper);
+  const wrappedElement = safeCast(wrapper.firstElementChild!, HTMLElement);
+  wrapper.diameter = Math.max(1, elementDiameter(wrappedElement));
+  // centerRectangleWithinParent(wrappedElement, boundingBox);
 
   // TODO set the element's mass based on the number of characters in the expression
 }

@@ -42,6 +42,7 @@ export const List: Component<ListProps> = (props) => (
 );
 
 function computeListLikeCssClass(expression: ListLikeExpression) {
+  // TODO add class vertical iff the resulting area is smaller
   if (expression.kind === "functionCall") {
     return computeCssClass(expression, expression.functionKind);
   }

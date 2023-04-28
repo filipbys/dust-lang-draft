@@ -1,27 +1,26 @@
 .Dust.module {
-    position: relative;
-    box-sizing: border-box;
-    outline: 4px solid black;
-    border-radius: 10px;
-    padding: 10px;
-    width: 100px;
-    height: 100px;
+  position: relative;
+  box-sizing: border-box;
+  outline: 4px solid black;
+  border-radius: 10px;
+  padding: 10px;
+  width: 100px;
+  height: 100px;
 }
 
-.Dust.module>button {
-    position: relative;
-    z-index: 1;
+.Dust.module > button {
+  position: relative;
+  z-index: 1;
 }
 
 .Dust.moduleElement {
-    position: absolute;
-    box-sizing: border-box;
-    border: 4px solid rgba(0, 0, 0, 0.5);
-    border-radius: 4px;
-    padding: 20px;
-    display: inline-grid;
-    text-align: center;
-    align-items: center;
-    justify-items: center;
-    touch-action: none;
+  position: absolute;
+  box-sizing: border-box;
+  border: 4px solid rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  display: inline-flex;
+  text-align: center;
+  align-items: center;
+  justify-items: center;
+  touch-action: none;
 }

@@ -43,6 +43,8 @@ export const Module: Component<ModuleProps> = (props) => {
       <button onClick={() => (moduleElementRef!.diameter -= 20)}>shrink</button>
       {/* TODO add a way to add and remove elements */}
 
+      <span id="debug_info"></span>
+
       <dust-physics-simulation-element
         class="Dust moduleElement moduleName"
         ref={(moduleName) => {
@@ -53,6 +55,8 @@ export const Module: Component<ModuleProps> = (props) => {
           });
         }}
       >
+        <span id="debug_info"></span>
+
         <DustExpressionView
           {...{
             ...props,

@@ -46,8 +46,29 @@ export class HTMLPhysicsSimulationElement
   initialize(props: HTMLPhysicsSimulationElementProps) {
     console.log("PhysicsSimulationElement.init:", this, props);
     this.#dynamicProperties = props;
+    this.#updateHTMLProperties();
     makeDraggable(this);
-    this.setBoundary(this);
+  }
+
+  #updateHTMLProperties(): boolean {
+    let changed = false;
+
+    const roundedCenter = rounded(this.#center);
+    if (!vectorsEqual(this.#previousCssTranslate, roundedCenter)) {
+      // TODO observe jank and measure perf with/without this optimization
+      setTranslate(this, roundedCenter);
+      this.#previousCssTranslate = roundedCenter;
+      changed = true;
+    }
+
+    const roundedDiameter = Math.round(this.#diameter);
+    if (this.#previousCssDiameter !== roundedDiameter) {
+      setDiameter(this, roundedDiameter, this.#centeredWithinParent);
+      this.#previousCssDiameter = roundedDiameter;
+      changed = true;
+    }
+
+    return changed;
   }
 
   get center() {
@@ -56,12 +77,7 @@ export class HTMLPhysicsSimulationElement
 
   set center(newCenter: Readonly<Vector2D>) {
     this.#center = newCenter;
-
-    const newTranslate = rounded(newCenter);
-    if (!vectorsEqual(this.#previousCssTranslate, newTranslate)) {
-      // TODO observe jank and measure perf with/without this optimization
-      setTranslate(this, newTranslate);
-      this.#previousCssTranslate = newTranslate;
+    if (this.#updateHTMLProperties()) {
       this.#dynamicProperties!.playSimulation();
     }
   }
@@ -76,10 +92,7 @@ export class HTMLPhysicsSimulationElement
     }
     this.#diameter = newDiameter;
 
-    const roundedDiameter = Math.round(newDiameter);
-    if (this.#previousCssDiameter !== roundedDiameter) {
-      setDiameter(this, roundedDiameter, this.#centeredWithinParent);
-      this.#previousCssDiameter = roundedDiameter;
+    if (this.#updateHTMLProperties()) {
       this.#dynamicProperties!.playSimulation();
     }
   }
@@ -118,6 +131,7 @@ export class HTMLPhysicsSimulationElement
   }
 
   simulationFrameCallback() {
+    this.#updateHTMLProperties();
     this.#dynamicProperties!.simulationFrameCallback(this);
   }
 }

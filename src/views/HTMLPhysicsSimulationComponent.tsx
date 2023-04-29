@@ -85,7 +85,7 @@ export function updateWrapperDiameter(wrapper: HTMLPhysicsSimulationElement) {
 }
 
 export function getAllPhysicsElements(
-  element: HTMLPhysicsSimulationElement
+  element: HTMLElement
 ): HTMLCollectionOf<HTMLPhysicsSimulationElement> {
   return element.getElementsByTagName(
     HTMLPhysicsSimulationElement.TAG

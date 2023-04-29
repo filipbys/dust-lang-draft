@@ -27,9 +27,32 @@ export function rectangleDiameter(rectangle: Rectangle): number {
   return Math.hypot(rectangle.width, rectangle.height);
 }
 
-export function smallestEnclosingCircle(circles: readonly Circle[]): Circle {
+export function approximateSmallestEnclosingCircle(
+  circles: readonly Circle[]
+): Circle {
+  let [min_x, min_y, max_x, max_y] = [0, 0, 0, 0];
+  for (const circle of circles) {
+    const [x, y] = circle.center;
+    min_x = Math.min(min_x, x);
+    min_y = Math.min(min_y, y);
+
+    max_x = Math.max(max_x, x);
+    max_y = Math.max(max_y, y);
+  }
+
+  const center: Vector2D = [(min_x + max_x) / 2, (min_y + max_y) / 2];
+
+  let min_radius = 1;
+  for (const circle of circles) {
+    const radius = circle.diameter / 2;
+    min_radius = Math.max(
+      min_radius,
+      distanceBetween(center, circle.center) + radius
+    );
+  }
+
   return {
-    center: [0, 0], // TODO
-    diameter: 700, // TODO
+    center,
+    diameter: min_radius * 2,
   };
 }

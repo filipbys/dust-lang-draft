@@ -1,11 +1,11 @@
 import { Component, createSignal, For, Signal } from "solid-js";
-import { smallestEnclosingCircle } from "../math/Geometry";
+import { approximateSmallestEnclosingCircle } from "../math/Geometry";
 import type * as DustExpression from "../types/DustExpression";
 import { DustComponentProps, DustExpressionView } from "./DustExpressionView";
 import { PhysicsConstants } from "../math/Physics";
-import { PhysicsSimulationElement } from "../simulations/PhysicsSimulationElement";
 import {
   getAllPhysicsElements,
+  getDirectPhysicsElementChildren,
   IntoHTMLPhysicsSimulationComponent,
 } from "./HTMLPhysicsSimulationComponent";
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
@@ -44,20 +44,6 @@ import "./Windows.css";
 // \comment|    ==>  «|»
 //
 
-function setUpWindowContents(windowContents: HTMLPhysicsSimulationElement) {
-  function updateForces(
-    windowElement: PhysicsSimulationElement,
-    physicsElements: PhysicsSimulationElement[]
-  ) {
-    // TODO update ForceCalculator terminology to reflect that we do more than just update forces. Maybe something like FrameCallback?
-    const boundary = smallestEnclosingCircle(physicsElements);
-    windowElement.setBoundary(boundary);
-  }
-
-  // TODO need to call this every frame
-  // encircleWindowContents();
-}
-
 export const Window: Component<{
   baseProps: DustComponentProps;
   expressions: DustExpression.Any[]; // TODO Dust.WindowExpression?
@@ -88,7 +74,13 @@ export const Window: Component<{
       <div class="Dust windowContentArea">
         <dust-physics-simulation-element
           class="Dust windowContents"
+          style={
+            {
+              // TODO in css: transform: scale(zoomLevel) translate(x, y)
+            }
+          }
           ref={(element) => {
+            console.log("windowContentArea physics element ref");
             // TODO add inputs for these as well for debugging
             const physicsConstants: PhysicsConstants = {
               maxVelocity: 2,
@@ -98,16 +90,15 @@ export const Window: Component<{
 
             runOneSimulationStep = createSimulation({
               physicsConstants,
-              elements: getAllPhysicsElements(element),
+              elements: getAllPhysicsElements(element.parentElement!),
               playingSignal,
             });
 
             element.centeredWithinParent = true;
+            element.state = "free";
             element.callbacks = {
               playSimulation,
-              onSimulationFrame: () => {
-                // TODO prevent collisions, encircleWindowContents(), etc
-              },
+              onSimulationFrame: updateWindowContents,
             };
           }}
         >
@@ -131,3 +122,19 @@ export const Window: Component<{
     </div>
   );
 };
+
+function updateWindowContents(
+  windowContentsWrapper: HTMLPhysicsSimulationElement
+) {
+  // TODO prevent collisions, encircleWindowContents(), etc
+  const elements = getDirectPhysicsElementChildren(windowContentsWrapper);
+
+  windowContentsWrapper.setBoundary(
+    approximateSmallestEnclosingCircle(elements)
+  );
+}
+
+function encircleWindowContents() {
+  // 1. Find smallest enclosing rectangle
+  // 2. radius = max(distanceToCenter())
+}

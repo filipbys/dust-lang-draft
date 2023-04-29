@@ -1,7 +1,5 @@
 .Dust.window {
   display: inline-block;
-  min-width: 500px;
-  min-height: 500px;
 }
 
 .Dust.windowToolbar {
@@ -13,8 +11,8 @@
 .Dust.windowContentArea {
   display: inline-block;
   position: relative;
-  min-width: 75px;
-  min-height: 75px;
+  min-width: 200px;
+  min-height: 200px;
   resize: both;
   overflow: auto;
 

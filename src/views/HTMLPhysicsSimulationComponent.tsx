@@ -46,7 +46,6 @@ export const IntoHTMLPhysicsSimulationComponent: Component<
         when={!(resolvedChildren() instanceof HTMLPhysicsSimulationElement)}
       >
         <dust-physics-simulation-element
-          prop:state={"foo"}
           {...{
             ...props,
             ref(element) {

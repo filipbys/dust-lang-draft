@@ -129,4 +129,10 @@ export class HTMLPhysicsSimulationElement
     this.#updateStyle();
     this.#callbacks?.onSimulationFrame(this);
   }
+
+  connectedCallback() {
+    if (this.isConnected) {
+      this.simulationFrameCallback();
+    }
+  }
 }

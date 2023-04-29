@@ -1,4 +1,4 @@
-import { Component, createSignal, For, Signal } from "solid-js";
+import { Component, createSignal, For, on, Signal } from "solid-js";
 import { approximateSmallestEnclosingCircle } from "../math/Geometry";
 import type * as DustExpression from "../types/DustExpression";
 import { DustComponentProps, DustExpressionView } from "./DustExpressionView";
@@ -12,6 +12,7 @@ import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulati
 import { createSimulation } from "../simulations/PhysicsSimulationV2";
 
 import "./Windows.css";
+import { createEffect } from "solid-js/types/reactive/signal";
 
 // TODO window should have a toolbar with undo/redo, zoom in/out, insert, set depth limit, etc buttons
 
@@ -54,6 +55,14 @@ export const Window: Component<{
   const playSimulation = () => {}; // TODO setPlaying(true);
   let runOneSimulationStep: ((deltaMillis: number) => void) | null = null;
 
+  const [zoomLevel, setZoomLevel] = createSignal(100);
+  function onZoomLevelInput(this: HTMLInputElement, event: InputEvent) {
+    console.log("onZoomLevelInput", event);
+
+    setZoomLevel(+this.value);
+  }
+
+  const zoomFactor = 1.1;
   // TODO make the returned div resizable
   return (
     <div
@@ -70,15 +79,33 @@ export const Window: Component<{
         <button onClick={() => runOneSimulationStep!(16)}>
           Run one simulation step
         </button>
+        <div style="display: grid; grid-template-columns: auto auto auto">
+          <span style="grid-column-start: 1; grid-column-end: 4;">
+            Zoom {zoomLevel}%
+          </span>
+          <button onClick={() => setZoomLevel(zoomLevel() / zoomFactor)}>
+            -
+          </button>
+          <input
+            type="range"
+            name="zoomLevel"
+            min="0.1"
+            max="1000"
+            value={zoomLevel()}
+            onInput={onZoomLevelInput}
+          />
+          <button onClick={() => setZoomLevel(zoomLevel() * zoomFactor)}>
+            +
+          </button>
+        </div>
       </div>
       <div class="Dust windowContentArea">
         <dust-physics-simulation-element
           class="Dust windowContents"
-          style={
-            {
-              // TODO in css: transform: scale(zoomLevel) translate(x, y)
-            }
-          }
+          style={{
+            // TODO in css: transform: scale(zoomLevel) translate(x, y)
+            transform: `scale(${zoomLevel()}%)`,
+          }}
           ref={(element) => {
             console.log("windowContentArea physics element ref");
             // TODO add inputs for these as well for debugging
@@ -129,6 +156,8 @@ function updateWindowContents(
   // TODO prevent collisions, encircleWindowContents(), etc
   const elements = getDirectPhysicsElementChildren(windowContentsWrapper);
 
+  // TODO this might make panning while dragging janky; we'll have to see.
+  // It might be better/necessary to use physics-based forces to grow/shrink the boundary just like with modules.
   windowContentsWrapper.setBoundary(
     approximateSmallestEnclosingCircle(elements)
   );

@@ -133,6 +133,7 @@ function updatePositionAndVelocity(
   // TODO pageX/Y works when the whole document is scrolled/zoomed,
   // but I don't think it will work if a different ancestor element
   // of htmlElement is scrolled (e.g. a DustWindow within a DustWindowGroup or similar)
+  // ^^^^^ Exactly: when the window is zoomed, the pointers still give regular screen coordinates, but element.center is in zoomed coordinates. E.g. if window is zoomed out to 10%, then 10px of pointer movement is 100 units of element movement. Maybe that part is something we can fix by tracking the current zoom level in the physicselement
   const new_x = event.pageX - dragState.pointerOffset[X];
   const new_y = event.pageY - dragState.pointerOffset[Y];
 

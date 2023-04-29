@@ -1,4 +1,4 @@
-import { Component, createEffect, createSignal, For, on } from "solid-js";
+import { Accessor, Component, createEffect, createSignal, For, on } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
 
 import {

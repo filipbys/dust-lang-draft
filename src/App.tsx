@@ -47,7 +47,8 @@ const PlainTextEditor: Component = () => {
   [
     ( 
       (example-math-expression [a b c] [x y z]) 
-      = ( (a + (b * c) + d) 
+      = ( 
+            (a + (b * c) + d) 
           - (c + d) 
           + ( 
               foo 
@@ -56,17 +57,16 @@ const PlainTextEditor: Component = () => {
               [4 (a + (f b)) [1 2 3] (f [1 2 3])]
             )
           / 42
-          - 
           + (f x y z)
         )
     )
 
-    (module Public-Sub-Module [] [])
+    ( module Public-Sub-Module [] [] )
   ]
   [
     ( (foo x list1 list2) = (list1 ++ [x] ++ list2) )
 
-    (module Private-Sub-Module [] [])
+    ( module Private-Sub-Module [] [] )
   ]
 `);
 

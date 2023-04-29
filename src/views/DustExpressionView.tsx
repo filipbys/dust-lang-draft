@@ -3,14 +3,7 @@ import type * as DustExpression from "../types/DustExpression";
 import { isListLike, List, ListProps } from "./List";
 import { Module, ModuleProps } from "./Module";
 
-const BASE_CSS_CLASS = "Dust";
-
-export function computeCssClass(
-  expression: DustExpression.Any,
-  ...additional: readonly string[]
-): string {
-  return [BASE_CSS_CLASS, expression.kind, ...additional].join(" ");
-}
+export const BASE_CSS_CLASS = "Dust";
 
 export type EventCallback<T extends Element, E> = (this: T, ev: E) => any;
 
@@ -57,7 +50,10 @@ type IdentifierProps = ExpressionProps<DustExpression.Identifier>;
 const Identifier: Component<IdentifierProps> = (props) => (
   <span
     id={props.id}
-    class={computeCssClass(props.expression)}
+    classList={{
+      [BASE_CSS_CLASS]: true,
+      [props.expression.kind]: true,
+    }}
     tabIndex="0"
     onFocusIn={props.onFocusIn}
     onFocusOut={props.onFocusOut}

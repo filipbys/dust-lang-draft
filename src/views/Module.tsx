@@ -1,4 +1,5 @@
 import { Component, For } from "solid-js";
+import { approximateSmallestEnclosingCircle } from "../math/Geometry";
 import { Springs } from "../math/Physics";
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
 import type * as DustExpression from "../types/DustExpression";
@@ -126,13 +127,11 @@ const ModuleElementList: Component<{
 function updateModule(moduleElement: HTMLPhysicsSimulationElement) {
   const physicsElements = getDirectPhysicsElementChildren(moduleElement);
 
-  // TODO this part needs to happen onMount as well
-  let largestElementDiameter = 0;
-  for (const element of physicsElements) {
-    largestElementDiameter = Math.max(largestElementDiameter, element.diameter);
-  }
-  if (moduleElement.diameter < largestElementDiameter) {
-    moduleElement.diameter = largestElementDiameter;
+  const smallestDiameter =
+    approximateSmallestEnclosingCircle(physicsElements).diameter;
+
+  if (moduleElement.diameter < smallestDiameter) {
+    moduleElement.diameter = smallestDiameter;
   }
 
   updateForces(moduleElement, physicsElements);

@@ -1,8 +1,8 @@
-import { Component, For } from "solid-js";
+import { Component, createEffect, createSignal, For, on } from "solid-js";
 import type * as DustExpression from "../types/DustExpression";
 
 import {
-  computeCssClass,
+  BASE_CSS_CLASS,
   DustExpressionView,
   ExpressionProps,
 } from "./DustExpressionView";
@@ -24,27 +24,49 @@ export function isListLike(
 
 export type ListProps = ExpressionProps<ListLikeExpression>;
 
-export const List: Component<ListProps> = (props) => (
-  <div id={props.id} class={computeListLikeCssClass(props.expression)}>
-    <For each={props.expression.expressions}>
-      {(expression, index) => (
-        <DustExpressionView
-          {...{
-            ...props,
-            id: props.id + "/expressions/" + index(),
-            expression,
-            depthLimit: props.depthLimit - 1,
-          }}
-        />
-      )}
-    </For>
-  </div>
-);
+export const List: Component<ListProps> = (props) => {
+  const [isVertical, setIsVertical] = createSignal(false);
+  let listElement: HTMLDivElement;
 
-function computeListLikeCssClass(expression: ListLikeExpression) {
-  // TODO add class vertical iff the resulting area is smaller
-  if (expression.kind === "functionCall") {
-    return computeCssClass(expression, expression.functionKind);
-  }
-  return computeCssClass(expression);
-}
+  createEffect(
+    on(
+      () => props.expression.totalLength,
+      () => {
+        console.log("effect is running!!!");
+        const boundingBox = listElement.getBoundingClientRect();
+
+        const maxWidth = boundingBox.height * 2;
+
+        // TODO also always calculate the area of both orientations and pick the smaller one.
+        if (boundingBox.width > maxWidth) {
+          setIsVertical(true);
+        }
+      }
+    )
+  );
+
+  return (
+    <div
+      id={props.id}
+      classList={{
+        [BASE_CSS_CLASS]: true,
+        [props.expression.kind]: true,
+        vertical: isVertical(),
+      }}
+      ref={listElement!}
+    >
+      <For each={props.expression.expressions}>
+        {(expression, index) => (
+          <DustExpressionView
+            {...{
+              ...props,
+              id: props.id + "/expressions/" + index(),
+              expression,
+              depthLimit: props.depthLimit - 1,
+            }}
+          />
+        )}
+      </For>
+    </div>
+  );
+};

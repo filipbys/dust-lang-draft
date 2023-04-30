@@ -63,7 +63,6 @@ export const Window: Component<{
   }
 
   const zoomFactor = 1.1;
-  // TODO make the returned div resizable
   return (
     <div
       classList={{
@@ -121,6 +120,7 @@ export const Window: Component<{
               playingSignal,
             });
 
+            // TODO should this be centered=false, state=pinned, and that way we can just use native scrolling? And if so, do we even need the top level window physics element?
             element.centeredWithinParent = true;
             element.state = "free";
             element.callbacks = {
@@ -158,6 +158,7 @@ function updateWindowContents(
 
   // TODO this might make panning while dragging janky; we'll have to see.
   // It might be better/necessary to use physics-based forces to grow/shrink the boundary just like with modules.
+  // TODO center the wrapper on a specific element (e.g. the project's name?). Dragging the wrapper drags everything (i.e. scrolling), but dragging the project's name just moves the name and the wrapper's boundary.
   windowContentsWrapper.setBoundary(
     approximateSmallestEnclosingCircle(elements)
   );

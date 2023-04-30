@@ -8,8 +8,16 @@ import { centerWithinParent, setDiameter, setTranslate } from "./HTMLHelpers";
 import { makeDraggable } from "./DragAndDrop";
 
 export type HTMLPhysicsSimulationElementCallbacks = Readonly<{
-  onSimulationFrame(element: HTMLPhysicsSimulationElement): void;
+  /**
+   * Called when something in the element changes and the simulation needs to be played.
+   */
   playSimulation(): void;
+  /**
+   * Called on each frame when the simulation is playing.
+   *
+   * @param element the element that owns these callbacks.
+   */
+  onSimulationFrame(element: HTMLPhysicsSimulationElement): void;
 }>;
 
 export class HTMLPhysicsSimulationElement
@@ -133,6 +141,7 @@ export class HTMLPhysicsSimulationElement
   connectedCallback() {
     if (this.isConnected) {
       this.simulationFrameCallback();
+      // TODO observe children sizes and auto-play the simulation?
     }
   }
 }

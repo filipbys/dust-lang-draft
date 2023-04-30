@@ -19,8 +19,8 @@ export function gapBetween(first: Circle, second: Circle): number {
   return distanceBetween(first.center, second.center) - sumOfRadii;
 }
 
-export function elementDiameter(element: Element) {
-  return rectangleDiameter(element.getBoundingClientRect());
+export function elementDiameter(element: HTMLElement) {
+  return Math.hypot(element.offsetWidth, element.offsetHeight);
 }
 
 export function rectangleDiameter(rectangle: Rectangle): number {

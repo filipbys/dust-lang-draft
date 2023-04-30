@@ -42,32 +42,49 @@ const PlainTextEditor: Component = () => {
   });
   // TODO text-tree should have its own HTML views as well so we don't have to
   // always re-parse the entire text when something changes. The user should still see plain text, though we can always show group borders if desired.
+  //   const [inputText, setInputText] = createSignal(`
+  //   module MyModule
+  //   [
+  //     (
+  //       (example-math-expression [a b c] [x y z])
+  //       = (
+  //             (a + (b * c) + d)
+  //           - (c + d)
+  //           + (
+  //               foo
+  //               x
+  //               [123 456 789]
+  //               [4 (a + (f b)) [1 2 3] (f [1 2 3])]
+  //             )
+  //           / 42
+  //           + (f x y z)
+  //         )
+  //     )
+
+  //     ( module Public-Sub-Module [] [] )
+  //   ]
+  //   [
+  //     ( (foo x list1 list2) = (list1 ++ [x] ++ list2) )
+
+  //     ( module Private-Sub-Module [] [] )
+  //   ]
+  // `);
+
   const [inputText, setInputText] = createSignal(`
-  module MyModule
-  [
-    ( 
-      (example-math-expression [a b c] [x y z]) 
-      = ( 
-            (a + (b * c) + d) 
-          - (c + d) 
-          + ( 
-              foo 
-              x 
-              [123 456 789] 
-              [4 (a + (f b)) [1 2 3] (f [1 2 3])]
-            )
-          / 42
-          + (f x y z)
-        )
-    )
-
-    ( module Public-Sub-Module [] [] )
-  ]
-  [
-    ( (foo x list1 list2) = (list1 ++ [x] ++ list2) )
-
-    ( module Private-Sub-Module [] [] )
-  ]
+    (example-math-expression [a b c] [x y z]) 
+    = ( 
+          (a + (b * c) + d) 
+        - (c + d) 
+        + ( 
+            foo 
+            x 
+            [123 456 789] 
+            [4 (a + (f b)) [1 2 3] (f [1 2 3])]
+          )
+        / 42
+        + (f x y z)
+      )
+  )
 `);
 
   createEffect(
@@ -139,7 +156,17 @@ const PlainTextEditor: Component = () => {
       </div>
       <br />
       <div contentEditable={false} onBeforeInput={beforeExpressionViewInput}>
-        <Window
+        <DustExpressionView
+          {...{
+            id: "root",
+            depthLimit: 42,
+            onFocusIn: onElementFocusIn,
+            onFocusOut: onElementFocusOut,
+            expression,
+            playSimulation: () => {},
+          }}
+        />
+        {/* <Window
           expressions={[expression]}
           baseProps={{
             id: "plain-text-editor-output",
@@ -147,7 +174,7 @@ const PlainTextEditor: Component = () => {
             onFocusIn: onElementFocusIn,
             onFocusOut: onElementFocusOut,
           }}
-        />
+        /> */}
       </div>
       <br />
       {/* Readonly view to make sure updates are reflected */}
@@ -173,11 +200,15 @@ const PlainTextEditor: Component = () => {
 };
 
 const App: Component = () => {
-  return (
-    <div class="Dust app">
-      <PlainTextEditor />
-    </div>
-  );
+  try {
+    return (
+      <div class="Dust app">
+        <PlainTextEditor />
+      </div>
+    );
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 export default App;

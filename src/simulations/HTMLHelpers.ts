@@ -1,4 +1,4 @@
-import { elementDiameter, Rectangle } from "../math/Geometry";
+import { Rectangle } from "../math/Geometry";
 import { Vector2D, X, Y } from "../math/Vectors";
 
 // TODO move these into a separate file

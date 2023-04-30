@@ -6,6 +6,14 @@ export interface ReadonlyArray<T> {
   [Symbol.iterator](): Iterator<T>;
 }
 
+export function sum(array: ReadonlyArray<number>): number {
+  let total = 0;
+  for (const num of array) {
+    total += num;
+  }
+  return total;
+}
+
 export function filterByType<T, U>(
   array: ReadonlyArray<T>,
   typeConstructor: TypeConstructor<U>

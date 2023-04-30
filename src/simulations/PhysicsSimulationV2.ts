@@ -1,12 +1,4 @@
-import {
-  Accessor,
-  batch,
-  createEffect,
-  createSignal,
-  on,
-  Setter,
-  Signal,
-} from "solid-js";
+import { Accessor, batch, createEffect, on, Setter, Signal } from "solid-js";
 import { ReadonlyArray } from "../data-structures/Arrays";
 import {
   kineticEnergy,

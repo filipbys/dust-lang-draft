@@ -11,16 +11,3 @@
   position: relative;
   z-index: 1;
 }
-
-.Dust.moduleElement {
-  position: absolute;
-  box-sizing: border-box;
-  border: 4px solid rgba(0, 0, 0, 0.5);
-  /* display: inline-flex;
-  flex-wrap: nowrap; */
-
-  /* text-align: center;
-  align-items: center;
-  justify-items: center; */
-  touch-action: none;
-}

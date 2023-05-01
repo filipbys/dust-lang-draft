@@ -43,7 +43,6 @@ export class HTMLPhysicsSimulationElement
   #scale = 1.0;
 
   #mass: number = 100; // TODO
-  #centeredWithinParent: boolean = false;
 
   constructor() {
     super();
@@ -118,12 +117,11 @@ export class HTMLPhysicsSimulationElement
   }
 
   get centeredWithinParent() {
-    return this.#centeredWithinParent;
+    return this.classList.contains("centeredWithinParent");
   }
 
   set centeredWithinParent(newValue: boolean) {
-    if (this.#centeredWithinParent !== newValue) {
-      this.#centeredWithinParent = newValue;
+    if (this.centeredWithinParent !== newValue) {
       this.classList.toggle("centeredWithinParent", newValue);
       this.#callbacks?.playSimulation();
     }

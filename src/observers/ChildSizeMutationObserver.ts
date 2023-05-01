@@ -4,11 +4,12 @@ import {
 } from "../type-utils/DynamicTypeChecks";
 import { logAndThrow } from "../development/Errors";
 import { safeCast } from "../type-utils/DynamicTypeChecks";
+import { filterByType } from "../data-structures/Arrays";
 
 export type ChildrenResizeObserverCallback<
   P extends HTMLElement,
   C extends Element,
-> = (parent: P, children: readonly C[]) => void;
+> = (parent: P, resizedChildren: readonly C[]) => void;
 
 export type UnobserveFunction = () => void;
 

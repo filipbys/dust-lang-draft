@@ -1,4 +1,12 @@
-import { Component, createSignal, For, on, onMount, Signal } from "solid-js";
+import {
+  Component,
+  createEffect,
+  createSignal,
+  For,
+  on,
+  onMount,
+  Signal,
+} from "solid-js";
 import { approximateSmallestEnclosingCircle } from "../math/Geometry";
 import type * as DustExpression from "../types/DustExpression";
 import { DustComponentProps, DustExpressionView } from "./DustExpressionView";
@@ -12,6 +20,7 @@ import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulati
 import { createSimulation } from "../simulations/PhysicsSimulation";
 
 import "./Windows.css";
+import { observeChildrenSizes } from "../observers/ChildSizeMutationObserver";
 
 // TODO window should have a toolbar with undo/redo, zoom in/out, insert, set depth limit, etc buttons
 
@@ -54,11 +63,9 @@ export const Window: Component<{
   const playSimulation = () => {}; // TODO setPlaying(true);
   let runOneSimulationStep: ((deltaMillis: number) => void) | null = null;
 
-  const [zoomLevel, setZoomLevel] = createSignal(100);
-  function onZoomLevelInput(this: HTMLInputElement, event: InputEvent) {
-    console.log("onZoomLevelInput", event);
-
-    setZoomLevel(+this.value);
+  const [zoomPercent, setZoomPercent] = createSignal(100);
+  function onZoomPercentInput(this: HTMLInputElement) {
+    setZoomPercent(+this.value);
   }
 
   // TODO zoom with either 2 pointers or ctrl+scroll
@@ -82,11 +89,26 @@ export const Window: Component<{
     // TODO should this be centered=false, state=pinned, and that way we can just use native scrolling? And if so, do we even need the top level window physics element?
     windowContents.centeredWithinParent = true;
     windowContents.state = "free";
+    windowContents.offsetDiameter = 1000;
     windowContents.callbacks = {
       playSimulation,
       onSimulationFrame: updateWindowContents,
     };
+    updateWindowContents(windowContents);
+
+    observeChildrenSizes(
+      windowContents,
+      HTMLPhysicsSimulationElement,
+      updateWindowContents,
+    );
   });
+
+  createEffect(
+    on(
+      zoomPercent,
+      (zoomPercent) => (windowContents.scale = zoomPercent / 100),
+    ),
+  );
 
   const zoomFactor = 1.1;
   return (
@@ -104,39 +126,44 @@ export const Window: Component<{
         <button onClick={() => runOneSimulationStep!(16)}>
           Run one simulation step
         </button>
-        <div style="display: grid; grid-template-columns: auto auto auto">
+        <div style="display: inline-grid; grid-template-columns: auto auto auto">
           <span style="grid-column-start: 1; grid-column-end: 4;">
-            Zoom {zoomLevel()}%
+            Zoom {zoomPercent().toFixed(0)}%
           </span>
-          <button onClick={() => setZoomLevel(zoomLevel() / zoomFactor)}>
+          <button onClick={() => setZoomPercent(zoomPercent() / zoomFactor)}>
             -
           </button>
           <input
             type="range"
-            name="zoomLevel"
+            name="zoomPercent"
             min="0.1"
             max="1000"
-            value={zoomLevel()}
-            onInput={onZoomLevelInput}
+            value={zoomPercent()}
+            onInput={onZoomPercentInput}
           />
-          <button onClick={() => setZoomLevel(zoomLevel() * zoomFactor)}>
+          <button onClick={() => setZoomPercent(zoomPercent() * zoomFactor)}>
             +
           </button>
         </div>
       </div>
-      <div class="Dust windowContentArea">
+      <div
+        class="Dust windowContentArea"
+        style="width: 1000px; height: 1000px;"
+      >
         <dust-physics-simulation-element
           class="Dust windowContents"
-          style={{
-            // TODO in css: transform: scale(zoomLevel) translate(x, y)
-            transform: `scale(${zoomLevel()}%)`,
-          }}
           ref={windowContents!}
         >
           <For each={props.expressions}>
             {(expression, index) => (
-              // TODO don't wrap in a bubble if the element is already a physicsElement (e.g. modules)
-              <IntoHTMLPhysicsSimulationComponent {...{ playSimulation }}>
+              <IntoHTMLPhysicsSimulationComponent
+                {...{
+                  playSimulation,
+                  extraClasses: {
+                    windowElement: true,
+                  },
+                }}
+              >
                 <DustExpressionView
                   {...{
                     ...props.baseProps, // TODO may want to use mergeProps instead
@@ -163,12 +190,7 @@ function updateWindowContents(
   // TODO this might make panning while dragging janky; we'll have to see.
   // It might be better/necessary to use physics-based forces to grow/shrink the boundary just like with modules.
   // TODO center the wrapper on a specific element (e.g. the project's name?). Dragging the wrapper drags everything (i.e. scrolling), but dragging the project's name just moves the name and the wrapper's boundary.
-  windowContentsWrapper.setBoundary(
-    approximateSmallestEnclosingCircle(elements),
-  );
-}
-
-function encircleWindowContents() {
-  // 1. Find smallest enclosing rectangle
-  // 2. radius = max(distanceToCenter())
+  const boundary = approximateSmallestEnclosingCircle(elements); // uses .diameter of the elements
+  console.log("New boundary", boundary);
+  windowContentsWrapper.offsetDiameter = boundary.diameter;
 }

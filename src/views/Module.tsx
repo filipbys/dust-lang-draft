@@ -7,8 +7,8 @@ import { DustExpressionView, ExpressionProps } from "./DustExpressionView";
 import {
   getDirectPhysicsElementChildren,
   IntoHTMLPhysicsSimulationComponent,
-  updateWrapper,
 } from "./HTMLPhysicsSimulationComponent";
+import { BubbleWrapper } from "./BubbleWrapper";
 
 // TODO imported and exported values go around the outside.
 // Private values are only visible when editing the module, so you
@@ -26,35 +26,15 @@ export type ModuleProps = ExpressionProps<DustExpression.Module>;
 // Also don't forget to show/hide elements at various zoom levels according to priority
 export const Module: Component<ModuleProps> = (props) => {
   let moduleElement: HTMLPhysicsSimulationElement;
-  let moduleName: HTMLPhysicsSimulationElement;
-
-  // function mountModule(moduleElement: HTMLPhysicsSimulationElement) {
-  //   console.debug("Mounting Module:", moduleElement);
-  //   moduleElementRef = moduleElement;
-  //   moduleElement.state = "free";
-  //   // console.log("")
-  //   moduleElement.offsetDiameter = 1000;
-  //   moduleElement.callbacks = {
-  //     onSimulationFrame: updateModule,
-  //     playSimulation: props.playSimulation,
-  //   };
-  // }
 
   onMount(() => {
     console.log("Module onmount");
     moduleElement.state = "free";
+    moduleElement.centeredWithinParent = true;
     // console.log("")
     moduleElement.offsetDiameter = 1000;
     moduleElement.callbacks = {
       onSimulationFrame: updateModule,
-      playSimulation: props.playSimulation,
-    };
-
-    moduleName.state = "pinned";
-    moduleName.centeredWithinParent = true;
-    updateWrapper(moduleName);
-    moduleName.callbacks = {
-      onSimulationFrame: updateWrapper,
       playSimulation: props.playSimulation,
     };
   });
@@ -75,9 +55,10 @@ export const Module: Component<ModuleProps> = (props) => {
 
       <span id="debug_info"></span>
 
-      <dust-physics-simulation-element
-        class="Dust moduleElement moduleName"
-        ref={moduleName!}
+      <BubbleWrapper
+        state="pinned"
+        playSimulation={props.playSimulation}
+        extraClasses={{ moduleName: true }}
       >
         <DustExpressionView
           {...{
@@ -87,8 +68,7 @@ export const Module: Component<ModuleProps> = (props) => {
             depthLimit: props.depthLimit - 1,
           }}
         />
-        <span id="debug_info"></span>
-      </dust-physics-simulation-element>
+      </BubbleWrapper>
       <ModuleElementList
         baseProps={{
           ...props,
@@ -119,11 +99,7 @@ const ModuleElementList: Component<{
   <For each={props.expressions}>
     {(expression, index) => (
       <IntoHTMLPhysicsSimulationComponent
-        classList={{
-          Dust: true,
-          moduleElement: true,
-          [props.visibility]: true,
-        }}
+        extraClasses={{ [props.visibility]: true }}
         playSimulation={props.baseProps.playSimulation}
       >
         <DustExpressionView

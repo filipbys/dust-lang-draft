@@ -24,10 +24,7 @@ export const TextTreeView: Component<{ node: TextNode }> = (props) => {
 
 const TextGroupView: Component<{ group: TextGroup }> = (props) => {
   return (
-    <div
-      class="Dust textGroup"
-      data-group-type={props.group.groupType}
-    >
+    <div class="Dust textGroup" data-group-type={props.group.groupType}>
       {groupStart(props.group.groupType)}
       <For each={props.group.nodes}>
         {(node) => <TextTreeView node={node} />}

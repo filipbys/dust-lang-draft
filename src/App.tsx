@@ -194,11 +194,7 @@ module MyModule
   return (
     <div>
       {/* TODO input for font size */}
-      <code
-        id="debug-input-box"
-        contentEditable={true}
-        onInput={onInput}
-      >
+      <code id="debug-input-box" contentEditable={true} onInput={onInput}>
         {initialText}
       </code>
       <br />
@@ -208,9 +204,9 @@ module MyModule
         contentEditable={true}
         onBeforeInput={beforeTextTreeViewInput}
         style={{
-          padding: "10px",
-          display: "inline-block",
-          border: "3px solid black",
+          "padding": "10px",
+          "display": "inline-block",
+          "border": "3px solid black",
           "border-radius": "10px",
         }}
         ref={textTreeViewDiv!}
@@ -218,11 +214,8 @@ module MyModule
         <TextTreeView node={textTree} />
       </div>
       <br />
-      <div
-        contentEditable={false}
-        onBeforeInput={beforeExpressionViewInput}
-      >
-        <DustExpressionView
+      <div contentEditable={false} onBeforeInput={beforeExpressionViewInput}>
+        {/* <DustExpressionView
           {...{
             id: "root",
             depthLimit: 42,
@@ -231,8 +224,8 @@ module MyModule
             expression,
             playSimulation: () => {},
           }}
-        />
-        {/* <Window
+        /> */}
+        <Window
           expressions={[expression]}
           baseProps={{
             id: "plain-text-editor-output",
@@ -240,7 +233,7 @@ module MyModule
             onFocusIn: onElementFocusIn,
             onFocusOut: onElementFocusOut,
           }}
-        /> */}
+        />
       </div>
       <br />
       {/* Readonly view to make sure updates are reflected */}

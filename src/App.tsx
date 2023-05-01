@@ -5,6 +5,7 @@ import {
   createSignal,
   on,
   onCleanup,
+  onMount,
 } from "solid-js";
 import * as DustExpression from "./types/DustExpression";
 import "./styles.css";
@@ -34,12 +35,14 @@ const PlainTextEditor: Component = () => {
     groupType: "()",
     nodes: [],
     totalLength: 0,
+    singleLine: true,
   });
 
   const [expression, setExpression] = createStore<DustExpression.Any>({
     kind: "identifier",
     identifier: "loading...",
     totalLength: 42,
+    singleLine: true,
   });
   // TODO text-tree should have its own HTML views as well so we don't have to
   // always re-parse the entire text when something changes. The user should still see plain text, though we can always show group borders if desired.
@@ -71,20 +74,47 @@ const PlainTextEditor: Component = () => {
   //   ]
   // `);
 
+  // const [inputText, setInputText] = createSignal(`
+  //     ( example-math-expression [a b c] [x y z] )
+  //   = (
+  //         (a + (b * c) + d)
+  //       - (c + d)
+  //       + (
+  //           foo
+  //           x
+  //           [123 456 789]
+  //           [4 (a + (f b)) [1 2 3] (f [1 2 3])]
+  //         )
+  //       / 42
+  //       + (f x y z)
+  //     )
+  // `);
+
   const [inputText, setInputText] = createSignal(`
-    (example-math-expression [a b c] [x y z]) 
-    = ( 
-          (a + (b * c) + d) 
-        - (c + d) 
-        + ( 
-            foo 
-            x 
-            [123 456 789] 
+module MyModule
+[
+  (
+      ( example-math-expression [a b c] [x y z] ) 
+    = (
+          (a + (b * c) + d)
+        - (c + d)
+        + (
+            foo
+            x
+            [123 456 789]
             [4 (a + (f b)) [1 2 3] (f [1 2 3])]
           )
         / 42
         + (f x y z)
       )
+  )
+]
+[
+  ( 
+      (foo x list1 list2) 
+    = (list1 ++ [x] ++ list2) 
+  )
+]
 `);
 
   createEffect(
@@ -134,8 +164,12 @@ const PlainTextEditor: Component = () => {
 
   function beforeTextTreeViewInput(this: HTMLElement, event: InputEvent) {
     console.log("beforeTextTreeViewInput", this, event, window.getSelection());
-    event.preventDefault();
+    // event.preventDefault();
     // TODO handle changes here
+  }
+
+  function onTextTreeSelect(this: HTMLElement, event: Event) {
+    // TODO track the current selection
   }
 
   function beforeExpressionViewInput(event: InputEvent) {
@@ -144,9 +178,22 @@ const PlainTextEditor: Component = () => {
     // TODO handle changes here
   }
 
+  let textTreeViewDiv: HTMLDivElement;
+  onMount(() => {
+    new MutationObserver((entries) => {
+      console.log("text tree changed:", entries);
+    }).observe(textTreeViewDiv, {
+      childList: true,
+      characterData: true,
+      characterDataOldValue: true,
+      subtree: true,
+    });
+  });
+
   const initialText = inputText(); // let contentEditable take over
   return (
     <div>
+      {/* TODO input for font size */}
       <code
         id="debug-input-box"
         contentEditable={true}
@@ -154,10 +201,19 @@ const PlainTextEditor: Component = () => {
       >
         {initialText}
       </code>
+      <br />
       <button onClick={() => alert("TODO")}>Save</button>
+      <br />
       <div
         contentEditable={true}
         onBeforeInput={beforeTextTreeViewInput}
+        style={{
+          padding: "10px",
+          display: "inline-block",
+          border: "3px solid black",
+          "border-radius": "10px",
+        }}
+        ref={textTreeViewDiv!}
       >
         <TextTreeView node={textTree} />
       </div>

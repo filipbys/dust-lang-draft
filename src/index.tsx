@@ -17,8 +17,19 @@ class DustLangEditor extends HTMLElement {
 }
 
 // TODO find a better place for all this
-customElements.define(
+
+function defineIfNotDefined(
+  name: string,
+  constructor: CustomElementConstructor,
+  options?: ElementDefinitionOptions,
+) {
+  if (customElements.get(name) === undefined) {
+    customElements.define(name, constructor, options);
+  }
+}
+
+defineIfNotDefined(
   HTMLPhysicsSimulationElement.TAG,
   HTMLPhysicsSimulationElement,
 );
-customElements.define("dust-lang-editor", DustLangEditor);
+defineIfNotDefined("dust-lang-editor", DustLangEditor);

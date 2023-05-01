@@ -4,11 +4,6 @@
 
 /* TODO split into more files */
 
-body {
-  background: #737f8d;
-  font-family: monospace;
-}
-
 #debug-input-box {
   display: inline-block;
   white-space: pre;
@@ -38,6 +33,18 @@ body {
   gap: 2px;
   padding: 1px;
   margin: 2px;
+}
+
+.Dust.singleLine > .Dust.array {
+  margin-inline: 0.5ch;
+}
+
+.Dust.singleLine > .Dust.array:first-child {
+  margin-inline-start: 0;
+}
+
+.Dust.singleLine > .Dust.array:last-child {
+  margin-inline-end: 0;
 }
 
 /* TODO split into a separate file */
@@ -70,10 +77,28 @@ body {
   flex-shrink: 0;
 }
 
-.Dust.array > .functionCall {
+.Dust.singleLine > .Dust.functionCall {
+  margin-inline: 0.5ch;
+}
+
+.Dust.singleLine > .Dust.functionCall:first-child {
+  margin-inline-start: 0;
+}
+
+.Dust.singleLine > .Dust.functionCall:last-child {
+  margin-inline-end: 0;
+}
+
+.Dust.array > .Dust.functionCall {
   margin: 0;
-  margin-inline: 0;
+  margin-inline: 0px;
   padding: 2px;
+}
+
+.Dust.array > .Dust.array {
+  /* margin: 0; */
+  margin-inline: 0px;
+  /* padding: 2px; */
 }
 
 .Dust.binary-operation-chain-item {
@@ -85,11 +110,6 @@ body {
   flex-direction: column;
   align-items: start;
   gap: 0.5ch;
-}
-
-.Dust.functionCall
-  > :is(.identifier + :not(.identifier), .Dust:not(.identifier) + .identifier) {
-  margin-inline-start: 0.5ch;
 }
 
 .Dust.binary.functionCall:not(.singleLine) {
@@ -106,7 +126,7 @@ body {
 
 .Dust.binary.functionCall:not(.singleLine, .centered, .singleColumn)
   > :first-child {
-  grid-column-start: 1;
+  grid-column-start: 2;
   grid-column-end: 3;
 }
 
@@ -199,6 +219,7 @@ body {
 .Dust.functionCall.binary > :nth-child(even),
 .Dust.functionCall.prefix > :first-child {
   font-weight: bold;
+  font-size: 110%;
 }
 
 .Dust.functionCall:hover,

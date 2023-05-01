@@ -1,4 +1,4 @@
-import { Component, For } from "solid-js";
+import { Component, For, onMount } from "solid-js";
 import { approximateSmallestEnclosingCircle } from "../math/Geometry";
 import { Springs } from "../math/Physics";
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
@@ -7,7 +7,7 @@ import { DustExpressionView, ExpressionProps } from "./DustExpressionView";
 import {
   getDirectPhysicsElementChildren,
   IntoHTMLPhysicsSimulationComponent,
-  updateWrapperDiameter,
+  updateWrapper,
 } from "./HTMLPhysicsSimulationComponent";
 
 // TODO imported and exported values go around the outside.
@@ -21,43 +21,64 @@ import {
 
 export type ModuleProps = ExpressionProps<DustExpression.Module>;
 
+// TODO! make modules zoomable: drag and drop with 1 pointer, and zoom in/out with either 2 pointers or control+scroll (normal scroll should scroll the window vertically and shift+scroll should scroll horizontally)
+// Don't forget to make the PhysicsElement diameter reflect the css scale transform
+// Also don't forget to show/hide elements at various zoom levels according to priority
 export const Module: Component<ModuleProps> = (props) => {
-  let moduleElementRef: HTMLPhysicsSimulationElement | null = null;
+  let moduleElement: HTMLPhysicsSimulationElement;
+  let moduleName: HTMLPhysicsSimulationElement;
 
-  function mountModule(moduleElement: HTMLPhysicsSimulationElement) {
-    console.debug("Mounting Module:", moduleElement);
-    moduleElementRef = moduleElement;
+  // function mountModule(moduleElement: HTMLPhysicsSimulationElement) {
+  //   console.debug("Mounting Module:", moduleElement);
+  //   moduleElementRef = moduleElement;
+  //   moduleElement.state = "free";
+  //   // console.log("")
+  //   moduleElement.offsetDiameter = 1000;
+  //   moduleElement.callbacks = {
+  //     onSimulationFrame: updateModule,
+  //     playSimulation: props.playSimulation,
+  //   };
+  // }
+
+  onMount(() => {
+    console.log("Module onmount");
     moduleElement.state = "free";
+    // console.log("")
+    moduleElement.offsetDiameter = 1000;
     moduleElement.callbacks = {
       onSimulationFrame: updateModule,
       playSimulation: props.playSimulation,
     };
-  }
+
+    moduleName.state = "pinned";
+    moduleName.centeredWithinParent = true;
+    updateWrapper(moduleName);
+    moduleName.callbacks = {
+      onSimulationFrame: updateWrapper,
+      playSimulation: props.playSimulation,
+    };
+  });
 
   return (
     <dust-physics-simulation-element
       id={props.id}
       class="Dust module"
-      ref={mountModule}
+      ref={moduleElement!}
     >
-      <button onClick={() => (moduleElementRef!.diameter += 20)}>grow</button>
-      <button onClick={() => (moduleElementRef!.diameter -= 20)}>shrink</button>
+      <button onClick={() => (moduleElement!.offsetDiameter += 20)}>
+        grow
+      </button>
+      <button onClick={() => (moduleElement!.offsetDiameter -= 20)}>
+        shrink
+      </button>
       {/* TODO add a way to add and remove elements */}
 
       <span id="debug_info"></span>
 
       <dust-physics-simulation-element
         class="Dust moduleElement moduleName"
-        ref={(moduleName) => {
-          moduleName.state = "pinned";
-          moduleName.centeredWithinParent = true;
-          moduleName.callbacks = {
-            onSimulationFrame: updateWrapperDiameter,
-            playSimulation: props.playSimulation,
-          };
-        }}
+        ref={moduleName!}
       >
-        <span id="debug_info"></span>
         <DustExpressionView
           {...{
             ...props,
@@ -66,6 +87,7 @@ export const Module: Component<ModuleProps> = (props) => {
             depthLimit: props.depthLimit - 1,
           }}
         />
+        <span id="debug_info"></span>
       </dust-physics-simulation-element>
       <ModuleElementList
         baseProps={{
@@ -122,8 +144,8 @@ function updateModule(moduleElement: HTMLPhysicsSimulationElement) {
   const smallestDiameter =
     approximateSmallestEnclosingCircle(physicsElements).diameter;
 
-  if (moduleElement.diameter < smallestDiameter) {
-    moduleElement.diameter = smallestDiameter;
+  if (moduleElement.offsetDiameter < smallestDiameter) {
+    moduleElement.offsetDiameter = smallestDiameter;
   }
 
   updateForces(moduleElement, physicsElements);

@@ -19,7 +19,7 @@ export function gapBetween(first: Circle, second: Circle): number {
   return distanceBetween(first.center, second.center) - sumOfRadii;
 }
 
-export function elementDiameter(element: HTMLElement) {
+export function offsetDiameter(element: HTMLElement) {
   return Math.hypot(element.offsetWidth, element.offsetHeight);
 }
 

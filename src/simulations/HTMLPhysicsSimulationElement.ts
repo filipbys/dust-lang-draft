@@ -3,8 +3,7 @@ import { rounded, Vector2D, vectorsEqual, X, Y } from "../math/Vectors";
 import {
   PhysicsSimulationElement,
   PhysicsSimulationElementState,
-} from "./PhysicsSimulationV2";
-import { centerWithinParent, setDiameter, setTranslate } from "./HTMLHelpers";
+} from "./PhysicsSimulation";
 import { makeDraggable } from "./DragAndDrop";
 
 export type HTMLPhysicsSimulationElementCallbacks = Readonly<{
@@ -36,41 +35,24 @@ export class HTMLPhysicsSimulationElement
   velocity: Readonly<Vector2D> = [0, 0]; // pixels/millis
 
   #center: Readonly<Vector2D> = [0, 0];
-  #diameter: number = 100;
+  #previousCssTranslate: Readonly<Vector2D> = [0, 0]; // pixels, rounded to nearest integers
+
+  #offsetDiameter: number = 0;
+  #previousCssDiameter: number = 0; // pixels, rounded to nearest integer
+
+  #scale = 1.0;
+
   #mass: number = 100; // TODO
   #centeredWithinParent: boolean = false;
-
-  #previousCssDiameter: number = 0; // pixels, rounded to nearest integer
-  #previousCssTranslate: Readonly<Vector2D> = [0, 0]; // pixels, rounded to nearest integers
 
   constructor() {
     super();
     makeDraggable(this);
-    this.#updateStyle();
-  }
-
-  #updateStyle(): boolean {
-    let changed = false;
-
-    const roundedCenter = rounded(this.#center);
-    if (!vectorsEqual(this.#previousCssTranslate, roundedCenter)) {
-      // TODO observe jank and measure perf with/without this optimization
-      setTranslate(this, roundedCenter);
-      this.#previousCssTranslate = roundedCenter;
-      changed = true;
-    }
-
-    const roundedDiameter = Math.round(this.#diameter);
-    if (this.#previousCssDiameter !== roundedDiameter) {
-      setDiameter(this, roundedDiameter, this.#centeredWithinParent);
-      this.#previousCssDiameter = roundedDiameter;
-      changed = true;
-    }
-
-    return changed;
+    this.offsetDiameter = 100;
   }
 
   set callbacks(callbacks: HTMLPhysicsSimulationElementCallbacks) {
+    console.log("set callbacks", this);
     this.#callbacks = callbacks;
   }
 
@@ -80,22 +62,69 @@ export class HTMLPhysicsSimulationElement
 
   set center(newCenter: Readonly<Vector2D>) {
     this.#center = newCenter;
-    if (this.#updateStyle()) {
+    const roundedCenter = rounded(this.#center);
+    if (!vectorsEqual(this.#previousCssTranslate, roundedCenter)) {
+      this.#previousCssTranslate = roundedCenter;
+      this.style.setProperty("--center-x", roundedCenter[X] + "px");
+      this.style.setProperty("--center-y", roundedCenter[Y] + "px");
+      this.#callbacks?.playSimulation();
+    }
+  }
+
+  get offsetDiameter() {
+    return this.#offsetDiameter;
+  }
+
+  set offsetDiameter(newOffsetDiameter: number) {
+    if (newOffsetDiameter <= 0) {
+      throw new RangeError(
+        `Diameter must be positive, got ${newOffsetDiameter}`,
+      );
+    }
+    console.log(
+      "set offsetDiameter",
+      this,
+      this.#offsetDiameter,
+      "->",
+      newOffsetDiameter,
+    );
+    this.#offsetDiameter = newOffsetDiameter;
+
+    const cssDiameter = Math.round(newOffsetDiameter);
+    if (this.#previousCssDiameter !== cssDiameter) {
+      this.#previousCssDiameter = cssDiameter;
+      this.style.setProperty("--diameter", cssDiameter + "px");
       this.#callbacks?.playSimulation();
     }
   }
 
   get diameter() {
-    return this.#diameter;
+    return this.#offsetDiameter * this.#scale;
   }
 
-  set diameter(newDiameter: number) {
-    if (newDiameter <= 0) {
-      throw new RangeError(`Diameter must be positive, got ${newDiameter}`);
-    }
-    this.#diameter = newDiameter;
+  get scale() {
+    return this.#scale;
+  }
 
-    if (this.#updateStyle()) {
+  set scale(newScale: number) {
+    if (newScale <= 0) {
+      throw new RangeError(`Scale must be positive, got ${newScale}`);
+    }
+    if (newScale !== this.#scale) {
+      this.#scale = newScale;
+      this.style.setProperty("--scale", newScale.toString());
+      this.#callbacks?.playSimulation();
+    }
+  }
+
+  get centeredWithinParent() {
+    return this.#centeredWithinParent;
+  }
+
+  set centeredWithinParent(newValue: boolean) {
+    if (this.#centeredWithinParent !== newValue) {
+      this.#centeredWithinParent = newValue;
+      this.classList.toggle("centeredWithinParent", newValue);
       this.#callbacks?.playSimulation();
     }
   }
@@ -114,34 +143,13 @@ export class HTMLPhysicsSimulationElement
     }
   }
 
-  setBoundary(boundary: Circle) {
-    this.center = boundary.center;
-    this.diameter = boundary.diameter;
-  }
-
-  get centeredWithinParent() {
-    return this.#centeredWithinParent;
-  }
-
-  set centeredWithinParent(newValue: boolean) {
-    if (this.#centeredWithinParent !== newValue) {
-      this.#centeredWithinParent = newValue;
-      if (newValue) {
-        centerWithinParent(this, this.diameter);
-      }
-      this.#callbacks?.playSimulation();
-    }
-  }
-
   simulationFrameCallback() {
-    this.#updateStyle();
     this.#callbacks?.onSimulationFrame(this);
   }
 
   connectedCallback() {
     if (this.isConnected) {
       this.simulationFrameCallback();
-      // TODO observe children sizes and auto-play the simulation?
     }
   }
 }

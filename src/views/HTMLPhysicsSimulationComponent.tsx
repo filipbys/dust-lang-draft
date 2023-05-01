@@ -2,21 +2,27 @@ import {
   children,
   Component,
   ComponentProps,
+  createEffect,
   Match,
+  on,
+  onCleanup,
+  onMount,
   ParentProps,
+  Ref,
   Switch,
 } from "solid-js";
 import { filterByType } from "../data-structures/Arrays";
-import { elementDiameter, rectangleDiameter } from "../math/Geometry";
+import { offsetDiameter, rectangleDiameter } from "../math/Geometry";
 import { PhysicsElement } from "../math/Physics";
 
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
-import { PhysicsSimulationElementState } from "../simulations/PhysicsSimulationV2";
+import { PhysicsSimulationElementState } from "../simulations/PhysicsSimulation";
 import { safeCast } from "../type-utils/DynamicTypeChecks";
+import { observeChildrenSizes } from "../observers/ChildSizeMutationObserver";
 
 type HTMLPhysicsSimulationElementProps = ComponentProps<"element"> &
   ParentProps<{
-    ref?: (element: HTMLPhysicsSimulationElement) => void;
+    ref?: Ref<HTMLPhysicsSimulationElement>;
   }>;
 
 declare module "solid-js" {
@@ -35,6 +41,30 @@ export const IntoHTMLPhysicsSimulationComponent: Component<
   ComponentProps<"element"> & ParentProps<{ playSimulation: () => void }>
 > = (props) => {
   const resolvedChildren = children(() => props.children);
+
+  let wrapper: HTMLPhysicsSimulationElement | null = null;
+  onMount(() => {
+    if (wrapper === null) {
+      return;
+    }
+    wrapper.callbacks = {
+      onSimulationFrame: updateWrapper,
+      playSimulation: props.playSimulation,
+    };
+
+    wrapper.state = "free";
+    wrapper.centeredWithinParent = true;
+    updateWrapper(wrapper);
+
+    const cleanup = observeChildrenSizes(
+      wrapper,
+      HTMLElement,
+      updateWrapperDiameter2,
+    );
+
+    onCleanup(cleanup);
+  });
+
   return (
     <Switch>
       <Match when={resolvedChildren() instanceof HTMLPhysicsSimulationElement}>
@@ -44,39 +74,49 @@ export const IntoHTMLPhysicsSimulationComponent: Component<
         when={!(resolvedChildren() instanceof HTMLPhysicsSimulationElement)}
       >
         <dust-physics-simulation-element
-          {...{
-            ...props,
-            ref(element) {
-              // TODO try using prop:xyz and @once for these (see https://www.solidjs.com/docs/latest#-once-)
-              element.callbacks = {
-                onSimulationFrame: updateWrapperDiameter,
-                playSimulation: props.playSimulation,
-              };
-
-              element.state = "free";
-              element.centeredWithinParent = true;
-              // TODO try to preserve the current position?
-            },
-          }}
+          ref={wrapper!}
+          {...props}
         >
           {resolvedChildren()}
-          <span id="debug_info"></span>
+          {/* <span id="debug_info"></span> */}
         </dust-physics-simulation-element>
       </Match>
     </Switch>
   );
 };
 
+function updateWrapperDiameter2(
+  wrapper: HTMLPhysicsSimulationElement,
+  children: readonly HTMLElement[],
+) {
+  // TODO uncomment when done debugging
+  // if (children.length !== 1) {
+  //   throw `Wrapper physics element must have exactly 1 child, got ${wrapper.childElementCount}`;
+  // }
+  updateWrapper(wrapper);
+}
+
 // TODO export a BubbleWrapper component instead
-export function updateWrapperDiameter(wrapper: HTMLPhysicsSimulationElement) {
-  // TODO uncomment
+export function updateWrapper(wrapper: HTMLPhysicsSimulationElement) {
+  // TODO uncomment when done debugging
   // if (wrapper.childElementCount !== 1) {
   //   throw `Wrapper physics element must have exactly 1 child, got ${wrapper.childElementCount}`;
   // }
-  console.info("updateWrapperDiameter", wrapper);
   const wrappedElement = safeCast(wrapper.firstElementChild!, HTMLElement);
-  wrapper.diameter = Math.max(1, elementDiameter(wrappedElement));
-  // centerRectangleWithinParent(wrappedElement, boundingBox);
+  console.info(
+    "updateWrapperDiameter",
+    wrapper,
+    wrapper.offsetDiameter,
+    offsetDiameter(wrapper),
+    wrappedElement,
+    offsetDiameter(wrappedElement),
+  );
+  // TODO cleanup
+  wrapper.offsetDiameter = Math.max(1, offsetDiameter(wrappedElement));
+
+  wrappedElement.style.position = "absolute";
+  wrappedElement.style.left = `calc(50% - ${wrappedElement.offsetWidth / 2}px)`;
+  wrappedElement.style.top = `calc(50% - ${wrappedElement.offsetHeight / 2}px)`;
 
   // TODO set the element's mass based on the number of characters in the expression
 }

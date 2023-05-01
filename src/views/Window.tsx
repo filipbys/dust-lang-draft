@@ -1,4 +1,4 @@
-import { Component, createSignal, For, on, Signal } from "solid-js";
+import { Component, createSignal, For, on, onMount, Signal } from "solid-js";
 import { approximateSmallestEnclosingCircle } from "../math/Geometry";
 import type * as DustExpression from "../types/DustExpression";
 import { DustComponentProps, DustExpressionView } from "./DustExpressionView";
@@ -9,7 +9,7 @@ import {
   IntoHTMLPhysicsSimulationComponent,
 } from "./HTMLPhysicsSimulationComponent";
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
-import { createSimulation } from "../simulations/PhysicsSimulationV2";
+import { createSimulation } from "../simulations/PhysicsSimulation";
 
 import "./Windows.css";
 
@@ -61,6 +61,33 @@ export const Window: Component<{
     setZoomLevel(+this.value);
   }
 
+  // TODO zoom with either 2 pointers or ctrl+scroll
+
+  let windowContents: HTMLPhysicsSimulationElement;
+  onMount(() => {
+    console.log("windowContentArea physics element ref");
+    // TODO add inputs for these as well for debugging
+    const physicsConstants: PhysicsConstants = {
+      maxVelocity: 2,
+      dragMultiplier: 0.995,
+      frictionCoefficient: 0.01,
+    };
+
+    runOneSimulationStep = createSimulation({
+      physicsConstants,
+      elements: getAllPhysicsElements(windowContents.parentElement!),
+      playingSignal,
+    });
+
+    // TODO should this be centered=false, state=pinned, and that way we can just use native scrolling? And if so, do we even need the top level window physics element?
+    windowContents.centeredWithinParent = true;
+    windowContents.state = "free";
+    windowContents.callbacks = {
+      playSimulation,
+      onSimulationFrame: updateWindowContents,
+    };
+  });
+
   const zoomFactor = 1.1;
   return (
     <div
@@ -104,29 +131,7 @@ export const Window: Component<{
             // TODO in css: transform: scale(zoomLevel) translate(x, y)
             transform: `scale(${zoomLevel()}%)`,
           }}
-          ref={(element) => {
-            console.log("windowContentArea physics element ref");
-            // TODO add inputs for these as well for debugging
-            const physicsConstants: PhysicsConstants = {
-              maxVelocity: 2,
-              dragMultiplier: 0.995,
-              frictionCoefficient: 0.01,
-            };
-
-            runOneSimulationStep = createSimulation({
-              physicsConstants,
-              elements: getAllPhysicsElements(element.parentElement!),
-              playingSignal,
-            });
-
-            // TODO should this be centered=false, state=pinned, and that way we can just use native scrolling? And if so, do we even need the top level window physics element?
-            element.centeredWithinParent = true;
-            element.state = "free";
-            element.callbacks = {
-              playSimulation,
-              onSimulationFrame: updateWindowContents,
-            };
-          }}
+          ref={windowContents!}
         >
           <For each={props.expressions}>
             {(expression, index) => (

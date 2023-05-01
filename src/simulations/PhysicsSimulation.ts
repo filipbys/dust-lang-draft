@@ -1,7 +1,5 @@
-import {
-  addElementIfAbsent,
-  removeElementIfPresent,
-} from "../data-structures/Arrays";
+import { Accessor, batch, createEffect, on, Setter, Signal } from "solid-js";
+import { ReadonlyArray } from "../data-structures/Arrays";
 import {
   kineticEnergy,
   PhysicsConstants,
@@ -10,123 +8,110 @@ import {
 } from "../math/Physics";
 import { RollingAverage } from "../math/Stats";
 import { X, Y } from "../math/Vectors";
-import { createBubbleElementResizeObserver } from "./BubbleElementResizeObserver";
-import { PhysicsSimulationElement } from "./PhysicsSimulationElement";
+
+// TODO add another state "focused" which is like "free" but instead of it moving around, the world moves around it so the viewer can keep a fixed reference frame on the element.
+// TODO add another state that's like "pinned" but can still be dragged
+export type PhysicsSimulationElementState = "free" | "pinned" | "dragged";
+
+export interface PhysicsSimulationElement extends PhysicsElement {
+  state: PhysicsSimulationElementState;
+  simulationFrameCallback(): void;
+}
+
+export type PhysicsSimulationProps = Readonly<{
+  physicsConstants: PhysicsConstants;
+  elements: ReadonlyArray<PhysicsSimulationElement>;
+  playingSignal: Signal<boolean>;
+  maxStillFramesBeforeAutoPause?: number;
+}>;
+
+export function createSimulation(props: PhysicsSimulationProps) {
+  const [isPlaying, setPlaying] = props.playingSignal;
+
+  const rollingAverageEnergy = new RollingAverage(
+    props.maxStillFramesBeforeAutoPause || 30,
+  );
+  const simulationPerformance = new SimulationPerformance();
+
+  function runAndMeasureOneStep(deltaMillis: number) {
+    simulationPerformance.startClock(deltaMillis);
+    batch(() =>
+      runOneStep(
+        deltaMillis,
+        props.physicsConstants,
+        props.elements,
+        rollingAverageEnergy,
+        setPlaying,
+      ),
+    );
+    simulationPerformance.stopClock();
+  }
+
+  const frameCallback = createFrameCallback(isPlaying, runAndMeasureOneStep);
+  createEffect(
+    // TODO does this need to be createRenderEffect?
+    on(isPlaying, (isPlaying, wasPlaying) => {
+      if (isPlaying && !wasPlaying) {
+        requestAnimationFrame(frameCallback);
+      }
+      // Else: frameCallback will automatically pause itself on the next frame
+    }),
+  );
+  return runAndMeasureOneStep;
+}
 
 const FIRST_FRAME_DELTA_MILLIS = 16;
 
-export class PhysicsSimulation {
-  readonly #playing: () => boolean;
-  readonly #setPlaying: (playing: boolean) => void;
+function createFrameCallback(
+  isPlaying: Accessor<boolean>,
+  runOneStep: (deltaMillis: number) => void,
+): FrameRequestCallback {
+  let previousFrameTime: DOMHighResTimeStamp | undefined = undefined;
 
-  // TODO use something like
-  // window.getElementsByTagName(PhysicsSimulationElement.TAG) as HTMLCollectionOf<PhysicsSimulationElement>
-  // Honestly, we could just have one simulation for the whole Window and use a live HTMLCollection to call every element's frame callback on every frame while the simulation is playing.
-  // Consider automatically detecting collisions for all element pairs, since there should only ever be so many PhysicsSimulationElement in the Window anyway. Dust should remove those DOM elements when the Dust expressions are not visible to the user, either because they're at a different zoom level or because they're outside of the Window's bounds.
-  readonly #elements: PhysicsSimulationElement[] = [];
-
-  readonly #frameCallback: FrameRequestCallback;
-
-  // TODO for tests use https://stackoverflow.com/questions/64558062/how-to-mock-resizeobserver-to-work-in-unit-tests-using-react-testing-library
-  // TODO figure out a way to make this package-private
-  readonly bubbleElementResizeObserver = createBubbleElementResizeObserver();
-
-  constructor({
-    constants,
-    playingSignal: [playing, setPlaying],
-    maxStillFramesBeforeAutoPause = 30,
-  }: {
-    constants: PhysicsConstants;
-    playingSignal: [() => boolean, (playing: boolean) => void];
-    maxStillFramesBeforeAutoPause?: number;
-  }) {
-    this.#playing = playing;
-    this.#setPlaying = setPlaying;
-    this.#frameCallback = frameCallback;
-
-    const simulation = this;
-    let previousFrameTime: DOMHighResTimeStamp | undefined = undefined;
-
-    function frameCallback(time: DOMHighResTimeStamp) {
-      if (!simulation.playing) {
-        console.log("simulation paused: exiting animation loop");
-        return;
-      }
-
-      if (previousFrameTime === undefined) {
-        runOneStep(FIRST_FRAME_DELTA_MILLIS);
-      } else if (time !== previousFrameTime) {
-        runOneStep(time - previousFrameTime);
-      }
-      previousFrameTime = time;
-      requestAnimationFrame(frameCallback);
-    }
-
-    const simulationPerformance = new SimulationPerformance();
-    function runOneStep(deltaMillis: number) {
-      simulationPerformance.startClock(deltaMillis);
-      recalculateForces();
-      updateVelocitiesAndPositions(deltaMillis);
-      autoPauseIfNeeded();
-      simulationPerformance.stopClock();
-    }
-
-    function recalculateForces() {
-      for (const element of simulation.#elements) {
-        element.force[X] = 0;
-        element.force[Y] = 0;
-      }
-
-      for (const element of simulation.#elements) {
-        // TODO need to potentially update diameter as well if the element is a "collection"
-        element.updateForces();
-      }
-    }
-
-    const averageEnergy = new RollingAverage(maxStillFramesBeforeAutoPause);
-    function updateVelocitiesAndPositions(deltaMillis: number) {
-      let totalEnergy = 0;
-      for (const element of simulation.#elements) {
-        if (element.state === "free") {
-          updateVelocityAndPosition(element, constants, deltaMillis);
-        }
-        totalEnergy += kineticEnergy(element);
-      }
-      averageEnergy.add(totalEnergy);
-    }
-
-    function autoPauseIfNeeded() {
-      if (averageEnergy.isSaturated && averageEnergy.average() === 0) {
-        simulation.playing = false;
-        averageEnergy.clear();
-      }
-    }
-  }
-
-  // TODO figure out a way to make this package-private
-  addElement(element: PhysicsSimulationElement) {
-    addElementIfAbsent(this.#elements, element, "Simulation.addElement");
-    this.playing = true;
-  }
-
-  // TODO figure out a way to make this package-private
-  removeElement(element: PhysicsSimulationElement) {
-    removeElementIfPresent(this.#elements, element, "Simulation.removeElement");
-    this.playing = true;
-  }
-
-  get playing(): boolean {
-    return this.#playing();
-  }
-
-  set playing(value: boolean) {
-    if (this.#playing() === value) {
+  function frameCallback(time: DOMHighResTimeStamp) {
+    if (!isPlaying()) {
+      console.log("simulation paused: exiting animation loop");
       return;
     }
-    this.#setPlaying(value);
-    if (value) {
-      requestAnimationFrame(this.#frameCallback);
+
+    if (previousFrameTime === undefined) {
+      runOneStep(FIRST_FRAME_DELTA_MILLIS);
+    } else if (time !== previousFrameTime) {
+      runOneStep(time - previousFrameTime);
     }
+    previousFrameTime = time;
+    requestAnimationFrame(frameCallback);
+  }
+
+  return frameCallback;
+}
+
+function runOneStep(
+  deltaMillis: number,
+  constants: PhysicsConstants,
+  elements: ReadonlyArray<PhysicsSimulationElement>,
+  averageEnergy: RollingAverage,
+  setPlaying: Setter<boolean>,
+) {
+  for (const element of elements) {
+    element.force[X] = 0;
+    element.force[Y] = 0;
+  }
+  for (const element of elements) {
+    element.simulationFrameCallback();
+  }
+
+  let totalEnergy = 0;
+  for (const element of elements) {
+    if (element.state === "free") {
+      updateVelocityAndPosition(element, constants, deltaMillis);
+    }
+    totalEnergy += kineticEnergy(element);
+  }
+  averageEnergy.add(totalEnergy);
+  if (averageEnergy.isSaturated && averageEnergy.average() === 0) {
+    setPlaying(false);
+    averageEnergy.clear();
   }
 }
 
@@ -145,14 +130,14 @@ class SimulationPerformance {
     const p = performance.measure(
       "SimulationPerformance",
       "SimulationPerformance-start",
-      "SimulationPerformance-end"
+      "SimulationPerformance-end",
     );
     this.averagePerformance.add(p.duration);
 
     this.debugFrameCounter++;
     if (this.debugFrameCounter === 30) {
       console.log(
-        `averages over the last 30 frames: runOneStep=${this.averagePerformance.average()}, frameDelta=${this.frameDeltaMillis.average()}`
+        `averages over the last 30 frames: runOneStep=${this.averagePerformance.average()}, frameDelta=${this.frameDeltaMillis.average()}`,
       );
       this.debugFrameCounter = 0;
     }

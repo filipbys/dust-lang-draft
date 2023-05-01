@@ -5,6 +5,7 @@
 
 .Dust.textGroup {
   display: inline;
+  background-color: rgba(0,0,0,0.1);
 }
 
 /* TODO TextTree needs to split by whitespace in order for this to work... */

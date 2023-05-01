@@ -1,28 +1,46 @@
+import { TextNode } from "../text/TextTree";
+
 // TODO convert to JSON-schema or protobuf or some other cross-language format
 export type Any = Readonly<Destructurable | IfThen | Declaration | Block>;
 
-export type Destructurable = Readonly<
+type BaseExpression = Readonly<{
+  totalLength: number;
+  singleLine: boolean;
+}>;
+
+export type Destructurable =
   | Identifier
-  | { kind: "text"; text: string; totalLength: number }
-  | { kind: "interpolatedText"; chunks: readonly Any[]; totalLength: number }
+  | Text
+  | InterpolatedText
   | FunctionCall
   | Array
-  | Module
->;
+  | Module;
 
-export type Array = Readonly<{
-  kind: "array";
-  expressions: readonly Any[];
-  totalLength: number;
-}>;
+export type Text = BaseExpression &
+  Readonly<{
+    kind: "text";
+    text: string;
+  }>;
 
-export type Module = Readonly<{
-  kind: "module";
-  name: Any;
-  publicElements: readonly Any[];
-  privateElements: readonly Any[];
-  totalLength: number;
-}>;
+export type InterpolatedText = BaseExpression &
+  Readonly<{
+    kind: "interpolatedText";
+    chunks: readonly Any[];
+  }>;
+
+export type Array = BaseExpression &
+  Readonly<{
+    kind: "array";
+    expressions: readonly Any[];
+  }>;
+
+export type Module = BaseExpression &
+  Readonly<{
+    kind: "module";
+    name: Any;
+    publicElements: readonly Any[];
+    privateElements: readonly Any[];
+  }>;
 
 // export type ModuleElement = Readonly<{
 //   expression: Declaration;
@@ -48,41 +66,42 @@ export type Module = Readonly<{
 // As elements move around, we have to do the inverse: unroll the public circle and the private spiral into their respective 1D lists
 // }>;
 
-export type Block = Readonly<{
-  kind: "block";
-  expressions: readonly Any[];
-  totalLength: number;
-}>;
+export type Block = BaseExpression &
+  Readonly<{
+    kind: "block";
+    expressions: readonly Any[];
+  }>;
 
-export type Identifier = {
-  kind: "identifier";
-  identifier: string;
-  totalLength: number;
-};
+export type Identifier = BaseExpression &
+  Readonly<{
+    kind: "identifier";
+    identifier: string;
+  }>;
 
-export type FunctionCall = Readonly<{
-  kind: "functionCall";
-  functionKind: "prefix" | "binary" | "punctuation"; // TODO handle punctuation
-  expressions: readonly Any[];
-  totalLength: number;
-}>;
+export type FunctionCall = BaseExpression &
+  Readonly<{
+    kind: "functionCall";
+    functionKind: "prefix" | "binary" | "punctuation"; // TODO handle punctuation
+    expressions: readonly Any[];
+    totalLength: number;
+  }>;
 
-export type IfThen = Readonly<{
-  kind: "ifThen";
-  cases: readonly IfThenBranch[];
-  elseBranch?: Any;
-  totalLength: number;
-}>;
+export type IfThen = BaseExpression &
+  Readonly<{
+    kind: "ifThen";
+    cases: readonly IfThenBranch[];
+    elseBranch?: Any;
+  }>;
 
 export type IfThenBranch = Readonly<{
   condition: Any;
   result: Any;
 }>;
 
-export type Declaration = Readonly<{
-  kind: "declaration";
-  pattern: Destructurable; // e.g. foo or (foo bar baz) or [a, b, c]
-  constraints?: Any; // : (constraints expression)
-  value?: Any; // = (value expression)
-  totalLength: number;
-}>;
+export type Declaration = BaseExpression &
+  Readonly<{
+    kind: "declaration";
+    pattern: Destructurable; // e.g. foo or (foo bar baz) or [a, b, c]
+    constraints?: Any; // : (constraints expression)
+    value?: Any; // = (value expression)
+  }>;

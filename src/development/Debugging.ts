@@ -5,7 +5,7 @@ import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulati
 
 export function updateElementText(
   element: HTMLPhysicsSimulationElement,
-  energy: number = kineticEnergy(element)
+  energy: number = kineticEnergy(element),
 ) {
   const debugInfo = element.querySelector("#debug_info");
   if (debugInfo === null) {

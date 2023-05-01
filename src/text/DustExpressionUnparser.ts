@@ -8,11 +8,11 @@ export function unparseExpression(expression: DustExpression.Any): TextNode {
   } else if (kind === "declaration") {
     return unparseDeclaration(expression);
   } else if (kind === "functionCall") {
-    return unparseGroup("()", expression.expressions);
+    return unparseGroup("()", expression.expressions, expression.singleLine);
   } else if (kind === "array") {
-    return unparseGroup("[]", expression.expressions);
+    return unparseGroup("[]", expression.expressions, expression.singleLine);
   } else if (kind === "block") {
-    return unparseGroup("{}", expression.expressions);
+    return unparseGroup("{}", expression.expressions, expression.singleLine);
   }
   throw `Unrecognized expression kind ${kind}`;
 }
@@ -46,14 +46,16 @@ function unparseDeclaration(declaration: DustExpression.Declaration): TextNode {
   return {
     kind: "group",
     groupType: "()",
-    nodes,
+    nodes, // TODO combine adjacent text nodes
     totalLength: calculateTotalLength(nodes),
+    singleLine: declaration.singleLine,
   };
 }
 
 function unparseGroup(
   groupType: TextGroupType,
-  expressions: readonly DustExpression.Any[]
+  expressions: readonly DustExpression.Any[],
+  singleLine: boolean,
 ): TextNode {
   const nodes = expressions.map(unparseExpression);
   // TODO!! need to join adjacent leaves by whitespace?
@@ -62,5 +64,6 @@ function unparseGroup(
     groupType,
     nodes,
     totalLength: calculateTotalLength(nodes),
+    singleLine,
   };
 }

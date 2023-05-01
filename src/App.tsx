@@ -17,13 +17,14 @@ import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
 import * as jsonpatch from "fast-json-patch";
 import { TextTreeView } from "./views/TextTreeView";
 import { Window } from "./views/Window";
+import { logAndThrow } from "./development/Errors";
 
 function applyJsonPatch<T>(
   setStore: SetStoreFunction<T>,
-  patch: readonly jsonpatch.Operation[]
+  patch: readonly jsonpatch.Operation[],
 ) {
   setStore(
-    produce((currentValue) => jsonpatch.applyPatch(currentValue, patch))
+    produce((currentValue) => jsonpatch.applyPatch(currentValue, patch)),
   );
 }
 
@@ -84,7 +85,6 @@ const PlainTextEditor: Component = () => {
         / 42
         + (f x y z)
       )
-  )
 `);
 
   createEffect(
@@ -92,7 +92,7 @@ const PlainTextEditor: Component = () => {
       const parseResult = toTextTree(newInput);
       console.log("parseInput", parseResult);
       if (parseResult.kind !== "success") {
-        throw parseResult;
+        logAndThrow("Failed to parse plain text:", parseResult);
       }
       const newTextTree = parseResult.node;
 
@@ -107,7 +107,7 @@ const PlainTextEditor: Component = () => {
         applyJsonPatch(setTextTree, textTreeDiff);
         applyJsonPatch(setExpression, expressionDiff);
       });
-    })
+    }),
   );
 
   function onInput(this: HTMLElement) {
@@ -147,15 +147,25 @@ const PlainTextEditor: Component = () => {
   const initialText = inputText(); // let contentEditable take over
   return (
     <div>
-      <code id="debug-input-box" contentEditable={true} onInput={onInput}>
+      <code
+        id="debug-input-box"
+        contentEditable={true}
+        onInput={onInput}
+      >
         {initialText}
       </code>
       <button onClick={() => alert("TODO")}>Save</button>
-      <div contentEditable={true} onBeforeInput={beforeTextTreeViewInput}>
+      <div
+        contentEditable={true}
+        onBeforeInput={beforeTextTreeViewInput}
+      >
         <TextTreeView node={textTree} />
       </div>
       <br />
-      <div contentEditable={false} onBeforeInput={beforeExpressionViewInput}>
+      <div
+        contentEditable={false}
+        onBeforeInput={beforeExpressionViewInput}
+      >
         <DustExpressionView
           {...{
             id: "root",

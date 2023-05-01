@@ -4,7 +4,7 @@ import { Vector2D, X, Y } from "../math/Vectors";
 // TODO move these into a separate file
 export function setTranslate(
   htmlElement: HTMLElement,
-  newTranslate: Readonly<Vector2D>
+  newTranslate: Readonly<Vector2D>,
 ) {
   // TODO try using custom css properties:
   // - js: style.setPropery("--translate-x", x + "px")
@@ -17,7 +17,7 @@ export function setTranslate(
 export function setDiameter(
   htmlElement: HTMLElement,
   newDiameter: number,
-  centeredWithinParent?: boolean
+  centeredWithinParent?: boolean,
 ) {
   // TODO try custom css properties for this as well (see above)
   const roundedDiameter = Math.round(newDiameter);
@@ -42,7 +42,7 @@ export function centerWithinParent(htmlElement: HTMLElement, diameter: number) {
 
 export function centerRectangleWithinParent(
   htmlElement: HTMLElement,
-  rectangle: Rectangle
+  rectangle: Rectangle,
 ) {
   // Center the element on its parent (movement within parent uses css transform: translate)
   const style = htmlElement.style;

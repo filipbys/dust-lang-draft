@@ -16,7 +16,7 @@ export function sum(array: ReadonlyArray<number>): number {
 
 export function filterByType<T, U>(
   array: ReadonlyArray<T>,
-  typeConstructor: TypeConstructor<U>
+  typeConstructor: TypeConstructor<U>,
 ): U[] {
   const result: U[] = [];
   for (const element of array) {
@@ -29,7 +29,7 @@ export function filterByType<T, U>(
 
 export function forEachPair<T>(
   array: ReadonlyArray<T>,
-  callbackfn: (first: T, second: T) => void
+  callbackfn: (first: T, second: T) => void,
 ) {
   for (let i = 0; i < array.length; i++) {
     for (let j = i + 1; j < array.length; j++) {
@@ -41,7 +41,7 @@ export function forEachPair<T>(
 export function addElementIfAbsent<T>(
   array: T[],
   element: T,
-  description?: string
+  description?: string,
 ): boolean {
   if (!array.includes(element)) {
     array.push(element);
@@ -59,7 +59,7 @@ export function addElementIfAbsent<T>(
 export function removeElementIfPresent<T>(
   array: T[],
   element: T,
-  description?: string
+  description?: string,
 ): boolean {
   if (array.includes(element)) {
     array.splice(array.indexOf(element), 1);

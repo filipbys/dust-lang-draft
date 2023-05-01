@@ -28,7 +28,7 @@ export function rectangleDiameter(rectangle: Rectangle): number {
 }
 
 export function approximateSmallestEnclosingCircle(
-  circles: readonly Circle[]
+  circles: readonly Circle[],
 ): Circle {
   let [min_x, min_y, max_x, max_y] = [0, 0, 0, 0];
   for (const circle of circles) {
@@ -47,7 +47,7 @@ export function approximateSmallestEnclosingCircle(
     const radius = circle.diameter / 2;
     min_radius = Math.max(
       min_radius,
-      distanceBetween(center, circle.center) + radius
+      distanceBetween(center, circle.center) + radius,
     );
   }
 

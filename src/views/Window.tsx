@@ -12,7 +12,6 @@ import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulati
 import { createSimulation } from "../simulations/PhysicsSimulationV2";
 
 import "./Windows.css";
-import { createEffect } from "solid-js/types/reactive/signal";
 
 // TODO window should have a toolbar with undo/redo, zoom in/out, insert, set depth limit, etc buttons
 
@@ -80,7 +79,7 @@ export const Window: Component<{
         </button>
         <div style="display: grid; grid-template-columns: auto auto auto">
           <span style="grid-column-start: 1; grid-column-end: 4;">
-            Zoom {zoomLevel}%
+            Zoom {zoomLevel()}%
           </span>
           <button onClick={() => setZoomLevel(zoomLevel() / zoomFactor)}>
             -
@@ -151,7 +150,7 @@ export const Window: Component<{
 };
 
 function updateWindowContents(
-  windowContentsWrapper: HTMLPhysicsSimulationElement
+  windowContentsWrapper: HTMLPhysicsSimulationElement,
 ) {
   // TODO prevent collisions, encircleWindowContents(), etc
   const elements = getDirectPhysicsElementChildren(windowContentsWrapper);
@@ -160,7 +159,7 @@ function updateWindowContents(
   // It might be better/necessary to use physics-based forces to grow/shrink the boundary just like with modules.
   // TODO center the wrapper on a specific element (e.g. the project's name?). Dragging the wrapper drags everything (i.e. scrolling), but dragging the project's name just moves the name and the wrapper's boundary.
   windowContentsWrapper.setBoundary(
-    approximateSmallestEnclosingCircle(elements)
+    approximateSmallestEnclosingCircle(elements),
   );
 }
 

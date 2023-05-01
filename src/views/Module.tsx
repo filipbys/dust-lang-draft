@@ -96,14 +96,6 @@ const ModuleElementList: Component<{
 }> = (props) => (
   <For each={props.expressions}>
     {(expression, index) => (
-      // TODO don't wrap in a bubble if the element is already a physicsElement (e.g. modules)
-      // Something like: Switch
-      // Match when={isPhysicsElement(expression)}
-      //    <DustExpressionView expression/>
-      // Else
-      //  <PhysicsSimulationElementComponent>
-      //    <DustExpressionView expression/>
-      //  </PhysicsSimulationElementComponent>
       <IntoHTMLPhysicsSimulationComponent
         classList={{
           Dust: true,
@@ -139,7 +131,7 @@ function updateModule(moduleElement: HTMLPhysicsSimulationElement) {
 
 function updateForces(
   moduleElement: HTMLPhysicsSimulationElement,
-  physicsElements: readonly HTMLPhysicsSimulationElement[]
+  physicsElements: readonly HTMLPhysicsSimulationElement[],
 ) {
   const idealGapBetweenElements = 20;
 
@@ -159,13 +151,13 @@ function updateForces(
         element,
         moduleElement,
         publicElementsToBorderSpringConstant,
-        -element.diameter
+        -element.diameter,
       );
       sumOfPublicElementGapsToBorder += Springs.keepWithin(
         element,
         moduleElement,
         collisionSpringConstant * 2,
-        0
+        0,
       );
     } else {
       // TODO put this force on the moduleElement rather than the moduleName
@@ -173,13 +165,13 @@ function updateForces(
         element,
         moduleElement,
         privateElementsToCenterSpringConstant,
-        -moduleElement.diameter / 2
+        -moduleElement.diameter / 2,
       );
       sumOfPrivateElementGapsToBorder += Springs.keepWithin(
         element,
         moduleElement,
         collisionSpringConstant * 2,
-        idealGapBetweenElements
+        idealGapBetweenElements,
       );
     }
   }
@@ -195,13 +187,13 @@ function updateForces(
         first,
         second,
         spreadSpringConstant,
-        moduleElement.diameter
+        moduleElement.diameter,
       );
       const gap = Springs.preventCollisions(
         first,
         second,
         collisionSpringConstant,
-        idealGapBetweenElements
+        idealGapBetweenElements,
       );
       sumOfGapsBetweenElements += gap;
       if (gap < 0) {

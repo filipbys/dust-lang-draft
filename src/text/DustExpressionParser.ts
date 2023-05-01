@@ -47,7 +47,12 @@ namespace Leaves {
       }
     }
     if (start === 0) {
-      return { kind: "identifier", identifier: text, totalLength };
+      return {
+        kind: "identifier",
+        identifier: text,
+        totalLength,
+        singleLine: true,
+      };
     }
     if (start < end) {
       parts.push(text.substring(start, end));
@@ -91,11 +96,16 @@ namespace Groups {
     const text = toUTF8(group);
     // TODO preserve the text tree: there may be interpolated sections within it
     // In fact maybe we should look for those sections here.
-    return { kind: "text", text, totalLength: text.length };
+    return {
+      kind: "text",
+      text,
+      totalLength: text.length,
+      singleLine: !text.includes("\n"),
+    };
   }
 
   function splitIfIsLeafAndContainsWhitespace(
-    node: TextNode
+    node: TextNode,
   ): readonly TextNode[] | undefined {
     if (node.kind !== "leaf") {
       return undefined;
@@ -105,9 +115,8 @@ namespace Groups {
       .map((text) => ({ kind: "leaf", text }));
   }
 
-  // TODO may need to retain whether or not any leaves had a line break for ".vertical" styling?
   function splitLeavesAtWhitespace(
-    nodes: readonly TextNode[]
+    nodes: readonly TextNode[],
   ): readonly TextNode[] {
     const newNodes: TextNode[] = [];
     nodes.forEach((node) => {
@@ -235,6 +244,7 @@ namespace Groups {
           publicElements: publicElements.expressions,
           privateElements: privateElements.expressions,
           totalLength: group.totalLength,
+          singleLine: group.singleLine,
         };
       }
     }
@@ -247,13 +257,19 @@ namespace Groups {
       functionKind: functionCallKind,
       expressions,
       totalLength: group.totalLength,
+      singleLine: group.singleLine,
     };
   }
 
   function parseList(kind: "block" | "array", group: TextGroup): Any {
     const expressions = splitLeavesAtWhitespace(group.nodes).map(
-      parseExpression
+      parseExpression,
     );
-    return { kind, expressions, totalLength: group.totalLength };
+    return {
+      kind,
+      expressions,
+      totalLength: group.totalLength,
+      singleLine: group.singleLine,
+    };
   }
 }

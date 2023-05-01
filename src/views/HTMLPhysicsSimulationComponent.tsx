@@ -4,13 +4,11 @@ import {
   ComponentProps,
   Match,
   ParentProps,
-  Ref,
   Switch,
 } from "solid-js";
 import { filterByType } from "../data-structures/Arrays";
 import { elementDiameter, rectangleDiameter } from "../math/Geometry";
 import { PhysicsElement } from "../math/Physics";
-import { centerRectangleWithinParent } from "../simulations/HTMLHelpers";
 
 import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
 import { PhysicsSimulationElementState } from "../simulations/PhysicsSimulationV2";
@@ -84,15 +82,15 @@ export function updateWrapperDiameter(wrapper: HTMLPhysicsSimulationElement) {
 }
 
 export function getAllPhysicsElements(
-  element: HTMLElement
+  element: HTMLElement,
 ): HTMLCollectionOf<HTMLPhysicsSimulationElement> {
   return element.getElementsByTagName(
-    HTMLPhysicsSimulationElement.TAG
+    HTMLPhysicsSimulationElement.TAG,
   ) as HTMLCollectionOf<HTMLPhysicsSimulationElement>;
 }
 
 export function getDirectPhysicsElementChildren(
-  element: HTMLPhysicsSimulationElement
+  element: HTMLPhysicsSimulationElement,
 ): HTMLPhysicsSimulationElement[] {
   return filterByType(element.children, HTMLPhysicsSimulationElement);
 }

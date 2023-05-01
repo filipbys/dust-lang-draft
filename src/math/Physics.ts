@@ -35,7 +35,7 @@ export interface PhysicsConstants {
 export function addForceAlong(
   element: PhysicsElement,
   direction: Vector2D,
-  force: number
+  force: number,
 ) {
   const forceVector = scale(direction, force);
 
@@ -47,7 +47,7 @@ export function addForceAlong(
 export function addForceBetween(
   first: PhysicsElement,
   second: PhysicsElement,
-  force: number
+  force: number,
 ) {
   const direction: Vector2D = [
     second.center[X] - first.center[X],
@@ -66,7 +66,7 @@ function newVelocity(
   element: PhysicsElement,
   dimension: Vector2DIndex,
   constants: PhysicsConstants,
-  deltaMillis: number
+  deltaMillis: number,
 ): number {
   // force: pixels*mass/millis^2
   // accelleration: pixels/millis^2
@@ -87,7 +87,7 @@ function newVelocity(
 export function updateVelocityAndPosition(
   element: PhysicsElement,
   constants: PhysicsConstants,
-  deltaMillis: number
+  deltaMillis: number,
 ) {
   element.velocity = [
     newVelocity(element, X, constants, deltaMillis),
@@ -109,7 +109,7 @@ export namespace Springs {
   function springForce(
     springConstant: number,
     idealLength: number,
-    actualLength: number
+    actualLength: number,
   ): number {
     return (actualLength - idealLength) * springConstant;
   }
@@ -118,13 +118,13 @@ export namespace Springs {
     first: PhysicsElement,
     second: PhysicsElement,
     springConstant: number,
-    idealDistance: number
+    idealDistance: number,
   ): number {
     const actualDistance = distanceBetween(first.center, second.center);
     addForceBetween(
       first,
       second,
-      springForce(springConstant, idealDistance, actualDistance)
+      springForce(springConstant, idealDistance, actualDistance),
     );
     return actualDistance;
   }
@@ -133,13 +133,13 @@ export namespace Springs {
     first: PhysicsElement,
     second: PhysicsElement,
     springConstant: number,
-    idealGap: number
+    idealGap: number,
   ): number {
     const actualGap = gapBetween(first, second);
     addForceBetween(
       first,
       second,
-      springForce(springConstant, idealGap, actualGap)
+      springForce(springConstant, idealGap, actualGap),
     );
     return actualGap;
   }
@@ -148,7 +148,7 @@ export namespace Springs {
     first: PhysicsElement,
     second: PhysicsElement,
     springConstant: number,
-    idealMinimumGap: number = 0
+    idealMinimumGap: number = 0,
   ): number {
     const actualGap = gapBetween(first, second);
     if (actualGap < 0) {
@@ -159,7 +159,7 @@ export namespace Springs {
       addForceBetween(
         first,
         second,
-        springForce(springConstant / 2, idealMinimumGap, actualGap)
+        springForce(springConstant / 2, idealMinimumGap, actualGap),
       );
     }
     return actualGap;
@@ -169,7 +169,7 @@ export namespace Springs {
     inner: PhysicsElement,
     outer: PhysicsElement,
     springConstant: number,
-    idealMinimumGapToOuter: number
+    idealMinimumGapToOuter: number,
   ): number {
     const idealGap = -(inner.diameter + idealMinimumGapToOuter);
     const actualGap = gapBetween(inner, outer);
@@ -177,7 +177,7 @@ export namespace Springs {
       addForceBetween(
         inner,
         outer,
-        springForce(springConstant, idealGap, actualGap)
+        springForce(springConstant, idealGap, actualGap),
       );
     }
     return actualGap;

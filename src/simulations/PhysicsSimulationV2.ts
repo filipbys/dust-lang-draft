@@ -29,7 +29,7 @@ export function createSimulation(props: PhysicsSimulationProps) {
   const [isPlaying, setPlaying] = props.playingSignal;
 
   const rollingAverageEnergy = new RollingAverage(
-    props.maxStillFramesBeforeAutoPause || 30
+    props.maxStillFramesBeforeAutoPause || 30,
   );
   const simulationPerformance = new SimulationPerformance();
 
@@ -41,8 +41,8 @@ export function createSimulation(props: PhysicsSimulationProps) {
         props.physicsConstants,
         props.elements,
         rollingAverageEnergy,
-        setPlaying
-      )
+        setPlaying,
+      ),
     );
     simulationPerformance.stopClock();
   }
@@ -55,7 +55,7 @@ export function createSimulation(props: PhysicsSimulationProps) {
         requestAnimationFrame(frameCallback);
       }
       // Else: frameCallback will automatically pause itself on the next frame
-    })
+    }),
   );
   return runAndMeasureOneStep;
 }
@@ -64,7 +64,7 @@ const FIRST_FRAME_DELTA_MILLIS = 16;
 
 function createFrameCallback(
   isPlaying: Accessor<boolean>,
-  runOneStep: (deltaMillis: number) => void
+  runOneStep: (deltaMillis: number) => void,
 ): FrameRequestCallback {
   let previousFrameTime: DOMHighResTimeStamp | undefined = undefined;
 
@@ -91,7 +91,7 @@ function runOneStep(
   constants: PhysicsConstants,
   elements: ReadonlyArray<PhysicsSimulationElement>,
   averageEnergy: RollingAverage,
-  setPlaying: Setter<boolean>
+  setPlaying: Setter<boolean>,
 ) {
   for (const element of elements) {
     element.force[X] = 0;
@@ -130,14 +130,14 @@ class SimulationPerformance {
     const p = performance.measure(
       "SimulationPerformance",
       "SimulationPerformance-start",
-      "SimulationPerformance-end"
+      "SimulationPerformance-end",
     );
     this.averagePerformance.add(p.duration);
 
     this.debugFrameCounter++;
     if (this.debugFrameCounter === 30) {
       console.log(
-        `averages over the last 30 frames: runOneStep=${this.averagePerformance.average()}, frameDelta=${this.frameDeltaMillis.average()}`
+        `averages over the last 30 frames: runOneStep=${this.averagePerformance.average()}, frameDelta=${this.frameDeltaMillis.average()}`,
       );
       this.debugFrameCounter = 0;
     }

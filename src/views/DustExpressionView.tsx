@@ -15,13 +15,12 @@ export interface DustComponentProps {
 }
 
 export interface ExpressionProps<
-  T extends DustExpression.Any = DustExpression.Any
+  T extends DustExpression.Any = DustExpression.Any,
 > extends DustComponentProps {
   readonly expression: T;
   readonly playSimulation: () => void;
 }
 
-// TODO add the "vertical" class where needed, BUT ALSO
 // TODO make a note of https://prettier.io/docs/en/rationale.html#%EF%B8%8F-a-note-on-formatting-reversibility
 //  -> That's the sort of issue we're trying to avoid with Dust
 

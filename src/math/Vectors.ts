@@ -8,7 +8,7 @@ export type Vector2D = [x: number, y: number];
 
 export function vectorsEqual(
   first: Readonly<Vector2D>,
-  second: Readonly<Vector2D>
+  second: Readonly<Vector2D>,
 ): boolean {
   return first[X] === second[X] && first[Y] === second[Y];
 }
@@ -19,7 +19,7 @@ export function rounded(vector: Readonly<Vector2D>): Vector2D {
 
 export function vectorToString(
   [x, y]: Readonly<Vector2D>,
-  fractionDigits: number = 0
+  fractionDigits: number = 0,
 ): string {
   return (
     roundToString(x, fractionDigits) + "," + roundToString(y, fractionDigits)
@@ -36,7 +36,7 @@ export function length([x, y]: Readonly<Vector2D>): number {
 
 export function distanceBetween(
   first: Readonly<Vector2D>,
-  second: Readonly<Vector2D>
+  second: Readonly<Vector2D>,
 ): number {
   return Math.hypot(second[X] - first[X], second[Y] - first[Y]);
 }
@@ -44,7 +44,7 @@ export function distanceBetween(
 // TODO verify that this works
 export function scale(
   vector: Readonly<Vector2D>,
-  hypotenuse: number
+  hypotenuse: number,
 ): Vector2D {
   const currentHypotenuse = length(vector);
   if (currentHypotenuse === 0) {
@@ -58,7 +58,7 @@ export function scale(
 function getScaled(
   hypotenuse: number,
   mainDirection: number,
-  otherDirection: number
+  otherDirection: number,
 ) {
   if (mainDirection === 0) {
     return 0;

@@ -10,7 +10,7 @@ import { logAndThrow } from "../development/Errors";
 
 export type ChildrenResizeObserverCallback<
   P extends HTMLElement,
-  C extends Element
+  C extends Element,
 > = (parent: P, children: readonly C[]) => void;
 
 export type UnobserveFunction = () => void;
@@ -18,16 +18,16 @@ export type UnobserveFunction = () => void;
 // TODO move into a different folder+file
 export function observeChildrenSizes<
   P extends HTMLElement,
-  C extends HTMLElement
+  C extends HTMLElement,
 >(
   parent: P,
   childElementType: TypeConstructor<C>,
-  callback: ChildrenResizeObserverCallback<P, C>
+  callback: ChildrenResizeObserverCallback<P, C>,
 ): UnobserveFunction {
   const observer = createChildrenSizeMutationObserver(
     parent,
     childElementType,
-    callback
+    callback,
   );
 
   observer.observe(parent, { childList: true });
@@ -37,11 +37,11 @@ export function observeChildrenSizes<
 
 function createChildrenSizeMutationObserver<
   P extends HTMLElement,
-  C extends HTMLElement
+  C extends HTMLElement,
 >(
   parent: P,
   childElementType: TypeConstructor<C>,
-  callback: ChildrenResizeObserverCallback<P, C>
+  callback: ChildrenResizeObserverCallback<P, C>,
 ): MutationObserver {
   const getChild = (entry: ResizeObserverEntry): C => {
     const target = entry.target;
@@ -49,7 +49,7 @@ function createChildrenSizeMutationObserver<
       logAndThrow(
         "ResizeObserverCallback called on removed child before the parent's MutationCallback",
         parent,
-        target
+        target,
       );
     }
     if (!(target instanceof childElementType)) {
@@ -57,7 +57,7 @@ function createChildrenSizeMutationObserver<
         "ResizeObserverCallback called on child of the wrong type",
         parent,
         target,
-        childElementType
+        childElementType,
       );
     }
     return target;
@@ -88,7 +88,7 @@ function createChildrenSizeMutationObserver<
         logAndThrow(
           "MutationCallback called with the wrong target:",
           parent,
-          mutation
+          mutation,
         );
       }
       if (mutation.type === "childList") {
@@ -106,13 +106,13 @@ export type ChildResizeObserverEntry<T extends Element> =
 
 export type ChildResizeObserverCallback<
   P extends HTMLElement,
-  C extends Element
+  C extends Element,
 > = (parent: P, entries: readonly ChildResizeObserverEntry<C>[]) => void;
 
 export function observeMutations(
   target: Node,
   mutationObserver: MutationObserver,
-  options: MutationObserverInit
+  options: MutationObserverInit,
 ) {
   onMount(() => {
     mutationObserver.observe(target, options);
@@ -131,10 +131,10 @@ function example(parent: HTMLPhysicsSimulationElement) {
         const borderBoxSize = entry.borderBoxSize[0];
         parent.diameter = Math.max(
           parent.diameter,
-          Math.hypot(borderBoxSize.blockSize, borderBoxSize.inlineSize)
+          Math.hypot(borderBoxSize.blockSize, borderBoxSize.inlineSize),
         );
       }
-    }
+    },
   );
 }
 
@@ -147,19 +147,19 @@ function example2(parent: HTMLPhysicsSimulationElement) {
       for (const child of children) {
         parent.diameter = Math.max(parent.diameter, elementDiameter(child));
       }
-    }
+    },
   );
 }
 
 // TODO move into a different folder+file
 export function createChildSizeMutationObserver<
   P extends HTMLElement,
-  C extends Element
+  C extends Element,
 >(
   parent: P,
   childElementType: TypeConstructor<C>,
   resizeObserverOptions: ResizeObserverOptions, // TODO just pick one set of options and adjust ChildResizeObserverCallback and ChildResizeObserverEntry to match: give ChildResizeObserverCallback a list of all of the children's latest sizes each time any of them change. This is better because the ResizeObserver API is unclear about the best way to get the latest list of all the sizes. For now just give all the offsetWidth/Heights and then we can figure out how to be more efficient later.
-  callback: ChildResizeObserverCallback<P, C>
+  callback: ChildResizeObserverCallback<P, C>,
 ): MutationObserver {
   const resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {

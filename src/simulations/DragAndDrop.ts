@@ -24,7 +24,7 @@ type DragState = {
 function addListeners(
   htmlElement: HTMLElement,
   event: PointerEvent,
-  dragState: DragState
+  dragState: DragState,
 ) {
   htmlElement.addEventListener("pointermove", dragState.dragMove);
   htmlElement.addEventListener("pointerup", dragState.dragEnd);
@@ -36,7 +36,7 @@ function addListeners(
 function removeListeners(
   htmlElement: HTMLElement,
   event: PointerEvent,
-  dragState: DragState
+  dragState: DragState,
 ) {
   htmlElement.releasePointerCapture(event.pointerId);
   htmlElement.removeEventListener("pointermove", dragState.dragMove);
@@ -45,7 +45,7 @@ function removeListeners(
 }
 
 function getClosestPhysicsElement(
-  event: PointerEvent
+  event: PointerEvent,
 ): HTMLPhysicsSimulationElement {
   let element = safeCast(event.target, HTMLElement);
   if (element instanceof HTMLPhysicsSimulationElement) {
@@ -55,11 +55,11 @@ function getClosestPhysicsElement(
   // TODO make element.state queryable by CSS so we can find the closest free element
   return (
     element.closest<HTMLPhysicsSimulationElement>(
-      HTMLPhysicsSimulationElement.TAG
+      HTMLPhysicsSimulationElement.TAG,
     ) ||
     raise(
       "Element does not have any draggable ancestors, and yet a drag listener was added to it: " +
-        element
+        element,
     )
   );
 }
@@ -122,11 +122,11 @@ function dragEnd(event: PointerEvent, dragState: DragState) {
 function updatePositionAndVelocity(
   element: HTMLPhysicsSimulationElement,
   event: PointerEvent,
-  dragState: DragState
+  dragState: DragState,
 ) {
   const deltaMillis = Math.max(
     1,
-    event.timeStamp - dragState.previousTimeStampMillis
+    event.timeStamp - dragState.previousTimeStampMillis,
   );
   dragState.previousTimeStampMillis = event.timeStamp;
 

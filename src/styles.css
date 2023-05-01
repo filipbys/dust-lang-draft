@@ -41,7 +41,7 @@ body {
 }
 
 /* TODO split into a separate file */
-.Dust.vertical.array {
+.Dust.array:not(.singleLine) {
   flex-direction: column;
 }
 
@@ -81,48 +81,47 @@ body {
   flex-wrap: nowrap;
 }
 
-/* TODO make .vertical the default and use .single-line : */
-.Dust.vertical.functionCall {
+.Dust.functionCall:not(.singleLine) {
   flex-direction: column;
   align-items: start;
   gap: 0.5ch;
 }
 
-.Dust.functionCall:not(.vertical)
+.Dust.functionCall
   > :is(.identifier + :not(.identifier), .Dust:not(.identifier) + .identifier) {
   margin-inline-start: 0.5ch;
 }
 
-.Dust.vertical.binary.functionCall {
+.Dust.binary.functionCall:not(.singleLine) {
   display: inline-grid;
   grid-template-columns: auto auto;
   align-items: center;
   justify-items: start;
 }
 
-.Dust.vertical.binary.singleColumn.functionCall {
+.Dust.binary.singleColumn.functionCall:not(.singleLine) {
   grid-template-columns: auto;
   gap: 0px;
 }
 
-.Dust.vertical.binary.functionCall:not(.centered, .singleColumn)
+.Dust.binary.functionCall:not(.singleLine, .centered, .singleColumn)
   > :first-child {
   grid-column-start: 1;
   grid-column-end: 3;
 }
 
-.Dust.vertical.binary.functionCall:not(.centered, .singleColumn)
+.Dust.binary.functionCall:not(.singleLine, .centered, .singleColumn)
   > .Dust.function {
   justify-self: end;
 }
 
-.Dust.vertical.binary.functionCall.centered {
+.Dust.binary.functionCall.centered:not(.singleLine) {
   grid-template-columns: auto;
   justify-items: center;
   gap: 0px;
 }
 
-.Dust.vertical.binary.functionCall.valueDeclaration {
+.Dust.binary.functionCall.valueDeclaration:not(.singleLine) {
   grid-template-columns: auto;
   border-radius: 8px;
   padding: 0px;
@@ -130,11 +129,11 @@ body {
   margin: 2px;
 }
 
-.Dust.vertical.binary.functionCall.valueDeclaration:not(:hover) {
+.Dust.binary.functionCall.valueDeclaration:not(.singleLine, :hover) {
   outline: 2px solid black;
 }
 
-.Dust.vertical.binary.functionCall.valueDeclaration1Column {
+.Dust.binary.functionCall.valueDeclaration1Column:not(.singleLine) {
   grid-template-columns: auto;
   border-radius: 8px;
   padding: 0px;
@@ -142,16 +141,16 @@ body {
   margin: 2px;
 }
 
-.Dust.vertical.binary.functionCall.valueDeclaration1Column:not(:hover) {
+.Dust.binary.functionCall.valueDeclaration1Column:not(.singleLine, :hover) {
   outline: 2px solid black;
 }
 
-.Dust.vertical.binary.functionCall.valueDeclaration1Column > :first-child {
+.Dust.binary.functionCall.valueDeclaration1Column:not(.singleLine) > :first-child {
   grid-column-start: unset;
   grid-column-end: unset;
 }
 
-.Dust.vertical.centered > .Dust.scopeOperator {
+.Dust.centered:not(.singleLine) > .Dust.scopeOperator {
   transform: rotate(90deg);
 }
 

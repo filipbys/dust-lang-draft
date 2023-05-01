@@ -4,5 +4,5 @@ export function raise(error: string): never {
 
 export function logAndThrow(message: string, ...data: any[]): never {
   console.warn(message, ...data);
-  // throw new Error(message);
+  throw new Error(message);
 }

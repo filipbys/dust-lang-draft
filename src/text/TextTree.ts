@@ -13,13 +13,13 @@ type _TextGroup<TextNodes> = {
   readonly groupType: TextGroupType;
   readonly nodes: TextNodes;
   totalLength: number;
+  singleLine: boolean;
 };
 
 // TODO JS string encoding is WEIRD. See https://www.infoq.com/presentations/js-character-encoding/
 // Current index-and-.length-based approach is definitely broken for some kinds of inputs
 // We should implement text parsing functions in Rust, and then convert to JS strings only when we need to put them in the DOM
 // Alternatively, use ByteArrays and plain ascii as the parsing layer, then have a JS-string layer for the user-facing text, then convert JS-string inputs to ascii for parsing, replacing a known subset of unicode characters with their \keyword counterparts
-const MAX_HORIZONTAL_LENGTH = 80; // TODO make this an adjustable setting
 
 const GROUP_TYPE_INFO = {
   /* TEXT-BASED GROUPS */
@@ -77,7 +77,7 @@ export function groupEnd(groupType: TextGroupType): string {
 
 const [GROUP_TYPES_BY_START, GROUP_TYPES_BY_END]: [
   Map<string, TextGroupType>,
-  Map<string, TextGroupType>
+  Map<string, TextGroupType>,
 ] = (() => {
   let starts = new Map<string, TextGroupType>();
   let ends = new Map<string, TextGroupType>();
@@ -113,12 +113,19 @@ export function toTextTree(text: string): ParseResult {
     groupType: "()",
     nodes: [],
     totalLength: 0,
+    singleLine: true,
   };
 
   function startNewGroup(groupType: TextGroupType) {
     endCurrentTextChunk();
     stack.push(currentGroup);
-    currentGroup = { kind: "group", groupType, nodes: [], totalLength: 1 };
+    currentGroup = {
+      kind: "group",
+      groupType,
+      nodes: [],
+      totalLength: 1,
+      singleLine: true,
+    };
   }
 
   function endCurrentGroup(): TextGroup {
@@ -134,6 +141,7 @@ export function toTextTree(text: string): ParseResult {
       const textChunk = text.slice(currentTextChunkStartIndex, currentIndex);
       currentGroup.nodes.push({ kind: "leaf", text: textChunk });
       currentGroup.totalLength += textChunk.length;
+      currentGroup.singleLine &&= !textChunk.includes("\n");
     }
     currentTextChunkStartIndex = currentIndex + 1;
   }
@@ -163,6 +171,7 @@ export function toTextTree(text: string): ParseResult {
       }
       parentGroup.nodes.push(group);
       parentGroup.totalLength += group.totalLength;
+      parentGroup.singleLine &&= group.singleLine;
       currentGroup = parentGroup;
     }
   }
@@ -177,10 +186,6 @@ export function toTextTree(text: string): ParseResult {
   }
 
   return { kind: "success", node };
-}
-
-function isSingleLine(group: TextGroup): boolean {
-  return group.totalLength < MAX_HORIZONTAL_LENGTH;
 }
 
 const SINGLE_INDENT = "  ";
@@ -201,7 +206,7 @@ export function toUTF8(node: TextNode, indent: string = ""): string {
     return indent + node.text;
   }
   const group = node;
-  if (isSingleLine(group)) {
+  if (group.singleLine) {
     const groupType = group.groupType;
     const nodes = group.nodes.map((node) => toUTF8(node)).join(" ");
     // TODO unroll recursion to avoid S/O

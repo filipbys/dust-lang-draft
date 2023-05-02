@@ -1,5 +1,12 @@
-import type { Circle } from "../math/Geometry";
-import { rounded, Vector2D, vectorsEqual, X, Y } from "../math/Vectors";
+import { Circle, rectangleDiameter } from "../math/Geometry";
+import {
+  rounded,
+  Vector2D,
+  vectorBetween,
+  vectorsEqual,
+  X,
+  Y,
+} from "../math/Vectors";
 import {
   PhysicsSimulationElement,
   PhysicsSimulationElementState,
@@ -46,16 +53,15 @@ export class HTMLPhysicsSimulationElement
 
   constructor() {
     super();
-    makeDraggable(this);
     this.offsetDiameter = 100;
+    makeDraggable(this);
   }
 
   set callbacks(callbacks: HTMLPhysicsSimulationElementCallbacks) {
-    console.log("set callbacks", this);
     this.#callbacks = callbacks;
   }
 
-  get center() {
+  get center(): Readonly<Vector2D> {
     return this.#center;
   }
 
@@ -80,13 +86,6 @@ export class HTMLPhysicsSimulationElement
         `Diameter must be positive, got ${newOffsetDiameter}`,
       );
     }
-    console.log(
-      "set offsetDiameter",
-      this,
-      this.#offsetDiameter,
-      "->",
-      newOffsetDiameter,
-    );
     this.#offsetDiameter = newOffsetDiameter;
 
     const cssDiameter = Math.round(newOffsetDiameter);
@@ -114,6 +113,33 @@ export class HTMLPhysicsSimulationElement
       this.style.setProperty("--scale", newScale.toString());
       this.#callbacks?.playSimulation();
     }
+  }
+
+  get clientScale(): number {
+    return this.getBoundingClientRect().width / this.#offsetDiameter;
+  }
+
+  get clientTopLeft(): Vector2D {
+    const box = this.getBoundingClientRect();
+    return [box.left, box.top];
+  }
+
+  set clientTopLeft(newTopLeft: Readonly<Vector2D>) {
+    const box = this.getBoundingClientRect();
+
+    const scale = box.width / this.#offsetDiameter; // client pixels / css pixels
+    const delta = vectorBetween([box.left, box.top], newTopLeft);
+
+    this.center = [
+      this.center[X] + delta[X] * scale,
+      this.center[Y] + delta[Y] * scale,
+    ];
+
+    console.assert(
+      vectorsEqual(this.clientTopLeft, newTopLeft),
+      this.clientTopLeft,
+      newTopLeft,
+    );
   }
 
   get centeredWithinParent() {

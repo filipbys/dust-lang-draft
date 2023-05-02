@@ -1,4 +1,4 @@
-import { roundToString } from "./Numbers";
+import { approximatelyEqual, roundToString } from "./Numbers";
 
 export type Vector2DIndex = 0 | 1;
 export const X: Vector2DIndex = 0;
@@ -11,6 +11,18 @@ export function vectorsEqual(
   second: Readonly<Vector2D>,
 ): boolean {
   return first[X] === second[X] && first[Y] === second[Y];
+}
+
+export function vectorsApproximatelyEqual(
+  first: Readonly<Vector2D>,
+  second: Readonly<Vector2D>,
+  tolerance: number,
+): boolean {
+  return (
+    approximatelyEqual(first[X], second[X], tolerance) &&
+    approximatelyEqual(first[Y], second[Y], tolerance) &&
+    approximatelyEqual(vectorLength(first), vectorLength(second), tolerance)
+  );
 }
 
 export function rounded(vector: Readonly<Vector2D>): Vector2D {
@@ -26,11 +38,11 @@ export function vectorToString(
   );
 }
 
-export function lengthSquared([x, y]: Readonly<Vector2D>): number {
+export function vectorLengthSquared([x, y]: Readonly<Vector2D>): number {
   return x ** 2 + y ** 2;
 }
 
-export function length([x, y]: Readonly<Vector2D>): number {
+export function vectorLength([x, y]: Readonly<Vector2D>): number {
   return Math.hypot(x, y);
 }
 
@@ -41,12 +53,26 @@ export function distanceBetween(
   return Math.hypot(second[X] - first[X], second[Y] - first[Y]);
 }
 
+export function vectorBetween(
+  first: Readonly<Vector2D>,
+  second: Readonly<Vector2D>,
+): Vector2D {
+  return [second[X] - first[X], second[Y] - first[Y]];
+}
+
+export function vectorTimes(
+  vector: Readonly<Vector2D>,
+  multiplier: number,
+): Vector2D {
+  return [vector[X] * multiplier, vector[Y] * multiplier];
+}
+
 // TODO verify that this works
 export function scale(
   vector: Readonly<Vector2D>,
   hypotenuse: number,
 ): Vector2D {
-  const currentHypotenuse = length(vector);
+  const currentHypotenuse = vectorLength(vector);
   if (currentHypotenuse === 0) {
     return [0, 0];
   }

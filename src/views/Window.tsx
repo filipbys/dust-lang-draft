@@ -59,6 +59,12 @@ export const Window: Component<{
 }> = (props) => {
   const playingSignal = createSignal(false);
 
+  // TODO ideally we wouldn't have a single signal for simulating physics for all elements. Instead it would be better for each physics-element-container (e.g. module) to have its own simulation. That way when a user e.g. drags an element, it would only trigger the physics in its container. If they drag an element all the way outside of its container, its style changes, and if they drag it past a certain threshold, the element is removed from its current container (which eventually pauses its simulation as everything goes still), and the closest overlapping sibling or ancestor physics-element-container lights up and starts *its* simulation, indicating that it's ready to adopt the dragged element. As the user keeps dragging the element, it keeps updating the currently-active physics-element-container, so that when they drop the element, it just slides into place until things come to rest and the simulation is paused.
+  // NB: a change inside a physics-element-container can easily trigger changes within *its* parent physics-element-container, and so on all the way to the root. It's find to do this now and then because everything should go still fairly quickly and auto-pause, however, it should be avoided when possible. As such:
+  //  - Always pin the focused element and all of its ancestors: their sizes can change but their positions must not.
+  //  - When the user is actively editing, pause all simulations: everything is changing quickly and that introduces a lot of visual noise when the user is trying to focus.
+  //  - As users pause, *slowly* resume the simulation -- literally in slow motion, gradually speeding it up over time until it settles. Reminder that all elements that contain focus are pinned.
+  //  - Caveat: gently move non-focused elements out of the way as needed if the focused element grows with the given input. Movement just needs to be slow so the environment feels calm. In other words, the simulation only needs to run at full speed when dragging things around and actively interacting with them, and when just normally editing it should be either still or move in slow-motion.
   const [simulationPlaying, setSimulationPlaying] = playingSignal;
   const playSimulation = () => {}; // TODO setPlaying(true);
   let runOneSimulationStep: ((deltaMillis: number) => void) | null = null;
@@ -72,7 +78,6 @@ export const Window: Component<{
 
   let windowContents: HTMLPhysicsSimulationElement;
   onMount(() => {
-    console.log("windowContentArea physics element ref");
     // TODO add inputs for these as well for debugging
     const physicsConstants: PhysicsConstants = {
       maxVelocity: 2,
@@ -191,6 +196,5 @@ function updateWindowContents(
   // It might be better/necessary to use physics-based forces to grow/shrink the boundary just like with modules.
   // TODO center the wrapper on a specific element (e.g. the project's name?). Dragging the wrapper drags everything (i.e. scrolling), but dragging the project's name just moves the name and the wrapper's boundary.
   const boundary = approximateSmallestEnclosingCircle(elements); // uses .diameter of the elements
-  console.log("New boundary", boundary);
-  windowContentsWrapper.offsetDiameter = boundary.diameter;
+  // windowContentsWrapper.offsetDiameter = boundary.diameter;
 }

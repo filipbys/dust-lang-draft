@@ -20,17 +20,6 @@ export function unparseExpression(expression: DustExpression.Any): TextNode {
 const COLON: TextNode = { kind: "leaf", text: ":" };
 const EQUALS: TextNode = { kind: "leaf", text: "=" };
 
-function getLength(node: TextNode): number {
-  if (node.kind === "leaf") {
-    return node.text.length;
-  }
-  return node.totalLength;
-}
-
-function calculateTotalLength(nodes: readonly TextNode[]): number {
-  return nodes.map(getLength).reduce((a, b) => a + b);
-}
-
 function unparseDeclaration(declaration: DustExpression.Declaration): TextNode {
   const pattern = unparseExpression(declaration.pattern);
   if (!declaration.constraints && !declaration.value) {
@@ -47,7 +36,6 @@ function unparseDeclaration(declaration: DustExpression.Declaration): TextNode {
     kind: "group",
     groupType: "()",
     nodes, // TODO combine adjacent text nodes
-    totalLength: calculateTotalLength(nodes),
     singleLine: declaration.singleLine,
   };
 }
@@ -63,7 +51,6 @@ function unparseGroup(
     kind: "group",
     groupType,
     nodes,
-    totalLength: calculateTotalLength(nodes),
     singleLine,
   };
 }

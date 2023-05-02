@@ -1,7 +1,8 @@
 import type { TextNode, TextGroup } from "./TextTree";
 import { toUTF8 } from "./TextTree";
-import type { Any } from "../types/DustExpression";
+import type { Any, IfThenBranch } from "../types/DustExpression";
 import { isOdd } from "../math/Numbers";
+import { assert } from "../development/Errors";
 
 export function parseExpression(textTree: TextNode): Any {
   if (textTree.kind === "leaf") {
@@ -31,11 +32,10 @@ namespace Leaves {
 
   // TODO this belongs in DustTextTree... Need its parse function
   function splitByPunctuation(text: string): Any {
-    const totalLength = text.length;
     const parts = [];
     let start = 0;
     let end = 0;
-    for (; end < totalLength; end++) {
+    for (; end < text.length; end++) {
       const c = text[end];
       if (c in PUNCTUATION) {
         if (start < end) {
@@ -50,7 +50,6 @@ namespace Leaves {
       return {
         kind: "identifier",
         identifier: text,
-        totalLength,
         singleLine: true,
       };
     }
@@ -59,7 +58,7 @@ namespace Leaves {
     }
     throw "not yet implemented"; // TODO
     // const expressions = parts.map(parse)
-    // return { kind: 'functionCall', functionKind: 'punctuation', expressions, totalLength }
+    // return { kind: 'functionCall', functionKind: 'punctuation', expressions }
   }
 }
 
@@ -99,7 +98,6 @@ namespace Groups {
     return {
       kind: "text",
       text,
-      totalLength: text.length,
       singleLine: !text.includes("\n"),
     };
   }
@@ -218,34 +216,86 @@ namespace Groups {
     if (expressions.length > 1) {
       const first = expressions[0];
 
-      if (
-        functionCallKind === "prefix" &&
-        first.kind === "identifier" &&
-        first.identifier === "module"
-      ) {
-        if (expressions.length !== 4) {
-          throw `Module must have three parameters, got ${
-            expressions.length - 1
-          }`;
-        }
-        const publicElements = expressions[2];
-        const privateElements = expressions[3];
+      // TODO return error objects instead of asserting and throwing
+      if (functionCallKind === "prefix" && first.kind === "identifier") {
+        if (first.identifier === "module") {
+          if (expressions.length !== 4) {
+            throw `Module must have three parameters, got ${
+              expressions.length - 1
+            }`;
+          }
+          const publicElements = expressions[2];
+          const privateElements = expressions[3];
 
-        if (
-          publicElements.kind !== "array" ||
-          privateElements.kind != "array"
-        ) {
-          throw `Last 2 parameters to module must be arrays, got ${publicElements.kind}, ${privateElements.kind}`;
-        }
+          if (
+            publicElements.kind !== "array" ||
+            privateElements.kind !== "array"
+          ) {
+            throw `Last 2 parameters to module must be arrays, got ${publicElements.kind}, ${privateElements.kind}`;
+          }
 
-        return {
-          kind: "module",
-          name: expressions[1],
-          publicElements: publicElements.expressions,
-          privateElements: privateElements.expressions,
-          totalLength: group.totalLength,
-          singleLine: group.singleLine,
-        };
+          return {
+            kind: "module",
+            name: expressions[1],
+            publicElements: publicElements.expressions,
+            privateElements: privateElements.expressions,
+            singleLine: group.singleLine,
+          };
+        }
+        function isIdentifierEqualTo(expression: Any, identifier: string) {
+          return (
+            expression.kind === "identifier" &&
+            expression.identifier === identifier
+          );
+        }
+        if (first.identifier === "if") {
+          // e.g.:
+          // (if <expr> then <expr>)
+          // (if <expr> then <expr> else <expr>)
+          // (
+          //   if <expr> then <expr>
+          //   if <expr> then <expr>
+          //             else <expr>
+          // )
+          if (expressions.length < 4 || isOdd(expressions.length)) {
+            throw `If expression must have an even number of terms and at least 4 terms, got ${expressions.length}`;
+          }
+          let cases: IfThenBranch[] = [];
+          for (let index = 0; index < expressions.length; index += 4) {
+            const ifToken = expressions[index];
+            const condition = expressions[index + 1];
+            const thenToken = expressions[index + 2];
+            const result = expressions[index + 3];
+
+            assert(
+              isIdentifierEqualTo(ifToken, "if"),
+              "Expected 'if', got",
+              ifToken,
+            );
+            assert(
+              isIdentifierEqualTo(thenToken, "then"),
+              "Expected 'then', got",
+              thenToken,
+            );
+
+            cases.push({ condition, result });
+          }
+
+          const nextToLast = expressions.at(-2)!;
+          const elseBranch = isIdentifierEqualTo(nextToLast, "name")
+            ? expressions.at(-1)!
+            : undefined;
+
+          return {
+            kind: "ifThen",
+            cases,
+            elseBranch,
+            singleLine: group.singleLine,
+          };
+        }
+        if (first.identifier === "case") {
+          // TODO parse case expression
+        }
       }
     }
 
@@ -256,7 +306,6 @@ namespace Groups {
       kind: "functionCall",
       functionKind: functionCallKind,
       expressions,
-      totalLength: group.totalLength,
       singleLine: group.singleLine,
     };
   }
@@ -268,7 +317,6 @@ namespace Groups {
     return {
       kind,
       expressions,
-      totalLength: group.totalLength,
       singleLine: group.singleLine,
     };
   }

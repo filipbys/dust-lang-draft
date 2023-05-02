@@ -24,6 +24,15 @@ export interface ExpressionProps<
 // TODO make a note of https://prettier.io/docs/en/rationale.html#%EF%B8%8F-a-note-on-formatting-reversibility
 //  -> That's the sort of issue we're trying to avoid with Dust
 
+// TODO solid might not be the best fit for specifically this part.
+// Solid seems great for more flat UIs, but for deep trees like this it might be better to fall back to vanilla JSl custom elements, and mutationobserver.
+// Main reason: we want to be able to unroll the recursion into a loop so that the callstack doesn't get insane.
+// We can keep the linked dom subtrees in sink using mutationobservers and json patch: whether or not we use Solid, we need to be able to convert patches to the TextTree into patches to the DustExpression tree, and in turn into patches to the DOM tree, and the other way around:
+// TextTreePatch (JSONPatch) <----> DustExpressionPatch (JSONPatch) <---> DOMPatch (MutationRecord[])
+// textTreePatchToExpressionPatch(patch: TextTreePatch): DustExpressionPatch
+// -> internally uses a private function for brand new subtrees: textTreeToExpression(tree: TextTree): DustExpression
+// expressionPatchToDOMPatch(patch: DustExpressionPatch): MutationRecord[]
+// -> internally uses a private function for brand new subtrees: expressionToHTML(expr: DustExpression): HTMLElement
 export const DustExpressionView: Component<ExpressionProps> = (props) => (
   <Switch
     fallback={

@@ -9,25 +9,36 @@ import {
 import "./TextTreeView.css";
 
 // TODO add a data-json-path to each element
-export const TextTreeView: Component<{ node: TextNode }> = (props) => {
+export const TextTreeView: Component<{ id: string; node: TextNode }> = (
+  props,
+) => {
   return (
     <Switch>
       <Match when={props.node.kind === "leaf"}>
-        <span class="Dust textLeaf">{(props.node as TextLeaf).text}</span>
+        <span class="Dust textLeaf" id={props.id}>
+          {/* TODO double-click should select whole tokens even if they're dashed (e.g. foo-bar) */}
+          {(props.node as TextLeaf).text}
+        </span>
       </Match>
       <Match when={props.node.kind === "group"}>
-        <TextGroupView group={props.node as TextGroup} />
+        <TextGroupView id={props.id} group={props.node as TextGroup} />
       </Match>
     </Switch>
   );
 };
 
-const TextGroupView: Component<{ group: TextGroup }> = (props) => {
+const TextGroupView: Component<{ id: string; group: TextGroup }> = (props) => {
   return (
-    <div class="Dust textGroup" data-group-type={props.group.groupType}>
+    <div
+      class="Dust textGroup"
+      id="props.id"
+      data-group-type={props.group.groupType}
+    >
       {groupStart(props.group.groupType)}
       <For each={props.group.nodes}>
-        {(node) => <TextTreeView node={node} />}
+        {(node, index) => (
+          <TextTreeView id={props.id + "/nodes/" + index()} node={node} />
+        )}
       </For>
       {groupEnd(props.group.groupType)}
     </div>

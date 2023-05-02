@@ -3,11 +3,12 @@ import {
   distanceBetween,
   Vector2D,
   scale,
-  length,
+  vectorLength,
   Vector2DIndex,
   X,
   Y,
-  lengthSquared,
+  vectorLengthSquared,
+  vectorBetween,
 } from "./Vectors";
 
 // TODO consider switching to different units like mm instead of px
@@ -21,7 +22,7 @@ export interface PhysicsElement {
 }
 
 export function kineticEnergy(element: PhysicsElement): number {
-  return (element.mass * lengthSquared(element.velocity)) / 2;
+  return (element.mass * vectorLengthSquared(element.velocity)) / 2;
 }
 
 export interface PhysicsConstants {
@@ -49,10 +50,7 @@ export function addForceBetween(
   second: PhysicsElement,
   force: number,
 ) {
-  const direction: Vector2D = [
-    second.center[X] - first.center[X],
-    second.center[Y] - first.center[Y],
-  ];
+  const direction: Vector2D = vectorBetween(first.center, second.center);
   const forceVector = scale(direction, force);
 
   first.force[X] += forceVector[X];
@@ -94,7 +92,7 @@ export function updateVelocityAndPosition(
     newVelocity(element, Y, constants, deltaMillis),
   ];
 
-  if (length(element.velocity) > constants.maxVelocity) {
+  if (vectorLength(element.velocity) > constants.maxVelocity) {
     element.velocity = scale(element.velocity, constants.maxVelocity);
   }
 

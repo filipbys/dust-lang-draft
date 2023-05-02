@@ -34,6 +34,7 @@ export const IntoHTMLPhysicsSimulationComponent: Component<
   ComponentProps<"element"> &
     ParentProps<{ playSimulation: () => void; extraClasses: {} }>
 > = (props) => {
+  // TODO this is only ever used with a single DustExpressionView as its child ==> inline that and just take the expression directly through the props. Then instead of checking the instance type, we can just write (props.expression.kind === "module")
   const resolvedChildren = children(() => props.children);
   const isPhysicsElement = () => {
     const resolvedChild = resolvedChildren();
@@ -42,6 +43,7 @@ export const IntoHTMLPhysicsSimulationComponent: Component<
       resolvedChild.tagName.toLowerCase() === HTMLPhysicsSimulationElement.TAG
     );
   };
+  // TODO need to add CSS classes to the physics element if unwrapped
   return (
     <Switch>
       <Match when={isPhysicsElement()}>{resolvedChildren()}</Match>

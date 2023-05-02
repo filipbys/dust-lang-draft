@@ -6,11 +6,6 @@ import App from "./App";
 import { HTMLPhysicsSimulationElement } from "./simulations/HTMLPhysicsSimulationElement";
 
 class DustLangEditor extends HTMLElement {
-  constructor() {
-    super();
-    console.log("DustLangEditor hello!");
-  }
-
   connectedCallback() {
     render(() => <App />, this);
   }

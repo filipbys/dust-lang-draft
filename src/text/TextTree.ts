@@ -12,7 +12,6 @@ type _TextGroup<TextNodes> = {
   readonly kind: "group";
   readonly groupType: TextGroupType;
   readonly nodes: TextNodes;
-  totalLength: number;
   singleLine: boolean;
 };
 
@@ -112,7 +111,6 @@ export function toTextTree(text: string): ParseResult {
     kind: "group",
     groupType: "()",
     nodes: [],
-    totalLength: 0,
     singleLine: true,
   };
 
@@ -123,14 +121,12 @@ export function toTextTree(text: string): ParseResult {
       kind: "group",
       groupType,
       nodes: [],
-      totalLength: 1,
       singleLine: true,
     };
   }
 
   function endCurrentGroup(): TextGroup {
     endCurrentTextChunk();
-    currentGroup.totalLength += 1;
     return currentGroup;
   }
 
@@ -140,7 +136,6 @@ export function toTextTree(text: string): ParseResult {
     if (currentTextChunkStartIndex < currentIndex) {
       const textChunk = text.slice(currentTextChunkStartIndex, currentIndex);
       currentGroup.nodes.push({ kind: "leaf", text: textChunk });
-      currentGroup.totalLength += textChunk.length;
       currentGroup.singleLine &&= !textChunk.includes("\n");
     }
     currentTextChunkStartIndex = currentIndex + 1;
@@ -170,7 +165,6 @@ export function toTextTree(text: string): ParseResult {
         };
       }
       parentGroup.nodes.push(group);
-      parentGroup.totalLength += group.totalLength;
       parentGroup.singleLine &&= group.singleLine;
       currentGroup = parentGroup;
     }

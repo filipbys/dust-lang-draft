@@ -26,10 +26,19 @@ export const BubbleWrapper: Component<
   let wrapper: HTMLPhysicsSimulationElement;
 
   onMount(() => {
-    const cleanup = initializeBubbleWrapper(
+    wrapper.callbacks = {
+      onSimulationFrame: updateBubbleWrapper,
+      playSimulation: props.playSimulation,
+    };
+
+    wrapper.state = props.state;
+    wrapper.centeredWithinParent = true;
+    updateBubbleWrapper(wrapper);
+
+    const cleanup = observeChildrenSizes(
       wrapper,
-      props.state,
-      props.playSimulation,
+      HTMLElement,
+      updateBubbleWrapper,
     );
     onCleanup(cleanup);
   });
@@ -49,23 +58,6 @@ export const BubbleWrapper: Component<
   );
 };
 
-function initializeBubbleWrapper(
-  wrapper: HTMLPhysicsSimulationElement,
-  state: PhysicsSimulationElementState,
-  playSimulation: () => void,
-): UnobserveFunction {
-  wrapper.callbacks = {
-    onSimulationFrame: updateBubbleWrapper,
-    playSimulation,
-  };
-
-  wrapper.state = state;
-  wrapper.centeredWithinParent = true;
-  updateBubbleWrapper(wrapper);
-
-  return observeChildrenSizes(wrapper, HTMLElement, updateBubbleWrapper);
-}
-
 // TODO export a BubbleWrapper component instead
 function updateBubbleWrapper(wrapper: HTMLPhysicsSimulationElement) {
   // TODO uncomment when done debugging
@@ -73,15 +65,7 @@ function updateBubbleWrapper(wrapper: HTMLPhysicsSimulationElement) {
   //   throw `Wrapper physics element must have exactly 1 child, got ${wrapper.childElementCount}`;
   // }
   const wrappedElement = safeCast(wrapper.firstElementChild!, HTMLElement);
-  console.info(
-    "updateWrapperDiameter",
-    wrapper,
-    wrapper.offsetDiameter,
-    offsetDiameter(wrapper),
-    wrappedElement,
-    offsetDiameter(wrappedElement),
-  );
-  // TODO cleanup
+
   wrapper.offsetDiameter = Math.max(1, offsetDiameter(wrappedElement));
 
   wrappedElement.style.setProperty(
@@ -92,9 +76,5 @@ function updateBubbleWrapper(wrapper: HTMLPhysicsSimulationElement) {
     "--offset-height",
     wrappedElement.offsetHeight + "px",
   );
-  //   wrappedElement.style.position = "absolute";
-  //   wrappedElement.style.left = `calc(50% - ${wrappedElement.offsetWidth / 2}px)`;
-  //   wrappedElement.style.top = `calc(50% - ${wrappedElement.offsetHeight / 2}px)`;
-
   // TODO set the element's mass based on the number of characters in the expression
 }

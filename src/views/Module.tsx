@@ -28,10 +28,8 @@ export const Module: Component<ModuleProps> = (props) => {
   let moduleElement: HTMLPhysicsSimulationElement;
 
   onMount(() => {
-    console.log("Module onmount");
     moduleElement.state = "free";
     moduleElement.centeredWithinParent = true;
-    // console.log("")
     moduleElement.offsetDiameter = 1000;
     moduleElement.callbacks = {
       onSimulationFrame: updateModule,

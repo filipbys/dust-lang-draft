@@ -19,3 +19,11 @@ export function roundToString(num: number, fractionDigits: number = 0): string {
   }
   return result;
 }
+
+export function approximatelyEqual(
+  num1: number,
+  num2: number,
+  tolerance: number,
+): boolean {
+  return Math.abs(num1 - num2) < tolerance;
+}

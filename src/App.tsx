@@ -34,14 +34,12 @@ const PlainTextEditor: Component = () => {
     kind: "group",
     groupType: "()",
     nodes: [],
-    totalLength: 0,
     singleLine: true,
   });
 
   const [expression, setExpression] = createStore<DustExpression.Any>({
     kind: "identifier",
     identifier: "loading...",
-    totalLength: 42,
     singleLine: true,
   });
   // TODO text-tree should have its own HTML views as well so we don't have to
@@ -91,30 +89,30 @@ const PlainTextEditor: Component = () => {
   // `);
 
   const [inputText, setInputText] = createSignal(`
-module MyModule
-[
-  (
-      ( example-math-expression [a b c] [x y z] ) 
-    = (
-          (a + (b * c) + d)
-        - (c + d)
-        + (
-            foo
-            x
-            [123 456 789]
-            [4 (a + (f b)) [1 2 3] (f [1 2 3])]
-          )
-        / 42
-        + (f x y z)
-      )
-  )
-]
-[
-  ( 
-      (foo x list1 list2) 
-    = (list1 ++ [x] ++ list2) 
-  )
-]
+  module MyModule
+  [
+    (
+        ( example-math-expression [a b c] [x y z] )
+      = (
+            (a + (b * c) + d)
+          - (c + d)
+          + (
+              foo
+              x
+              [123 456 789]
+              [4 (a + (f b)) [1 2 3] (f [1 2 3])]
+            )
+          / 42
+          + (f x y z)
+        )
+    )
+  ]
+  [
+    (
+        (foo x list1 list2)
+      = (list1 ++ [x] ++ list2)
+    )
+  ]
 `);
 
   createEffect(
@@ -128,6 +126,7 @@ module MyModule
 
       const textTreeDiff = jsonpatch.compare(textTree, newTextTree);
 
+      // TODO cache parse results from text tree nodes by reference, or only reparse the things that were added/removed
       const newExpression = parseExpression(newTextTree);
 
       const expressionDiff = jsonpatch.compare(expression, newExpression);
@@ -138,6 +137,27 @@ module MyModule
         applyJsonPatch(setExpression, expressionDiff);
       });
     }),
+  );
+
+  createEffect(
+    on(
+      () => textTree,
+      (newTextTree) => {
+        console.log("text tree changed", newTextTree);
+
+        const textTreeDiff = jsonpatch.compare(textTree, newTextTree);
+
+        const newExpression = parseExpression(newTextTree);
+
+        const expressionDiff = jsonpatch.compare(expression, newExpression);
+        console.log("input text changed:", textTreeDiff, expressionDiff);
+
+        batch(() => {
+          applyJsonPatch(setTextTree, textTreeDiff);
+          applyJsonPatch(setExpression, expressionDiff);
+        });
+      },
+    ),
   );
 
   function onInput(this: HTMLElement) {
@@ -163,8 +183,15 @@ module MyModule
   }
 
   function beforeTextTreeViewInput(this: HTMLElement, event: InputEvent) {
-    console.log("beforeTextTreeViewInput", this, event, window.getSelection());
-    // event.preventDefault();
+    const selection = window.getSelection();
+    console.log("beforeTextTreeViewInput", this, event, selection);
+    if (
+      event.inputType === "insertParagraph" ||
+      event.inputType === "insertLineBreak"
+    ) {
+      event.preventDefault();
+      console.log(selection?.focusNode);
+    }
     // TODO handle changes here
   }
 
@@ -211,7 +238,7 @@ module MyModule
         }}
         ref={textTreeViewDiv!}
       >
-        <TextTreeView node={textTree} />
+        <TextTreeView id="root" node={textTree} />
       </div>
       <br />
       <div contentEditable={false} onBeforeInput={beforeExpressionViewInput}>

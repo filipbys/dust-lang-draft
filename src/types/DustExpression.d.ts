@@ -4,7 +4,6 @@ import { TextNode } from "../text/TextTree";
 export type Any = Readonly<Destructurable | IfThen | Declaration | Block>;
 
 type BaseExpression = Readonly<{
-  totalLength: number;
   singleLine: boolean;
 }>;
 
@@ -83,7 +82,6 @@ export type FunctionCall = BaseExpression &
     kind: "functionCall";
     functionKind: "prefix" | "binary" | "punctuation"; // TODO handle punctuation
     expressions: readonly Any[];
-    totalLength: number;
   }>;
 
 export type IfThen = BaseExpression &

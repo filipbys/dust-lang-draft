@@ -25,7 +25,6 @@ export function observeChildrenSizes<
     getTargetAsChild(parent, childElementType, entry);
 
   const resizeObserver = new ResizeObserver((entries) => {
-    console.log("ChildrenSizeMutationObserver.resizeObserver:", entries);
     callback(parent, entries.map(getChild));
   });
 
@@ -75,7 +74,6 @@ function processMutations(
   mutations: MutationRecord[],
   observer: ChildSizeMutationObserver,
 ) {
-  console.log("ChildrenSizeMutationObserver:", mutations, observer);
   for (const mutation of mutations) {
     if (mutation.target !== observer.parent) {
       const message = "MutationCallback called with the wrong target";

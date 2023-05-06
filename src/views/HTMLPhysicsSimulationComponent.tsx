@@ -9,8 +9,8 @@ import {
 } from "solid-js";
 import { filterByType } from "../data-structures/Arrays";
 import { PhysicsElement } from "../math/Physics";
-import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
-import { PhysicsSimulationElementState } from "../simulations/PhysicsSimulation";
+import { HTMLPhysicsSimulationElement } from "../html-custom-elements/HTMLPhysicsSimulationElement";
+import { PhysicsSimulationElementState } from "../math/PhysicsSimulation";
 import { BubbleWrapper } from "./BubbleWrapper";
 
 type HTMLPhysicsSimulationElementProps = ComponentProps<"element"> &

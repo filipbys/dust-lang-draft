@@ -1,19 +1,24 @@
 import { Component, For } from "solid-js";
-import type * as DustExpression from "../types/DustExpression";
 
 import {
   BASE_CSS_CLASS,
   DustExpressionView,
   ExpressionProps,
 } from "./DustExpressionView";
+import {
+  DustArrayExpression,
+  DustBlockExpression,
+  DustExpression,
+  DustFunctionCallExpression,
+} from "../text/DustExpression";
 
 type ListLikeExpression =
-  | DustExpression.FunctionCall
-  | DustExpression.Array
-  | DustExpression.Block;
+  | DustFunctionCallExpression
+  | DustArrayExpression
+  | DustBlockExpression;
 
 export function isListLike(
-  expression: DustExpression.Any,
+  expression: DustExpression,
 ): expression is ListLikeExpression {
   return (
     expression.kind === "functionCall" ||

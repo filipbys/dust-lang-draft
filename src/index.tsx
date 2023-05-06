@@ -3,7 +3,7 @@ import { render } from "solid-js/web";
 import "./index.css";
 import App from "./App";
 
-import { HTMLPhysicsSimulationElement } from "./simulations/HTMLPhysicsSimulationElement";
+import { HTMLPhysicsSimulationElement } from "./html-custom-elements/HTMLPhysicsSimulationElement";
 
 class DustLangEditor extends HTMLElement {
   connectedCallback() {

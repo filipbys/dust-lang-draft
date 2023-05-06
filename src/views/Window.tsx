@@ -8,7 +8,6 @@ import {
   Signal,
 } from "solid-js";
 import { approximateSmallestEnclosingCircle } from "../math/Geometry";
-import type * as DustExpression from "../types/DustExpression";
 import { DustComponentProps, DustExpressionView } from "./DustExpressionView";
 import { PhysicsConstants } from "../math/Physics";
 import {
@@ -16,11 +15,12 @@ import {
   getDirectPhysicsElementChildren,
   IntoHTMLPhysicsSimulationComponent,
 } from "./HTMLPhysicsSimulationComponent";
-import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
-import { createSimulation } from "../simulations/PhysicsSimulation";
+import { HTMLPhysicsSimulationElement } from "../html-custom-elements/HTMLPhysicsSimulationElement";
+import { createSimulation, PhysicsSimulation } from "../math/PhysicsSimulation";
 
 import "./Windows.css";
 import { observeChildrenSizes } from "../observers/ChildSizeMutationObserver";
+import { DustExpression } from "../text/DustExpression";
 
 // TODO window should have a toolbar with undo/redo, zoom in/out, insert, set depth limit, etc buttons
 
@@ -55,19 +55,18 @@ import { observeChildrenSizes } from "../observers/ChildSizeMutationObserver";
 
 export const Window: Component<{
   baseProps: DustComponentProps;
-  expressions: DustExpression.Any[]; // TODO Dust.WindowExpression?
+  expressions: DustExpression[]; // TODO Dust.WindowExpression?
 }> = (props) => {
-  const playingSignal = createSignal(false);
-
   // TODO ideally we wouldn't have a single signal for simulating physics for all elements. Instead it would be better for each physics-element-container (e.g. module) to have its own simulation. That way when a user e.g. drags an element, it would only trigger the physics in its container. If they drag an element all the way outside of its container, its style changes, and if they drag it past a certain threshold, the element is removed from its current container (which eventually pauses its simulation as everything goes still), and the closest overlapping sibling or ancestor physics-element-container lights up and starts *its* simulation, indicating that it's ready to adopt the dragged element. As the user keeps dragging the element, it keeps updating the currently-active physics-element-container, so that when they drop the element, it just slides into place until things come to rest and the simulation is paused.
   // NB: a change inside a physics-element-container can easily trigger changes within *its* parent physics-element-container, and so on all the way to the root. It's find to do this now and then because everything should go still fairly quickly and auto-pause, however, it should be avoided when possible. As such:
   //  - Always pin the focused element and all of its ancestors: their sizes can change but their positions must not.
   //  - When the user is actively editing, pause all simulations: everything is changing quickly and that introduces a lot of visual noise when the user is trying to focus.
   //  - As users pause, *slowly* resume the simulation -- literally in slow motion, gradually speeding it up over time until it settles. Reminder that all elements that contain focus are pinned.
   //  - Caveat: gently move non-focused elements out of the way as needed if the focused element grows with the given input. Movement just needs to be slow so the environment feels calm. In other words, the simulation only needs to run at full speed when dragging things around and actively interacting with them, and when just normally editing it should be either still or move in slow-motion.
-  const [simulationPlaying, setSimulationPlaying] = playingSignal;
-  const playSimulation = () => {}; // TODO setPlaying(true);
-  let runOneSimulationStep: ((deltaMillis: number) => void) | null = null;
+
+  let simulationRef: PhysicsSimulation | null = null;
+  const [simulationPlaying, setSimulationPlaying] = createSignal(false);
+  const playSimulation = () => {}; // TODO setSimulationPlaying(true)
 
   const [zoomPercent, setZoomPercent] = createSignal(100);
   function onZoomPercentInput(this: HTMLInputElement) {
@@ -85,11 +84,17 @@ export const Window: Component<{
       frictionCoefficient: 0.01,
     };
 
-    runOneSimulationStep = createSimulation({
+    const simulation = createSimulation({
       physicsConstants,
       elements: getAllPhysicsElements(windowContents.parentElement!),
-      playingSignal,
+      onAutoPause() {
+        setSimulationPlaying(false);
+      },
     });
+    simulationRef = simulation;
+    createEffect(
+      on(simulationPlaying, (value) => (simulation.playing = value)),
+    );
 
     // TODO should this be centered=false, state=pinned, and that way we can just use native scrolling? And if so, do we even need the top level window physics element?
     windowContents.centeredWithinParent = true;
@@ -128,7 +133,7 @@ export const Window: Component<{
         <button onClick={() => setSimulationPlaying(!simulationPlaying())}>
           {simulationPlaying() ? "pause" : "play"} simulation
         </button>
-        <button onClick={() => runOneSimulationStep!(16)}>
+        <button onClick={() => simulationRef!.runOneStep()}>
           Run one simulation step
         </button>
         <div style="display: inline-grid; grid-template-columns: auto auto auto">
@@ -152,7 +157,7 @@ export const Window: Component<{
         </div>
       </div>
       <div
-        class="Dust windowContentArea"
+        class="Dust scrollable windowContentArea"
         style="width: 1000px; height: 1000px;"
       >
         <dust-physics-simulation-element

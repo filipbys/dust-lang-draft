@@ -5,19 +5,18 @@ export interface TypeConstructor<T> extends Function {
 
 export function assertIsInstance<T>(
   value: any,
-  typeConstructor: TypeConstructor<T>
-): value is T {
+  typeConstructor: TypeConstructor<T>,
+): asserts value is T {
   if (!(value instanceof typeConstructor)) {
     throw TypeError(
-      `Expected a value of type ${typeConstructor}, got ${value}`
+      `Expected a value of type ${typeConstructor}, got ${value}`,
     );
   }
-  return true;
 }
 
 export function safeCast<T>(
   value: any,
-  typeConstructor: TypeConstructor<T>
+  typeConstructor: TypeConstructor<T>,
 ): T {
   assertIsInstance(value, typeConstructor);
   return value;

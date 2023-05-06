@@ -8,13 +8,17 @@
   top: 0px;
 }
 
+/* TODO move to different file */
+.scrollable {
+  overflow: auto;
+}
+
 .Dust.windowContentArea {
   display: inline-block;
   position: relative;
   min-width: 200px;
   min-height: 200px;
   resize: both;
-  overflow: auto;
 
   border: 2px solid;
   padding-inline-start: 20px;

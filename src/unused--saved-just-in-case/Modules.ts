@@ -1,6 +1,6 @@
 import { Springs } from "../math/Physics";
 
-import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
+import { HTMLPhysicsSimulationElement } from "../html-custom-elements/HTMLPhysicsSimulationElement";
 import { filterByType } from "../data-structures/Arrays";
 import { getDirectPhysicsElementChildren } from "./HTMLPhysicsSimulationComponent";
 

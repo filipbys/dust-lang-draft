@@ -3,8 +3,6 @@ import {
   assertIsInstance,
 } from "../type-utils/DynamicTypeChecks";
 import { logAndThrow } from "../development/Errors";
-import { safeCast } from "../type-utils/DynamicTypeChecks";
-import { filterByType } from "../data-structures/Arrays";
 
 export type ChildrenResizeObserverCallback<
   P extends HTMLElement,
@@ -97,9 +95,6 @@ function getTargetAsChild<P, C>(
       "ResizeObserverCallback called on removed child before the parent's MutationCallback";
     logAndThrow(message, parent, target);
   }
-  if (!(target instanceof childElementType)) {
-    const message = "ResizeObserverCallback called on child of the wrong type";
-    logAndThrow(message, parent, target, childElementType);
-  }
+  assertIsInstance(target, childElementType);
   return target;
 }

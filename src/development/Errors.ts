@@ -7,7 +7,7 @@ export function logAndThrow(message: string, ...data: any[]): never {
   throw new Error(message);
 }
 
-export function assert(condition: boolean, ...data: any[]) {
+export function assert(condition: boolean, ...data: any[]): asserts condition {
   console.assert(condition, ...data);
   if (!condition) {
     throw new Error("AssertionError");

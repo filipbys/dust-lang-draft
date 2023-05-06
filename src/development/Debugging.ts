@@ -1,7 +1,7 @@
 import { roundToString } from "../math/Numbers";
 import { vectorToString } from "../math/Vectors";
 import { kineticEnergy } from "../math/Physics";
-import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
+import { HTMLPhysicsSimulationElement } from "../html-custom-elements/HTMLPhysicsSimulationElement";
 
 export function updateElementText(
   element: HTMLPhysicsSimulationElement,

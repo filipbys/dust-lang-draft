@@ -1,17 +1,13 @@
 import {
-  ChildrenReturn,
   Component,
   ComponentProps,
   ParentProps,
   onCleanup,
   onMount,
 } from "solid-js";
-import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
-import { PhysicsSimulationElementState } from "../simulations/PhysicsSimulation";
-import {
-  UnobserveFunction,
-  observeChildrenSizes,
-} from "../observers/ChildSizeMutationObserver";
+import { HTMLPhysicsSimulationElement } from "../html-custom-elements/HTMLPhysicsSimulationElement";
+import { PhysicsSimulationElementState } from "../math/PhysicsSimulation";
+import { observeChildrenSizes } from "../observers/ChildSizeMutationObserver";
 import { safeCast } from "../type-utils/DynamicTypeChecks";
 import { offsetDiameter } from "../math/Geometry";
 
@@ -66,15 +62,8 @@ function updateBubbleWrapper(wrapper: HTMLPhysicsSimulationElement) {
   // }
   const wrappedElement = safeCast(wrapper.firstElementChild!, HTMLElement);
 
+  wrappedElement.classList.add("centeredWithinParent"); // TODO add this in the jsx
   wrapper.offsetDiameter = Math.max(1, offsetDiameter(wrappedElement));
 
-  wrappedElement.style.setProperty(
-    "--offset-width",
-    wrappedElement.offsetWidth + "px",
-  );
-  wrappedElement.style.setProperty(
-    "--offset-height",
-    wrappedElement.offsetHeight + "px",
-  );
   // TODO set the element's mass based on the number of characters in the expression
 }

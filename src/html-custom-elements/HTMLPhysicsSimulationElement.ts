@@ -10,8 +10,10 @@ import {
 import {
   PhysicsSimulationElement,
   PhysicsSimulationElementState,
-} from "./PhysicsSimulation";
-import { makeDraggable } from "./DragAndDrop";
+} from "../math/PhysicsSimulation";
+import { makeDraggableAndZoomable } from "./DragZoomAndDrop";
+
+import "./HTMLPhysicsSimulationElement.css";
 
 export type HTMLPhysicsSimulationElementCallbacks = Readonly<{
   /**
@@ -54,7 +56,8 @@ export class HTMLPhysicsSimulationElement
   constructor() {
     super();
     this.offsetDiameter = 100;
-    makeDraggable(this);
+    this.classList.add("circle");
+    makeDraggableAndZoomable(this);
   }
 
   set callbacks(callbacks: HTMLPhysicsSimulationElementCallbacks) {
@@ -67,11 +70,11 @@ export class HTMLPhysicsSimulationElement
 
   set center(newCenter: Readonly<Vector2D>) {
     this.#center = newCenter;
-    const roundedCenter = rounded(this.#center);
-    if (!vectorsEqual(this.#previousCssTranslate, roundedCenter)) {
-      this.#previousCssTranslate = roundedCenter;
-      this.style.setProperty("--center-x", roundedCenter[X] + "px");
-      this.style.setProperty("--center-y", roundedCenter[Y] + "px");
+    const center = this.#center;
+    if (!vectorsEqual(this.#previousCssTranslate, center)) {
+      this.#previousCssTranslate = center;
+      this.style.setProperty("--center-x", center[X] + "px");
+      this.style.setProperty("--center-y", center[Y] + "px");
       this.#callbacks?.playSimulation();
     }
   }
@@ -117,29 +120,6 @@ export class HTMLPhysicsSimulationElement
 
   get clientScale(): number {
     return this.getBoundingClientRect().width / this.#offsetDiameter;
-  }
-
-  get clientTopLeft(): Vector2D {
-    const box = this.getBoundingClientRect();
-    return [box.left, box.top];
-  }
-
-  set clientTopLeft(newTopLeft: Readonly<Vector2D>) {
-    const box = this.getBoundingClientRect();
-
-    const scale = box.width / this.#offsetDiameter; // client pixels / css pixels
-    const delta = vectorBetween([box.left, box.top], newTopLeft);
-
-    this.center = [
-      this.center[X] + delta[X] * scale,
-      this.center[Y] + delta[Y] * scale,
-    ];
-
-    console.assert(
-      vectorsEqual(this.clientTopLeft, newTopLeft),
-      this.clientTopLeft,
-      newTopLeft,
-    );
   }
 
   get centeredWithinParent() {

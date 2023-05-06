@@ -1,7 +1,7 @@
+import { DustDeclarationExpression, DustExpression } from "./DustExpression";
 import type { TextNode, TextGroupType } from "./TextTree";
-import type * as DustExpression from "../types/DustExpression";
 
-export function unparseExpression(expression: DustExpression.Any): TextNode {
+export function unparseExpression(expression: DustExpression): TextNode {
   const kind = expression.kind;
   if (kind === "identifier") {
     return { kind: "leaf", text: expression.identifier };
@@ -20,7 +20,7 @@ export function unparseExpression(expression: DustExpression.Any): TextNode {
 const COLON: TextNode = { kind: "leaf", text: ":" };
 const EQUALS: TextNode = { kind: "leaf", text: "=" };
 
-function unparseDeclaration(declaration: DustExpression.Declaration): TextNode {
+function unparseDeclaration(declaration: DustDeclarationExpression): TextNode {
   const pattern = unparseExpression(declaration.pattern);
   if (!declaration.constraints && !declaration.value) {
     return pattern;
@@ -42,7 +42,7 @@ function unparseDeclaration(declaration: DustExpression.Declaration): TextNode {
 
 function unparseGroup(
   groupType: TextGroupType,
-  expressions: readonly DustExpression.Any[],
+  expressions: readonly DustExpression[],
   singleLine: boolean,
 ): TextNode {
   const nodes = expressions.map(unparseExpression);

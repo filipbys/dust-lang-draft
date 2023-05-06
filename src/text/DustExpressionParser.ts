@@ -1,10 +1,32 @@
-import type { TextNode, TextGroup } from "./TextTree";
+import type {
+  TextNode,
+  TextGroup,
+  TextGroupType,
+  TextLeaf,
+  GenericTextGroup,
+} from "./TextTree";
 import { toUTF8 } from "./TextTree";
-import type { Any, IfThenBranch } from "../types/DustExpression";
+import type {
+  DustExpression,
+  DustIfThenBranch,
+  DustLeafExpression,
+} from "./DustExpression";
 import { isOdd } from "../math/Numbers";
 import { assert } from "../development/Errors";
 
-export function parseExpression(textTree: TextNode): Any {
+export type ParsedTextNode = ParsedTextLeaf | ParsedTextGroup;
+
+// TODO DustLeafExpression is wrong: DustTextExpression is a TextGroup with a single sub-expression.
+export type ParsedTextLeaf = TextLeaf &
+  Readonly<{ expression: DustLeafExpression }>;
+
+export type ParsedTextGroup = Readonly<
+  GenericTextGroup<readonly ParsedTextNode[]>
+> &
+  Readonly<{ expression: DustExpression }>;
+
+// TODO return ParsedTextNode instead
+export function parseExpression(textTree: TextNode): DustExpression {
   if (textTree.kind === "leaf") {
     return Leaves.parseLeaf(textTree.text);
   } else {
@@ -13,7 +35,7 @@ export function parseExpression(textTree: TextNode): Any {
 }
 
 namespace Leaves {
-  export function parseLeaf(text: string): Any {
+  export function parseLeaf(text: string): DustExpression {
     if (splitByWhitespace(text) !== undefined) {
       throw "Error: leaf cannot contain whitespace"; // TODO
     }
@@ -31,7 +53,7 @@ namespace Leaves {
   } as const;
 
   // TODO this belongs in DustTextTree... Need its parse function
-  function splitByPunctuation(text: string): Any {
+  function splitByPunctuation(text: string): DustExpression {
     const parts = [];
     let start = 0;
     let end = 0;
@@ -71,7 +93,7 @@ function splitByWhitespace(text: string): string[] | undefined {
 }
 
 namespace Groups {
-  export function parseGroup(group: TextGroup): Any {
+  export function parseGroup(group: TextGroup): DustExpression {
     const groupType = group.groupType;
     // TODO for all of these, need to parse (a.bar b.foo) and possibly (a="bar" b=(2 + 42 - 2))?
     // But should this be here or at the TextTree level?
@@ -91,7 +113,7 @@ namespace Groups {
     throw `Unrecognized groupType ${groupType}`;
   }
 
-  function parseTextGroup(group: TextGroup): Any {
+  function parseTextGroup(group: TextGroup): DustExpression {
     const text = toUTF8(group);
     // TODO preserve the text tree: there may be interpolated sections within it
     // In fact maybe we should look for those sections here.
@@ -192,10 +214,10 @@ namespace Groups {
     "",
   ];
 
-  function parseParenthesizedGroup(group: TextGroup): Any {
+  function parseParenthesizedGroup(group: TextGroup): DustExpression {
     // TODO need to parse Declarations differently
 
-    const expressions: Any[] = [];
+    const expressions: DustExpression[] = [];
     let functionCallKind: "prefix" | "binary" = "prefix";
 
     splitLeavesAtWhitespace(group.nodes).forEach((node, index) => {
@@ -242,7 +264,10 @@ namespace Groups {
             singleLine: group.singleLine,
           };
         }
-        function isIdentifierEqualTo(expression: Any, identifier: string) {
+        function isIdentifierEqualTo(
+          expression: DustExpression,
+          identifier: string,
+        ) {
           return (
             expression.kind === "identifier" &&
             expression.identifier === identifier
@@ -260,7 +285,7 @@ namespace Groups {
           if (expressions.length < 4 || isOdd(expressions.length)) {
             throw `If expression must have an even number of terms and at least 4 terms, got ${expressions.length}`;
           }
-          let cases: IfThenBranch[] = [];
+          let cases: DustIfThenBranch[] = [];
           for (let index = 0; index < expressions.length; index += 4) {
             const ifToken = expressions[index];
             const condition = expressions[index + 1];
@@ -310,7 +335,10 @@ namespace Groups {
     };
   }
 
-  function parseList(kind: "block" | "array", group: TextGroup): Any {
+  function parseList(
+    kind: "block" | "array",
+    group: TextGroup,
+  ): DustExpression {
     const expressions = splitLeavesAtWhitespace(group.nodes).map(
       parseExpression,
     );

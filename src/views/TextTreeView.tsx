@@ -9,6 +9,7 @@ import {
 import "./TextTreeView.css";
 
 // TODO add a data-json-path to each element
+// TODO make this take a DustExpression instead and do the work of maintaining the mapping here.
 export const TextTreeView: Component<{ id: string; node: TextNode }> = (
   props,
 ) => {

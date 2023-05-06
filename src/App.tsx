@@ -4,13 +4,10 @@ import {
   createEffect,
   createSignal,
   on,
-  onCleanup,
   onMount,
 } from "solid-js";
-import * as DustExpression from "./types/DustExpression";
 import "./styles.css";
 
-import { DustExpressionView } from "./views/DustExpressionView";
 import { TextNode, toTextTree } from "./text/TextTree";
 import { parseExpression } from "./text/DustExpressionParser";
 import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
@@ -19,6 +16,7 @@ import * as jsonpatch from "fast-json-patch";
 import { TextTreeView } from "./views/TextTreeView";
 import { Window } from "./views/Window";
 import { logAndThrow } from "./development/Errors";
+import { DustExpression } from "./text/DustExpression";
 
 function applyJsonPatch<T>(
   setStore: SetStoreFunction<T>,
@@ -30,6 +28,11 @@ function applyJsonPatch<T>(
 }
 
 const PlainTextEditor: Component = () => {
+  // TODO instead of synchronizing two stores, create a new tree type that stores the text nodes and their corresponding expressions?
+  // Or how about this: have a Map<text-node-id, DustExpression> to cache the parsed expression for each text node. When a DOM text node changes, walk the tree up and re-parse each node, updating its entry in the map. Finally, take a diff between the new root and the previous one (should be fast since most of the tree will be shared), and apply that diff to the DustExpression store using setExpression. Alternatively try just setExpression(newRootExpression), but I suspect that will regenerate the entire DOM tree.
+  // We could even represent this with customElements that contain both text data and parsed DustExpression data, and users can switch from showing one or the other, or even both in a little local split-screen, all just by toggling some css classes.
+  // ACTUALLY why not just make parseTextTree() generic so it can return a DustExpression OR a DustExpressionView! The view is reactive on the *text tree* rather than the expression. If the expression is changed (e.g. by an editor refactor command), it will update the text tree, which in turn will update the DOM. If the user types input, that changes the text tree, which changes both the DOM and the dust expression tree. although... if we still need to update the expression tree for other tools, why not keep basing the DOM tree off of that like we are now...
+  // ==> But maybe we can make parse() generic over Array.map vs solidjs.mapArray?
   const [textTree, setTextTree] = createStore<TextNode>({
     kind: "group",
     groupType: "()",
@@ -37,13 +40,12 @@ const PlainTextEditor: Component = () => {
     singleLine: true,
   });
 
-  const [expression, setExpression] = createStore<DustExpression.Any>({
+  const [expression, setExpression] = createStore<DustExpression>({
     kind: "identifier",
     identifier: "loading...",
     singleLine: true,
   });
-  // TODO text-tree should have its own HTML views as well so we don't have to
-  // always re-parse the entire text when something changes. The user should still see plain text, though we can always show group borders if desired.
+
   //   const [inputText, setInputText] = createSignal(`
   //   module MyModule
   //   [
@@ -256,7 +258,7 @@ const PlainTextEditor: Component = () => {
           expressions={[expression]}
           baseProps={{
             id: "plain-text-editor-output",
-            depthLimit: 42,
+            depthLimit: 42, // TODO
             onFocusIn: onElementFocusIn,
             onFocusOut: onElementFocusOut,
           }}
@@ -269,20 +271,12 @@ const PlainTextEditor: Component = () => {
           expressions={[expression]}
           baseProps={{
             id: "plain-text-editor-output-readonly",
-            depthLimit: 42,
+            depthLimit: 42, // TODO
           }}
         />
       </div> */}
-      {/* TODO depthLimit */}
     </div>
   );
-  // TODO with contentEditable, either:
-  // (A) Only text spans are contentEditable and onInput works on them but can't select multiple spans
-  // (B) Everything is contentEditable and we can select everything, but onInput doesn't work
-
-  // There are other issues as well (see e.g. https://answerly.io/blog/my-pain-developing-a-wysiwyg-editor-with-contenteditable/)
-  // So we should...
-  // TODO implement our own Caret element that can be moved around the document, splitting Spans in half where needed. That way we can more easily implement multiple Carets as well as Selections
 };
 
 const App: Component = () => {

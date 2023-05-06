@@ -1,7 +1,10 @@
 import { Component, Match, Switch } from "solid-js";
-import type * as DustExpression from "../types/DustExpression";
 import { isListLike, List, ListProps } from "./List";
 import { Module, ModuleProps } from "./Module";
+import {
+  DustExpression,
+  DustIdentifierExpression,
+} from "../text/DustExpression";
 
 export const BASE_CSS_CLASS = "Dust";
 
@@ -14,9 +17,8 @@ export interface DustComponentProps {
   readonly onFocusOut?: EventCallback<HTMLSpanElement, FocusEvent>;
 }
 
-export interface ExpressionProps<
-  T extends DustExpression.Any = DustExpression.Any,
-> extends DustComponentProps {
+export interface ExpressionProps<T extends DustExpression = DustExpression>
+  extends DustComponentProps {
   readonly expression: T;
   readonly playSimulation: () => void;
 }
@@ -54,7 +56,7 @@ export const DustExpressionView: Component<ExpressionProps> = (props) => (
   </Switch>
 );
 
-type IdentifierProps = ExpressionProps<DustExpression.Identifier>;
+type IdentifierProps = ExpressionProps<DustIdentifierExpression>;
 const Identifier: Component<IdentifierProps> = (props) => (
   <span
     id={props.id}

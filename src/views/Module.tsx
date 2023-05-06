@@ -1,14 +1,16 @@
 import { Component, For, onMount } from "solid-js";
 import { approximateSmallestEnclosingCircle } from "../math/Geometry";
 import { Springs } from "../math/Physics";
-import { HTMLPhysicsSimulationElement } from "../simulations/HTMLPhysicsSimulationElement";
-import type * as DustExpression from "../types/DustExpression";
+import { HTMLPhysicsSimulationElement } from "../html-custom-elements/HTMLPhysicsSimulationElement";
 import { DustExpressionView, ExpressionProps } from "./DustExpressionView";
 import {
   getDirectPhysicsElementChildren,
   IntoHTMLPhysicsSimulationComponent,
 } from "./HTMLPhysicsSimulationComponent";
 import { BubbleWrapper } from "./BubbleWrapper";
+
+import "./Modules.css";
+import { DustExpression, DustModuleExpression } from "../text/DustExpression";
 
 // TODO imported and exported values go around the outside.
 // Private values are only visible when editing the module, so you
@@ -19,7 +21,7 @@ import { BubbleWrapper } from "./BubbleWrapper";
 // When you zoom out and even the imports/exports get too small to read, they are hidden as well and the module is just shown as a circle around the name, with arrows displaying the flow of dependencies in your project
 // TODO should do a similar thing for function definitions: when zooming out, the body should animate out, leaving just the function signature
 
-export type ModuleProps = ExpressionProps<DustExpression.Module>;
+export type ModuleProps = ExpressionProps<DustModuleExpression>;
 
 // TODO! make modules zoomable: drag and drop with 1 pointer, and zoom in/out with either 2 pointers or control+scroll (normal scroll should scroll the window vertically and shift+scroll should scroll horizontally)
 // Don't forget to make the PhysicsElement diameter reflect the css scale transform
@@ -92,7 +94,7 @@ export const Module: Component<ModuleProps> = (props) => {
 const ModuleElementList: Component<{
   baseProps: ModuleProps;
   visibility: "public" | "private";
-  expressions: readonly DustExpression.Any[];
+  expressions: readonly DustExpression[];
 }> = (props) => (
   <For each={props.expressions}>
     {(expression, index) => (

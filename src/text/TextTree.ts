@@ -4,11 +4,11 @@ export type TextLeaf = Readonly<{ kind: "leaf"; text: string }>;
 
 export type TextGroupType = keyof typeof GROUP_TYPE_INFO;
 
-export type TextGroup = Readonly<_TextGroup<readonly TextNode[]>>;
+export type TextGroup = Readonly<GenericTextGroup<readonly TextNode[]>>;
 
-type MutableTextGroup = _TextGroup<TextNode[]>;
+type MutableTextGroup = GenericTextGroup<TextNode[]>;
 
-type _TextGroup<TextNodes> = {
+export type GenericTextGroup<TextNodes> = {
   readonly kind: "group";
   readonly groupType: TextGroupType;
   readonly nodes: TextNodes;
@@ -105,6 +105,9 @@ export type ParseResult =
   | Readonly<{ kind: "success"; node: TextNode }>
   | ParseError;
 
+// TODO:
+// - split leaves by whitespace, keeping separate "whitespace" tokens. That way double-clicks will always select an entire word, even if it's dash-separated.
+// - parse punctuation: add a new kind of group that doesn't have a start or end but rather groups elements by connecting them with punctuation and no whitespace. Only allowed for single-line groups: it's a convenience for things like (a.foo + b.bar + c.baz). Punctuation groups are still given their own <div> with a partially-transparent background just like any other group.
 export function toTextTree(text: string): ParseResult {
   let stack: MutableTextGroup[] = [];
   let currentGroup: MutableTextGroup = {

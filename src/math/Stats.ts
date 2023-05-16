@@ -1,7 +1,6 @@
 export class RollingAverage {
   readonly #numbers: number[];
   #nextIndex = 0;
-  #rollingSum = 0;
   #isSaturated = false;
 
   constructor(length: number) {
@@ -14,12 +13,10 @@ export class RollingAverage {
   clear() {
     this.#numbers.fill(0);
     this.#nextIndex = 0;
-    this.#rollingSum = 0;
     this.#isSaturated = false;
   }
 
   add(value: number) {
-    this.#rollingSum += value - this.#numbers[this.#nextIndex];
     this.#numbers[this.#nextIndex] = value;
     this.#nextIndex++;
     if (this.#nextIndex === this.#numbers.length) {
@@ -32,8 +29,16 @@ export class RollingAverage {
     return this.#isSaturated;
   }
 
+  sum() {
+    let total = 0;
+    for (const number of this.#numbers) {
+      total += number;
+    }
+    return total;
+  }
+
   average() {
-    return this.#rollingSum / this.#numbers.length;
+    return this.sum() / this.#numbers.length;
   }
 }
 

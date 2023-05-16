@@ -21,3 +21,10 @@ export function safeCast<T>(
   assertIsInstance(value, typeConstructor);
   return value;
 }
+
+export function tryCast<T>(
+  value: any,
+  typeConstructor: TypeConstructor<T>,
+): T | null {
+  return value instanceof typeConstructor ? value : null;
+}

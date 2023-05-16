@@ -6,6 +6,10 @@ export const Y: Vector2DIndex = 1;
 
 export type Vector2D = [x: number, y: number];
 
+export function isVectorFinite(vector: Readonly<Vector2D>): boolean {
+  return isFinite(vector[X]) && isFinite(vector[Y]);
+}
+
 export function vectorsEqual(
   first: Readonly<Vector2D>,
   second: Readonly<Vector2D>,
@@ -60,6 +64,13 @@ export function vectorBetween(
   return [second[X] - first[X], second[Y] - first[Y]];
 }
 
+export function vectorAverage(
+  first: Readonly<Vector2D>,
+  second: Readonly<Vector2D>,
+): Vector2D {
+  return [(first[X] + second[X]) / 2, (first[Y] + second[Y]) / 2];
+}
+
 export function vectorTimes(
   vector: Readonly<Vector2D>,
   multiplier: number,
@@ -68,16 +79,12 @@ export function vectorTimes(
 }
 
 // TODO verify that this works
-export function scale(
-  vector: Readonly<Vector2D>,
-  hypotenuse: number,
-): Vector2D {
-  const currentHypotenuse = vectorLength(vector);
-  if (currentHypotenuse === 0) {
+export function scale(vector: Readonly<Vector2D>, newLength: number): Vector2D {
+  const currentLength = vectorLength(vector);
+  if (currentLength === 0) {
     return [0, 0];
   }
-  const ratio = hypotenuse / currentHypotenuse;
-  return [vector[X] * ratio, vector[Y] * ratio];
+  return vectorTimes(vector, newLength / currentLength);
 }
 
 // TODO remove

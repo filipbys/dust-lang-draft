@@ -1,0 +1,37 @@
+.Dust.textLeaf,
+.Dust.textGroup {
+  white-space: pre;
+}
+
+.Dust.textGroup {
+  display: inline;
+  margin-block: 2px;
+  background-color: rgba(0,0,0,0.08);
+}
+
+/* .Dust.textLeaf.identifier:hover {
+  outline: 2px solid rgb(140, 140, 255);
+  background-color: white;
+} */
+
+.Dust.isSelected.textGroup {
+  background-color: rgba(0,0,0,0.04);
+}
+
+.Dust.textLeaf.identifier:hover:not(:focus),
+.Dust.textLeaf.identifier.isSelected:not(:focus) {
+  outline: 2px solid rgb(140, 140, 255);
+}
+
+.Dust.textLeaf.identifier:hover,
+.Dust.textLeaf.identifier.isSelected {
+  background-color: white;
+  z-index: 1;
+}
+
+
+
+/* TODO need to do some parsing and add some css classes for this to work the way we want. */
+/* .Dust.textGroup[data-group-type="()"] > :first-child {
+  font-weight: bold;
+} */

@@ -1,6 +1,5 @@
 import {
   children,
-  Component,
   ComponentProps,
   Match,
   ParentProps,
@@ -8,9 +7,7 @@ import {
   Switch,
 } from "solid-js";
 import { filterByType } from "../data-structures/Arrays";
-import { PhysicsElement } from "../math/Physics";
 import { HTMLPhysicsSimulationElement } from "../html-custom-elements/HTMLPhysicsSimulationElement";
-import { PhysicsSimulationElementState } from "../math/PhysicsSimulation";
 import { BubbleWrapper } from "./BubbleWrapper";
 
 type HTMLPhysicsSimulationElementProps = ComponentProps<"element"> &
@@ -23,17 +20,13 @@ declare module "solid-js" {
     interface IntrinsicElements {
       [HTMLPhysicsSimulationElement.TAG]: HTMLPhysicsSimulationElementProps;
     }
-
-    interface ExplicitProperties extends PhysicsElement {
-      state: PhysicsSimulationElementState;
-    }
   }
 }
 
-export const IntoHTMLPhysicsSimulationComponent: Component<
-  ComponentProps<"element"> &
-    ParentProps<{ playSimulation: () => void; extraClasses: {} }>
-> = (props) => {
+export function IntoHTMLPhysicsSimulationComponent(
+  props: ComponentProps<"element"> &
+    ParentProps<{ playPhysicsSimulation: () => void; extraClasses: {} }>,
+) {
   // TODO this is only ever used with a single DustExpressionView as its child ==> inline that and just take the expression directly through the props. Then instead of checking the instance type, we can just write (props.expression.kind === "module")
   const resolvedChildren = children(() => props.children);
   const isPhysicsElement = () => {
@@ -54,7 +47,7 @@ export const IntoHTMLPhysicsSimulationComponent: Component<
       </Match>
     </Switch>
   );
-};
+}
 
 // TODO move to another file
 export function getAllPhysicsElements(
@@ -63,10 +56,4 @@ export function getAllPhysicsElements(
   return element.getElementsByTagName(
     HTMLPhysicsSimulationElement.TAG,
   ) as HTMLCollectionOf<HTMLPhysicsSimulationElement>;
-}
-
-export function getDirectPhysicsElementChildren(
-  element: HTMLPhysicsSimulationElement,
-): HTMLPhysicsSimulationElement[] {
-  return filterByType(element.children, HTMLPhysicsSimulationElement);
 }

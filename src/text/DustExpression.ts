@@ -1,6 +1,6 @@
-import { TextNode } from "./TextTree";
 import { ReadonlyArray } from "../data-structures/Arrays";
 import { assert } from "../development/Errors";
+import { isOdd } from "../math/Numbers";
 
 // TODO convert to JSON-schema or protobuf or some other cross-language format
 // TODO define plain functions for everything below marked "getter" and remove the corresponding fields, that way expressions are trivially serializable to JSON.
@@ -44,10 +44,8 @@ export type DustModuleExpression = BaseExpression &
   ExpressionGroup &
   Readonly<{ kind: "module" }>;
 
-export function moduleName(module: DustModuleExpression): string {
-  const moduleName = module.expressions[0];
-  assert(moduleName.kind === "identifier");
-  return moduleName.identifier;
+export function moduleName(module: DustModuleExpression): DustExpression {
+  return module.expressions[0];
 }
 
 export function modulePublicElements(
@@ -108,24 +106,61 @@ export type DustFunctionCallExpression = BaseExpression &
   }>;
 // TODO getFunction(DustFunctionCallExpression), getOperands(DustFunctionCallExpression)
 
+// (if <expr> then <expr>)
+// (if <expr> then <expr> else <expr>)
+// (
+//   if <expr> then <expr>
+//   if <expr> then <expr>
+//             else <expr>
+// )
 export type DustIfThenExpression = BaseExpression &
   ExpressionGroup &
   Readonly<{ kind: "ifThen" }>;
+
 export type DustIfThenBranch = Readonly<{
   condition: DustExpression;
   result: DustExpression;
 }>;
 
-export function getIfThenBranches(
-  expression: DustIfThenExpression,
-): ReadonlyArray<DustIfThenBranch[]> {
-  return []; // TODO
+export function getIfThenBranches({
+  expressions,
+}: DustIfThenExpression): ReadonlyArray<DustIfThenBranch> {
+  if (expressions.length < 4 || isOdd(expressions.length)) {
+    throw `If expression must have an even number of terms and at least 4 terms, got ${expressions.length}`;
+  }
+  let cases: DustIfThenBranch[] = [];
+  for (let index = 0; index < expressions.length; index += 4) {
+    const ifToken = expressions[index];
+    const condition = expressions[index + 1];
+    const thenToken = expressions[index + 2];
+    const result = expressions[index + 3];
+
+    assert(isIdentifierEqualTo(ifToken, "if"), "Expected 'if', got", ifToken);
+    assert(
+      isIdentifierEqualTo(thenToken, "then"),
+      "Expected 'then', got",
+      thenToken,
+    );
+
+    cases.push({ condition, result });
+  }
+  return cases; // TODO return a live ReadonlyArray
 }
 
-export function getElseBranch(
-  expression: DustIfThenExpression,
-): DustExpression | undefined {
-  return undefined; // TODO
+export function getElseBranch({
+  expressions,
+}: DustIfThenExpression): DustExpression | undefined {
+  const length = expressions.length;
+  const nextToLast = expressions[length - 2]!;
+  return isIdentifierEqualTo(nextToLast, "else")
+    ? expressions[length - 1]!
+    : undefined;
+}
+
+function isIdentifierEqualTo(expression: DustExpression, identifier: string) {
+  return (
+    expression.kind === "identifier" && expression.identifier === identifier
+  );
 }
 
 export type DustDeclarationExpression = BaseExpression &

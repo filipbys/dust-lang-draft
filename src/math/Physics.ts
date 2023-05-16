@@ -1,4 +1,6 @@
+import { assert } from "../development/Errors";
 import { gapBetween } from "./Geometry";
+import { clamp } from "./Numbers";
 import {
   distanceBetween,
   Vector2D,
@@ -9,6 +11,7 @@ import {
   Y,
   vectorLengthSquared,
   vectorBetween,
+  isVectorFinite,
 } from "./Vectors";
 
 // TODO consider switching to different units like mm instead of px
@@ -17,11 +20,10 @@ export interface PhysicsElement {
   center: Readonly<Vector2D>; // pixels
   velocity: Readonly<Vector2D>; // pixels/millis.
   readonly force: Vector2D; // characters * pixels/(millis^2). Mutable since it changes the most often per frame
-
   readonly mass: number; // characters
 }
 
-export function kineticEnergy(element: PhysicsElement): number {
+export function kineticEnergy(element: Readonly<PhysicsElement>): number {
   return (element.mass * vectorLengthSquared(element.velocity)) / 2;
 }
 
@@ -34,7 +36,7 @@ export interface PhysicsConstants {
 
 // positive force => speed up along that direction, negative force => accellerate in the opposite direction
 export function addForceAlong(
-  element: PhysicsElement,
+  element: Readonly<PhysicsElement>,
   direction: Vector2D,
   force: number,
 ) {
@@ -46,8 +48,8 @@ export function addForceAlong(
 
 // positive force => attract, negative force => repel
 export function addForceBetween(
-  first: PhysicsElement,
-  second: PhysicsElement,
+  first: Readonly<PhysicsElement>,
+  second: Readonly<PhysicsElement>,
   force: number,
 ) {
   const direction: Vector2D = vectorBetween(first.center, second.center);
@@ -60,26 +62,28 @@ export function addForceBetween(
   second.force[Y] -= forceVector[Y];
 }
 
-function newVelocity(
-  element: PhysicsElement,
+function newVelocityInDimension(
+  element: Readonly<PhysicsElement>,
   dimension: Vector2DIndex,
   constants: PhysicsConstants,
   deltaMillis: number,
 ): number {
+  assert(isVectorFinite(element.velocity), element.velocity);
+  assert(isVectorFinite(element.force), element.force);
+  assert(isVectorFinite(element.center), element.center);
+
   // force: pixels*mass/millis^2
   // accelleration: pixels/millis^2
   const accelleration = element.force[dimension] / element.mass; // (F = ma) => (a = F / m)
 
+  assert(isFinite(accelleration));
   // velocity: pixels/millis
-  let newVelocity =
+  const newVelocity =
     (element.velocity[dimension] + accelleration * deltaMillis) *
     constants.dragMultiplier ** deltaMillis;
 
-  return (
-    newVelocity -
-    Math.sign(newVelocity) *
-      Math.min(constants.frictionCoefficient, Math.abs(newVelocity))
-  );
+  assert(isFinite(newVelocity));
+  return newVelocity;
 }
 
 export function updateVelocityAndPosition(
@@ -87,14 +91,19 @@ export function updateVelocityAndPosition(
   constants: PhysicsConstants,
   deltaMillis: number,
 ) {
-  element.velocity = [
-    newVelocity(element, X, constants, deltaMillis),
-    newVelocity(element, Y, constants, deltaMillis),
+  assert(deltaMillis > 0);
+  const frictionlessVelocity: Vector2D = [
+    newVelocityInDimension(element, X, constants, deltaMillis),
+    newVelocityInDimension(element, Y, constants, deltaMillis),
   ];
 
-  if (vectorLength(element.velocity) > constants.maxVelocity) {
-    element.velocity = scale(element.velocity, constants.maxVelocity);
-  }
+  const newVelocityMagnitude =
+    vectorLength(frictionlessVelocity) - constants.frictionCoefficient;
+
+  element.velocity = scale(
+    frictionlessVelocity,
+    clamp(0, newVelocityMagnitude, constants.maxVelocity),
+  );
 
   element.center = [
     element.center[X] + element.velocity[X] * deltaMillis,
@@ -113,8 +122,8 @@ export namespace Springs {
   }
 
   export function connectCenters(
-    first: PhysicsElement,
-    second: PhysicsElement,
+    first: Readonly<PhysicsElement>,
+    second: Readonly<PhysicsElement>,
     springConstant: number,
     idealDistance: number,
   ): number {
@@ -128,8 +137,8 @@ export namespace Springs {
   }
 
   export function connectBorders(
-    first: PhysicsElement,
-    second: PhysicsElement,
+    first: Readonly<PhysicsElement>,
+    second: Readonly<PhysicsElement>,
     springConstant: number,
     idealGap: number,
   ): number {
@@ -143,8 +152,8 @@ export namespace Springs {
   }
 
   export function preventCollisions(
-    first: PhysicsElement,
-    second: PhysicsElement,
+    first: Readonly<PhysicsElement>,
+    second: Readonly<PhysicsElement>,
     springConstant: number,
     idealMinimumGap: number = 0,
   ): number {
@@ -164,8 +173,8 @@ export namespace Springs {
   }
 
   export function keepWithin(
-    inner: PhysicsElement,
-    outer: PhysicsElement,
+    inner: Readonly<PhysicsElement>,
+    outer: Readonly<PhysicsElement>,
     springConstant: number,
     idealMinimumGapToOuter: number,
   ): number {

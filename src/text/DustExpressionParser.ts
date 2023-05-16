@@ -1,18 +1,13 @@
-import type {
-  TextNode,
-  TextGroup,
-  TextGroupType,
-  TextLeaf,
-  GenericTextGroup,
-} from "./TextTree";
-import { toUTF8 } from "./TextTree";
-import type {
-  DustExpression,
-  DustIfThenBranch,
-  DustLeafExpression,
-} from "./DustExpression";
+import type { DustExpression, DustLeafExpression } from "./DustExpression";
 import { isOdd } from "../math/Numbers";
-import { assert } from "../development/Errors";
+import {
+  GenericTextGroup,
+  TextGroup,
+  TextLeaf,
+  TextNode,
+  isBlank,
+  toUTF8,
+} from "./TextTree";
 
 export type ParsedTextNode = ParsedTextLeaf | ParsedTextGroup;
 
@@ -25,20 +20,17 @@ export type ParsedTextGroup = Readonly<
 > &
   Readonly<{ expression: DustExpression }>;
 
-// TODO return ParsedTextNode instead
-export function parseExpression(textTree: TextNode): DustExpression {
-  if (textTree.kind === "leaf") {
-    return Leaves.parseLeaf(textTree.text);
+// TODO return a ParsedTextNode that implements the DustExpression interface lazily instead
+export function parseExpression(node: TextNode): DustExpression {
+  if (node.textTreeKind === "leaf") {
+    return Leaves.parseLeaf(node.text);
   } else {
-    return Groups.parseGroup(textTree);
+    return Groups.parseGroup(node);
   }
 }
 
 namespace Leaves {
   export function parseLeaf(text: string): DustExpression {
-    if (splitByWhitespace(text) !== undefined) {
-      throw "Error: leaf cannot contain whitespace"; // TODO
-    }
     return splitByPunctuation(text);
   }
 
@@ -84,13 +76,77 @@ namespace Leaves {
   }
 }
 
-function splitByWhitespace(text: string): string[] | undefined {
-  const items = text.split(/\s+/);
-  if (items.length <= 1) {
-    return undefined;
-  }
-  return items;
-}
+// function splitByWhitespace(text: string): string[] | undefined {
+//   const items = text.split(/\s+/);
+//   if (items.length <= 1) {
+//     return undefined;
+//   }
+//   return items;
+// }
+
+// NB: not all of these are actually used, but they're all reserved
+// TODO convert to a type-info object like GROUP_TYPE_INFO
+export const BINARY_OPERATORS: readonly string[] = [
+  // Arithmetic
+  "+",
+  "-",
+  "±",
+  "*",
+  "×",
+  "**",
+  "/",
+  "÷",
+  "//",
+  "%",
+  "^",
+
+  // Comparison
+  "<",
+  ">",
+  "≤",
+  "≥",
+  "=",
+  "≠",
+  "≡",
+  "≢",
+
+  // Binary Logic
+  "and",
+  "or",
+  "xor",
+  "is",
+  "in", // No 'contains': just use container.contains
+
+  // Sets
+  "∪",
+  "∩",
+  "⊂",
+  "⊃",
+  "⊆",
+  "⊇", // TODO there's more
+
+  // Concat?
+  "++",
+
+  // Ranges
+  "to",
+  "up-to", // E.g. (1 to 4) or (0 up-to array.length)
+
+  // TODO!!!!!!!!
+  // the above must be separated from identifiers by whitespace, e.g. (a + b - c),
+  // whereas the below do not, e.g. (a.b?c!d)
+  // TODO!!!!!!!!
+
+  // Value declarations
+  ":", // TODO need to disambiguate '=' as a boolean operator vs as a declaration operator
+
+  // Punctuation
+  ".",
+  "?",
+  "!",
+  ",",
+  "",
+];
 
 namespace Groups {
   export function parseGroup(group: TextGroup): DustExpression {
@@ -124,106 +180,19 @@ namespace Groups {
     };
   }
 
-  function splitIfIsLeafAndContainsWhitespace(
-    node: TextNode,
-  ): readonly TextNode[] | undefined {
-    if (node.kind !== "leaf") {
-      return undefined;
-    }
-    return splitByWhitespace(node.text)
-      ?.filter((text) => text.length > 0)
-      .map((text) => ({ kind: "leaf", text }));
-  }
-
-  function splitLeavesAtWhitespace(
-    nodes: readonly TextNode[],
-  ): readonly TextNode[] {
-    const newNodes: TextNode[] = [];
-    nodes.forEach((node) => {
-      const items = splitIfIsLeafAndContainsWhitespace(node);
-      if (items !== undefined) {
-        newNodes.push(...items);
-      } else {
-        newNodes.push(node);
-      }
-    });
-    return newNodes;
-  }
-
-  // NB: not all of these are actually used, but they're all reserved
-  // TODO convert to a type-info object like GROUP_TYPE_INFO
-  const BINARY_OPERATORS: readonly string[] = [
-    // Arithmetic
-    "+",
-    "-",
-    "±",
-    "*",
-    "×",
-    "**",
-    "/",
-    "÷",
-    "//",
-    "%",
-    "^",
-
-    // Comparison
-    "<",
-    ">",
-    "≤",
-    "≥",
-    "=",
-    "≠",
-    "≡",
-    "≢",
-
-    // Binary Logic
-    "and",
-    "or",
-    "xor",
-    "is",
-    "in", // No 'contains': just use container.contains
-
-    // Sets
-    "∪",
-    "∩",
-    "⊂",
-    "⊃",
-    "⊆",
-    "⊇", // TODO there's more
-
-    // Concat?
-    "++",
-
-    // Ranges
-    "to",
-    "up-to", // E.g. (1 to 4) or (0 up-to array.length)
-
-    // TODO!!!!!!!!
-    // the above must be separated from identifiers by whitespace, e.g. (a + b - c),
-    // whereas the below do not, e.g. (a.b?c!d)
-    // TODO!!!!!!!!
-
-    // Value declarations
-    ":", // TODO need to disambiguate '=' as a boolean operator vs as a declaration operator
-
-    // Punctuation
-    ".",
-    "?",
-    "!",
-    ",",
-    "",
-  ];
-
   function parseParenthesizedGroup(group: TextGroup): DustExpression {
     // TODO need to parse Declarations differently
 
-    const expressions: DustExpression[] = [];
+    const expressions: DustExpression[] = []; // TODO make this a live ReadonlyArray<DustExpression>
     let functionCallKind: "prefix" | "binary" = "prefix";
 
-    splitLeavesAtWhitespace(group.nodes).forEach((node, index) => {
+    group.nodes.forEach((node) => {
+      if (isBlank(node)) {
+        return;
+      }
       if (
-        isOdd(index) &&
-        node.kind === "leaf" &&
+        isOdd(expressions.length) &&
+        node.textTreeKind === "leaf" &&
         BINARY_OPERATORS.includes(node.text)
       ) {
         functionCallKind = "binary";
@@ -258,63 +227,14 @@ namespace Groups {
 
           return {
             kind: "module",
-            name: expressions[1],
-            publicElements: publicElements.expressions,
-            privateElements: privateElements.expressions,
+            expressions: expressions.slice(1), // TODO use a live ReadonlyArray<DustExpression> slice
             singleLine: group.singleLine,
           };
         }
-        function isIdentifierEqualTo(
-          expression: DustExpression,
-          identifier: string,
-        ) {
-          return (
-            expression.kind === "identifier" &&
-            expression.identifier === identifier
-          );
-        }
         if (first.identifier === "if") {
-          // e.g.:
-          // (if <expr> then <expr>)
-          // (if <expr> then <expr> else <expr>)
-          // (
-          //   if <expr> then <expr>
-          //   if <expr> then <expr>
-          //             else <expr>
-          // )
-          if (expressions.length < 4 || isOdd(expressions.length)) {
-            throw `If expression must have an even number of terms and at least 4 terms, got ${expressions.length}`;
-          }
-          let cases: DustIfThenBranch[] = [];
-          for (let index = 0; index < expressions.length; index += 4) {
-            const ifToken = expressions[index];
-            const condition = expressions[index + 1];
-            const thenToken = expressions[index + 2];
-            const result = expressions[index + 3];
-
-            assert(
-              isIdentifierEqualTo(ifToken, "if"),
-              "Expected 'if', got",
-              ifToken,
-            );
-            assert(
-              isIdentifierEqualTo(thenToken, "then"),
-              "Expected 'then', got",
-              thenToken,
-            );
-
-            cases.push({ condition, result });
-          }
-
-          const nextToLast = expressions.at(-2)!;
-          const elseBranch = isIdentifierEqualTo(nextToLast, "name")
-            ? expressions.at(-1)!
-            : undefined;
-
           return {
             kind: "ifThen",
-            cases,
-            elseBranch,
+            expressions, // TODO use a live ReadonlyArray<DustExpression> slice
             singleLine: group.singleLine,
           };
         }
@@ -339,12 +259,11 @@ namespace Groups {
     kind: "block" | "array",
     group: TextGroup,
   ): DustExpression {
-    const expressions = splitLeavesAtWhitespace(group.nodes).map(
-      parseExpression,
-    );
     return {
       kind,
-      expressions,
+      expressions: group.nodes
+        .filter((node) => !isBlank(node))
+        .map(parseExpression),
       singleLine: group.singleLine,
     };
   }

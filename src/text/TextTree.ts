@@ -1,19 +1,45 @@
 export type TextNode = TextLeaf | TextGroup;
 
-export type TextLeaf = Readonly<{ kind: "leaf"; text: string }>;
+export interface TextLeaf {
+  readonly textTreeKind: "leaf";
+  readonly text: string;
+}
 
-export type TextGroupType = keyof typeof GROUP_TYPE_INFO;
+export interface TextGroup
+  extends Readonly<GenericTextGroup<readonly TextNode[]>> {}
 
-export type TextGroup = Readonly<GenericTextGroup<readonly TextNode[]>>;
-
-type MutableTextGroup = GenericTextGroup<TextNode[]>;
-
-export type GenericTextGroup<TextNodes> = {
-  readonly kind: "group";
+export interface GenericTextGroup<TextNodes> {
+  readonly textTreeKind: "group";
   readonly groupType: TextGroupType;
   readonly nodes: TextNodes;
   singleLine: boolean;
-};
+}
+
+export function isLeaf(node: TextNode): node is TextLeaf {
+  return node.textTreeKind === "leaf";
+}
+
+export function isGroup(node: TextNode): node is TextGroup {
+  return node.textTreeKind === "group";
+}
+
+export function asLeaf(node: TextNode): TextLeaf | null {
+  return isLeaf(node) ? node : null;
+}
+
+export function asGroup(node: TextNode): TextGroup | null {
+  return isGroup(node) ? node : null;
+}
+
+export function isBlank(node: TextNode): boolean {
+  return isLeaf(node) && WHITESPACE_REGEX.test(node.text);
+}
+
+export function isNotBlank(node: TextNode): boolean {
+  return !isBlank(node);
+}
+
+export type TextGroupType = keyof typeof GROUP_TYPE_INFO;
 
 // TODO JS string encoding is WEIRD. See https://www.infoq.com/presentations/js-character-encoding/
 // Current index-and-.length-based approach is definitely broken for some kinds of inputs
@@ -66,6 +92,8 @@ const GROUP_TYPE_INFO = {
   // ( entry-to-text = ( (λ (key : Any) (value : Any)) : Text = “$(key) -> $(value)” ) )
 } as const;
 
+type MutableTextGroup = GenericTextGroup<TextNode[]>;
+
 export function groupStart(groupType: TextGroupType): string {
   return groupType[0];
 }
@@ -105,13 +133,25 @@ export type ParseResult =
   | Readonly<{ kind: "success"; node: TextNode }>
   | ParseError;
 
+const WHITESPACE_REGEX = /(\s+)/;
+function addTextChunk(textChunk: string, nodes: TextNode[]) {
+  for (const item of textChunk.split(WHITESPACE_REGEX)) {
+    if (item.length > 0) {
+      nodes.push({
+        textTreeKind: "leaf",
+        text: item,
+      });
+    }
+  }
+}
+
 // TODO:
 // - split leaves by whitespace, keeping separate "whitespace" tokens. That way double-clicks will always select an entire word, even if it's dash-separated.
 // - parse punctuation: add a new kind of group that doesn't have a start or end but rather groups elements by connecting them with punctuation and no whitespace. Only allowed for single-line groups: it's a convenience for things like (a.foo + b.bar + c.baz). Punctuation groups are still given their own <div> with a partially-transparent background just like any other group.
 export function toTextTree(text: string): ParseResult {
   let stack: MutableTextGroup[] = [];
   let currentGroup: MutableTextGroup = {
-    kind: "group",
+    textTreeKind: "group",
     groupType: "()",
     nodes: [],
     singleLine: true,
@@ -121,7 +161,7 @@ export function toTextTree(text: string): ParseResult {
     endCurrentTextChunk();
     stack.push(currentGroup);
     currentGroup = {
-      kind: "group",
+      textTreeKind: "group",
       groupType,
       nodes: [],
       singleLine: true,
@@ -138,7 +178,7 @@ export function toTextTree(text: string): ParseResult {
   function endCurrentTextChunk() {
     if (currentTextChunkStartIndex < currentIndex) {
       const textChunk = text.slice(currentTextChunkStartIndex, currentIndex);
-      currentGroup.nodes.push({ kind: "leaf", text: textChunk });
+      addTextChunk(textChunk, currentGroup.nodes);
       currentGroup.singleLine &&= !textChunk.includes("\n");
     }
     currentTextChunkStartIndex = currentIndex + 1;
@@ -199,7 +239,7 @@ function multilineGroupToUTF8(group: TextGroup, indent: string) {
 
 // TODO actually JS strings are UTF-16. Rename to toJsString
 export function toUTF8(node: TextNode, indent: string = ""): string {
-  if (node.kind === "leaf") {
+  if (node.textTreeKind === "leaf") {
     return indent + node.text;
   }
   const group = node;

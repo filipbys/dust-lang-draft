@@ -6,30 +6,25 @@ import {
   onMount,
 } from "solid-js";
 import { HTMLPhysicsSimulationElement } from "../html-custom-elements/HTMLPhysicsSimulationElement";
-import { PhysicsSimulationElementState } from "../math/PhysicsSimulation";
 import { observeChildrenSizes } from "../observers/ChildSizeMutationObserver";
 import { safeCast } from "../type-utils/DynamicTypeChecks";
 import { offsetDiameter } from "../math/Geometry";
 
-export const BubbleWrapper: Component<
-  ComponentProps<"element"> &
+export function BubbleWrapper(
+  props: ComponentProps<"element"> &
     ParentProps<{
-      state: PhysicsSimulationElementState;
-      playSimulation: () => void;
+      state: "free" | "pinned";
+      playPhysicsSimulation: () => void;
       extraClasses: {};
-    }>
-> = (props) => {
+    }>,
+) {
   let wrapper: HTMLPhysicsSimulationElement;
 
   onMount(() => {
-    wrapper.callbacks = {
-      onSimulationFrame: updateBubbleWrapper,
-      playSimulation: props.playSimulation,
-    };
+    wrapper.playPhysicsSimulation = props.playPhysicsSimulation;
 
     wrapper.state = props.state;
     wrapper.centeredWithinParent = true;
-    updateBubbleWrapper(wrapper);
 
     const cleanup = observeChildrenSizes(
       wrapper,
@@ -43,18 +38,17 @@ export const BubbleWrapper: Component<
     <dust-physics-simulation-element
       ref={wrapper!}
       classList={{
-        ...props.extraClasses,
         bubbleWrapper: true,
+        ...props.extraClasses,
       }}
       {...props}
     >
+      {/* <span class="debug_info"></span> */}
       {props.children}
-      {/* <span id="debug_info"></span> */}
     </dust-physics-simulation-element>
   );
-};
+}
 
-// TODO export a BubbleWrapper component instead
 function updateBubbleWrapper(wrapper: HTMLPhysicsSimulationElement) {
   // TODO uncomment when done debugging
   // if (wrapper.childElementCount !== 1) {
@@ -62,7 +56,6 @@ function updateBubbleWrapper(wrapper: HTMLPhysicsSimulationElement) {
   // }
   const wrappedElement = safeCast(wrapper.firstElementChild!, HTMLElement);
 
-  wrappedElement.classList.add("centeredWithinParent"); // TODO add this in the jsx
   wrapper.offsetDiameter = Math.max(1, offsetDiameter(wrappedElement));
 
   // TODO set the element's mass based on the number of characters in the expression

@@ -1,0 +1,17 @@
+.Dust.circle.positionMarker {
+  position: absolute;
+
+  --left-percent: 0%;
+  --top-percent: 0%;
+  left: var(--left-percent);
+  top: var(--top-percent);
+  transform: translateX(-50%) translateY(-50%);
+}
+
+.Dust.circle.positionMarker.pointer {
+  background-color: rgba(100, 100, 255, 0.6);
+}
+
+.Dust.circle.positionMarker.focus {
+  background-color: rgba(100, 100, 255, 0.2);
+}

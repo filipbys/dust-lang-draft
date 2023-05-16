@@ -12,6 +12,19 @@ dust-physics-simulation-element {
   top: 50%;
   transform: translateX(-50%) translateY(-50%)
 }
+
+dust-physics-simulation-element > :first-child {
+  --scale: 1.0;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translateX(-50%) translateY(-50%) scale(var(--scale))
+}
+
+dust-physics-simulation-element > .circle:first-child {
+  --diameter: calc(100% / var(--scale));
+}
+
 /* TODO figure out why we need absolute for identifiers but relative for everything else (with absolute, divs shrink and force their contents to overflow for some reason) */
 .centeredWithinParent.Dust.identifier {
   position: absolute;

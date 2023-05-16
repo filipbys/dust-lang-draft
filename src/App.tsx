@@ -2,21 +2,26 @@ import {
   batch,
   Component,
   createEffect,
+  createSelector,
   createSignal,
   on,
   onMount,
 } from "solid-js";
 import "./styles.css";
 
-import { TextNode, toTextTree } from "./text/TextTree";
-import { parseExpression } from "./text/DustExpressionParser";
+import { BINARY_OPERATORS, parseExpression } from "./text/DustExpressionParser";
 import { createStore, produce, SetStoreFunction, Store } from "solid-js/store";
 
 import * as jsonpatch from "fast-json-patch";
-import { TextTreeView } from "./views/TextTreeView";
+// import { TextTreeView } from "./views/TextTreeView";
 import { Window } from "./views/Window";
-import { logAndThrow } from "./development/Errors";
+import { assert, logAndThrow } from "./development/Errors";
 import { DustExpression } from "./text/DustExpression";
+import { TextNode, toTextTree } from "./text/TextTree";
+import { TextNodeEditor } from "./text-views/TextNodeEditor";
+import { MACROS } from "./text-views/Macros";
+import { assertIsInstance } from "./type-utils/DynamicTypeChecks";
+import { getJSONPointer } from "./text-views/Identifiers";
 
 function applyJsonPatch<T>(
   setStore: SetStoreFunction<T>,
@@ -27,14 +32,101 @@ function applyJsonPatch<T>(
   );
 }
 
-const PlainTextEditor: Component = () => {
+function selectionRanges(selection: Selection): IterableIterator<Range> {
+  let index = 0;
+  return {
+    next(): IteratorResult<Range> {
+      const range = selection.getRangeAt(index);
+      index++;
+      return { value: range, done: index === selection.rangeCount };
+    },
+    [Symbol.iterator]() {
+      return this;
+    },
+  };
+}
+
+function closestElement(node: Node): Element | null {
+  if (node instanceof Element) {
+    return node;
+  }
+  return node.parentElement;
+}
+
+function removeRootName(path: string): string {
+  return path.slice(path.indexOf("/")); // TODO check for off-by-one
+}
+
+function getLastItem(path: string): string {
+  return path.slice(path.lastIndexOf("/") + 1); // TODO check for off-by-one
+}
+
+function handleInputEvent(
+  root: TextNode,
+  event: InputEvent,
+  selection: Selection,
+): jsonpatch.Operation[] {
+  // TODO batch()
+  const operations: jsonpatch.Operation[] = [];
+  if (event.inputType === "insertText") {
+    const addedText = event.data;
+    if (!addedText) {
+      return operations;
+    }
+    for (const range of selectionRanges(selection)) {
+      const startElement = closestElement(range.startContainer)!;
+      const endElement = closestElement(range.endContainer)!;
+      if (startElement === endElement) {
+        const currentText = startElement.textContent ?? "";
+        const newText =
+          currentText.slice(0, range.startOffset) +
+          addedText +
+          currentText.slice(range.endOffset);
+
+        operations.push({
+          path: removeRootName(startElement.id),
+          op: "replace",
+          value: { textTreeKind: "leaf", text: newText },
+        } satisfies jsonpatch.ReplaceOperation<TextNode>);
+      } else {
+        const commonAncestor = closestElement(range.commonAncestorContainer)!;
+        const path = removeRootName(commonAncestor.id);
+        assert(
+          getLastItem(path) === "nodes",
+          commonAncestor.id,
+          path,
+          getLastItem(path),
+        );
+        const nodes: TextNode[] = jsonpatch.getValueByPointer(root, path);
+
+        const startIndex = parseInt(getLastItem(startElement.id));
+        const endIndex = parseInt(getLastItem(endElement.id));
+
+        operations.push({
+          path,
+          op: "replace",
+          // TODO!!! update the start and end nodes too! Part of them might have gotten deleted
+          value: [
+            ...nodes.slice(0, startIndex + 1),
+            { textTreeKind: "leaf", text: addedText },
+            ...nodes.slice(endIndex),
+          ],
+        } satisfies jsonpatch.ReplaceOperation<TextNode[]>);
+      }
+    }
+  }
+  // TODO
+  return operations;
+}
+
+function PlainTextEditor() {
   // TODO instead of synchronizing two stores, create a new tree type that stores the text nodes and their corresponding expressions?
   // Or how about this: have a Map<text-node-id, DustExpression> to cache the parsed expression for each text node. When a DOM text node changes, walk the tree up and re-parse each node, updating its entry in the map. Finally, take a diff between the new root and the previous one (should be fast since most of the tree will be shared), and apply that diff to the DustExpression store using setExpression. Alternatively try just setExpression(newRootExpression), but I suspect that will regenerate the entire DOM tree.
   // We could even represent this with customElements that contain both text data and parsed DustExpression data, and users can switch from showing one or the other, or even both in a little local split-screen, all just by toggling some css classes.
   // ACTUALLY why not just make parseTextTree() generic so it can return a DustExpression OR a DustExpressionView! The view is reactive on the *text tree* rather than the expression. If the expression is changed (e.g. by an editor refactor command), it will update the text tree, which in turn will update the DOM. If the user types input, that changes the text tree, which changes both the DOM and the dust expression tree. although... if we still need to update the expression tree for other tools, why not keep basing the DOM tree off of that like we are now...
   // ==> But maybe we can make parse() generic over Array.map vs solidjs.mapArray?
   const [textTree, setTextTree] = createStore<TextNode>({
-    kind: "group",
+    textTreeKind: "group",
     groupType: "()",
     nodes: [],
     singleLine: true,
@@ -184,86 +276,23 @@ const PlainTextEditor: Component = () => {
     // window.getSelection()!.removeAllRanges();
   }
 
-  function beforeTextTreeViewInput(this: HTMLElement, event: InputEvent) {
-    const selection = window.getSelection();
-    console.log("beforeTextTreeViewInput", this, event, selection);
-    if (
-      event.inputType === "insertParagraph" ||
-      event.inputType === "insertLineBreak"
-    ) {
-      event.preventDefault();
-      console.log(selection?.focusNode);
-    }
-    // TODO handle changes here
-  }
-
-  function onTextTreeSelect(this: HTMLElement, event: Event) {
-    // TODO track the current selection
-  }
-
   function beforeExpressionViewInput(event: InputEvent) {
     console.log("beforeExpressionViewInput", event, window.getSelection());
     event.preventDefault();
     // TODO handle changes here
   }
 
-  let textTreeViewDiv: HTMLDivElement;
-  onMount(() => {
-    new MutationObserver((entries) => {
-      console.log("text tree changed:", entries);
-    }).observe(textTreeViewDiv, {
-      childList: true,
-      characterData: true,
-      characterDataOldValue: true,
-      subtree: true,
-    });
-  });
-
   const initialText = inputText(); // let contentEditable take over
   return (
     <div>
       {/* TODO input for font size */}
-      <code id="debug-input-box" contentEditable={true} onInput={onInput}>
+      <code class="debug-input-box" contentEditable={true} onInput={onInput}>
         {initialText}
       </code>
       <br />
       <button onClick={() => alert("TODO")}>Save</button>
       <br />
-      <div
-        contentEditable={true}
-        onBeforeInput={beforeTextTreeViewInput}
-        style={{
-          "padding": "10px",
-          "display": "inline-block",
-          "border": "3px solid black",
-          "border-radius": "10px",
-        }}
-        ref={textTreeViewDiv!}
-      >
-        <TextTreeView id="root" node={textTree} />
-      </div>
-      <br />
-      <div contentEditable={false} onBeforeInput={beforeExpressionViewInput}>
-        {/* <DustExpressionView
-          {...{
-            id: "root",
-            depthLimit: 42,
-            onFocusIn: onElementFocusIn,
-            onFocusOut: onElementFocusOut,
-            expression,
-            playSimulation: () => {},
-          }}
-        /> */}
-        <Window
-          expressions={[expression]}
-          baseProps={{
-            id: "plain-text-editor-output",
-            depthLimit: 42, // TODO
-            onFocusIn: onElementFocusIn,
-            onFocusOut: onElementFocusOut,
-          }}
-        />
-      </div>
+      <Window roots={[textTree]} id="ExampleWindow" />
       <br />
       {/* Readonly view to make sure updates are reflected */}
       {/* <div>
@@ -277,9 +306,9 @@ const PlainTextEditor: Component = () => {
       </div> */}
     </div>
   );
-};
+}
 
-const App: Component = () => {
+function App() {
   try {
     return (
       <div class="Dust app">
@@ -289,6 +318,6 @@ const App: Component = () => {
   } catch (error) {
     console.error(error);
   }
-};
+}
 
 export default App;

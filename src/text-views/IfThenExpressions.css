@@ -1,0 +1,15 @@
+
+.Dust.ifThenExpression {
+  display: inline-grid;
+  grid-template-columns: auto auto auto auto;
+  align-items: center;
+  justify-items: start;
+}
+
+
+.Dust.caseExpression {
+  display: inline-grid;
+  grid-template-columns: auto auto auto auto;
+  align-items: center;
+  justify-items: start;
+}

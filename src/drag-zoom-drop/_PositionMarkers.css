@@ -6,12 +6,20 @@
   left: var(--left-percent);
   top: var(--top-percent);
   transform: translateX(-50%) translateY(-50%);
+  /* TODO use individual css transform property "translate:" */
 }
 
 .Dust.circle.positionMarker.pointer {
   background-color: rgba(100, 100, 255, 0.6);
+  /* cursor: move; */
 }
 
 .Dust.circle.positionMarker.focus {
   background-color: rgba(100, 100, 255, 0.2);
+  text-align: center;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  cursor: none; /* crosshair works pretty well too */
+  z-index: 1;
 }

@@ -16,7 +16,7 @@ import {
 
 // TODO consider switching to different units like mm instead of px
 export interface PhysicsElement {
-  diameter: number; // pixels
+  readonly diameter: number; // pixels
   center: Readonly<Vector2D>; // pixels
   velocity: Readonly<Vector2D>; // pixels/millis.
   readonly force: Vector2D; // characters * pixels/(millis^2). Mutable since it changes the most often per frame
@@ -46,7 +46,9 @@ export function addForceAlong(
   element.force[Y] += forceVector[Y];
 }
 
-// positive force => attract, negative force => repel
+/**
+ * positive force => repel, negative force => attract
+ */
 export function addForceBetween(
   first: Readonly<PhysicsElement>,
   second: Readonly<PhysicsElement>,
@@ -60,30 +62,6 @@ export function addForceBetween(
 
   second.force[X] -= forceVector[X];
   second.force[Y] -= forceVector[Y];
-}
-
-function newVelocityInDimension(
-  element: Readonly<PhysicsElement>,
-  dimension: Vector2DIndex,
-  constants: PhysicsConstants,
-  deltaMillis: number,
-): number {
-  assert(isVectorFinite(element.velocity), element.velocity);
-  assert(isVectorFinite(element.force), element.force);
-  assert(isVectorFinite(element.center), element.center);
-
-  // force: pixels*mass/millis^2
-  // accelleration: pixels/millis^2
-  const accelleration = element.force[dimension] / element.mass; // (F = ma) => (a = F / m)
-
-  assert(isFinite(accelleration));
-  // velocity: pixels/millis
-  const newVelocity =
-    (element.velocity[dimension] + accelleration * deltaMillis) *
-    constants.dragMultiplier ** deltaMillis;
-
-  assert(isFinite(newVelocity));
-  return newVelocity;
 }
 
 export function updateVelocityAndPosition(
@@ -109,6 +87,30 @@ export function updateVelocityAndPosition(
     element.center[X] + element.velocity[X] * deltaMillis,
     element.center[Y] + element.velocity[Y] * deltaMillis,
   ];
+}
+
+function newVelocityInDimension(
+  element: Readonly<PhysicsElement>,
+  dimension: Vector2DIndex,
+  constants: PhysicsConstants,
+  deltaMillis: number,
+): number {
+  assert(isVectorFinite(element.velocity), element.velocity);
+  assert(isVectorFinite(element.force), element.force);
+  assert(isVectorFinite(element.center), element.center);
+
+  // force: pixels*mass/millis^2
+  // accelleration: pixels/millis^2
+  const accelleration = element.force[dimension] / element.mass; // (F = ma) => (a = F / m)
+
+  assert(isFinite(accelleration));
+  // velocity: pixels/millis
+  const newVelocity =
+    (element.velocity[dimension] + accelleration * deltaMillis) *
+    constants.dragMultiplier ** deltaMillis;
+
+  assert(isFinite(newVelocity));
+  return newVelocity;
 }
 
 export namespace Springs {

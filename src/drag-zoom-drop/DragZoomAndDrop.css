@@ -1,0 +1,23 @@
+/* Position must be absolute or relative */
+.Dust.DragZoomAndDrop {
+  --center-x: 0px;
+  --center-y: 0px;
+  --scale: 1.0;
+  /* TODO use individual translate: and scale: properties */
+  transform: translate(var(--center-x), var(--center-y)) scale(var(--scale));
+  cursor: move;
+  touch-action: none;
+}
+
+.Dust.DragZoomAndDrop.DragZoomAndDropActive {
+  background-color: rgba(0,0,0,0.05);
+}
+
+.Dust.DragZoomAndDrop.centeredWithinParent {
+  position: absolute;
+  /* TODO use individual translate: and scale: properties */
+  transform: 
+    translateX(-50%) translateY(-50%) /* from centeredWithinParent */
+    translate(var(--center-x), var(--center-y)) /* from DragZoomAndDrop */
+    scale(var(--scale)); /* from DragZoomAndDrop */
+}

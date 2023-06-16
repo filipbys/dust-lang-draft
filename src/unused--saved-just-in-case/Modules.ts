@@ -11,12 +11,6 @@ import { getDirectPhysicsElementChildren } from "./HTMLPhysicsSimulationComponen
 //      - drag and drop
 //      - pinning
 
-const PHYSICS_CONSTANTS = {
-  maxVelocity: 2,
-  dragMultiplier: 0.995,
-  frictionCoefficient: 0.01,
-} as const;
-
 /*
 function makeRandomPhysicsElement(
   id: number | string,

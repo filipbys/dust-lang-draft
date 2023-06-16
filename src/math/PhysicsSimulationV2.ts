@@ -14,31 +14,24 @@ import { Vector2D, X, Y } from "./Vectors";
 export type PhysicsSimulationElementState =
   | "free" // Can be pushed around by physics forces
   | "pinned"; // Can't be affected by physics forces because it's either being dragged or fixed in a different HTML/CSS layout.
-// {
-//   position:
-//     | "pinned" // Can't be pushed around or dragged (but may be zoomed)
-//     | "free" // Can be pushed around by physics forces or dragged by the user
-//     | "focused" // TODO implement this: like "free" in that it can be dragged by the user, but it can't be pushed around by other elements because it either has focus or is hovered
-//     | "dragging"; // Is currently being dragged
-//   scale:
-//     | "fixed" // Is not currently changing
-//     | "pressed" // Ready to start zooming (e.g. position is pinned and the user has a single pointer down.)
-//     | "zooming"; // Is currently being changed by the user (e.g. with pinch gestures)
-// };
-// | "free" // Can be dragged and zoomed
-// | "pinned" // Can't be dragged, but may be zoomed
-// | "pressed" // Same as "pinned", but when the user is pressing/clicking on the element
-// | "zooming" // Is currently being zoomed
-// | "dragging" // Is currently being dragged
 
 export interface PhysicsSimulationElement extends PhysicsElement {
   state: PhysicsSimulationElementState;
-  simulationFrameCallback?(): void;
 }
 
-export type PhysicsSimulationProps = Readonly<{
+export interface PhysicsSimulationElementContainer<
+  Elements extends readonly PhysicsSimulationElement[],
+> {
+  getPhysicsElements(): Elements;
+  updateForces(elements: Elements): void;
+  updateContainer(elements: Elements): void;
+}
+
+export type PhysicsSimulationProps<
+  Elements extends readonly PhysicsSimulationElement[],
+> = Readonly<{
   physicsConstants: PhysicsConstants;
-  getActiveElements(): Iterable<PhysicsSimulationElement>;
+  getActiveContainers(): Iterable<PhysicsSimulationElementContainer<Elements>>;
   maxStillFramesBeforeAutoPause?: number;
   onAutoPause(): void;
 }>;
@@ -50,12 +43,14 @@ export type PhysicsSimulation = {
   runOneStep(deltaMillis?: number): void;
 };
 
-export function createSimulation({
+export function createSimulation<
+  Elements extends readonly PhysicsSimulationElement[],
+>({
   physicsConstants,
-  getActiveElements,
+  getActiveContainers,
   maxStillFramesBeforeAutoPause = 30, // TODO consider refactoring this to milliseconds
   onAutoPause,
-}: PhysicsSimulationProps): PhysicsSimulation {
+}: PhysicsSimulationProps<Elements>): PhysicsSimulation {
   const averageEnergy = new RollingAverage(maxStillFramesBeforeAutoPause);
 
   let isPlaying = false;
@@ -102,22 +97,28 @@ export function createSimulation({
 
   // TODO still need to figure out how to batch(()=>{this})
   function runOneStep(deltaMillis: number = FIRST_FRAME_DELTA_MILLIS) {
-    const elements = getActiveElements();
-    for (const element of elements) {
-      element.force[X] = 0;
-      element.force[Y] = 0;
-    }
-    for (const element of elements) {
-      element.simulationFrameCallback?.();
+    let totalEnergy = 0;
+
+    for (const container of getActiveContainers()) {
+      const elements = container.getPhysicsElements();
+
+      for (const element of elements) {
+        element.force[X] = 0;
+        element.force[Y] = 0;
+      }
+
+      container.updateForces(elements);
+
+      for (const element of elements) {
+        if (element.state === "free") {
+          updateVelocityAndPosition(element, physicsConstants, deltaMillis);
+        }
+        totalEnergy += kineticEnergy(element);
+      }
+
+      container.updateContainer(elements);
     }
 
-    let totalEnergy = 0;
-    for (const element of elements) {
-      if (element.state === "free") {
-        updateVelocityAndPosition(element, physicsConstants, deltaMillis);
-      }
-      totalEnergy += kineticEnergy(element);
-    }
     averageEnergy.add(totalEnergy);
     // TODO handle the case where the average energy doesn't go down and request a bug report.
     if (averageEnergy.isSaturated && averageEnergy.average() === 0) {

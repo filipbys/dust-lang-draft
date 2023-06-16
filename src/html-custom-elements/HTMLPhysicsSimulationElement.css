@@ -2,7 +2,7 @@
 dust-physics-simulation-element {
   display: inline-block;
   outline: 4px solid rgba(0, 0, 0, 0.5);
-  touch-action: none;
+  /* touch-action: none; */
   box-sizing: border-box;
 }
 
@@ -28,23 +28,6 @@ dust-physics-simulation-element > .circle:first-child {
 /* TODO figure out why we need absolute for identifiers but relative for everything else (with absolute, divs shrink and force their contents to overflow for some reason) */
 .centeredWithinParent.Dust.identifier {
   position: absolute;
-}
-
-/* TODO move these to a different file */
-/* Position must be absolute or relative */
-.transformable {
-  --center-x: 0px;
-  --center-y: 0px;
-  --scale: 1.0;
-  transform: translate(var(--center-x), var(--center-y)) scale(var(--scale));
-}
-
-.transformable.centeredWithinParent {
-  position: absolute;
-  transform: 
-    translateX(-50%) translateY(-50%) /* from centeredWithinParent */
-    translate(var(--center-x), var(--center-y)) /* from transformable */
-    scale(var(--scale)); /* from transformable */
 }
 
 .circle {

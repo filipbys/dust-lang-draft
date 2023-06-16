@@ -1,47 +1,55 @@
-import { DynamicListeners } from "./_Types";
+import { ACTIVE_CLASS_NAME } from "./_Constants";
+import { addOrRemoveEventListener } from "./_EventListeners";
+import { DynamicListeners, SupportedElement } from "./_Types";
 
 export function startDynamicListeners(
-  htmlElement: HTMLElement,
+  element: SupportedElement,
   listeners: DynamicListeners,
   event: PointerEvent,
 ) {
-  htmlElement.setPointerCapture(event.pointerId);
-
-  // TODO add the move listener to the document instead of the element: any pointer move might affect this element's position (e.g. if moving an ancestor) so every dragging element needs to listen for it.
-  document.addEventListener("pointermove", listeners.onPointerMove);
-  htmlElement.addEventListener("pointerup", listeners.onPointerUpOrCancel);
-  htmlElement.addEventListener("pointercancel", listeners.onPointerUpOrCancel);
-  forEachScrollableElementOrAncestor(htmlElement, (scrollable) =>
-    scrollable.addEventListener("scroll", listeners.onAncestorElementMoved),
-  );
+  element.classList.add(ACTIVE_CLASS_NAME);
+  element.setPointerCapture(event.pointerId);
+  addOrRemoveListeners("add", element, listeners);
 }
 
 export function stopDynamicListeners(
-  htmlElement: HTMLElement,
+  element: SupportedElement,
   listeners: DynamicListeners,
   event: PointerEvent,
 ) {
-  htmlElement.releasePointerCapture(event.pointerId);
+  element.classList.remove(ACTIVE_CLASS_NAME);
+  element.releasePointerCapture(event.pointerId);
+  addOrRemoveListeners("remove", element, listeners);
+}
 
-  document.removeEventListener("pointermove", listeners.onPointerMove);
-  htmlElement.removeEventListener("pointerup", listeners.onPointerUpOrCancel);
-  htmlElement.removeEventListener(
-    "pointercancel",
-    listeners.onPointerUpOrCancel,
-  );
-  forEachScrollableElementOrAncestor(htmlElement, (scrollable) =>
-    scrollable.removeEventListener("scroll", listeners.onAncestorElementMoved),
+function addOrRemoveListeners(
+  op: "add" | "remove",
+  element: SupportedElement,
+  listeners: DynamicListeners,
+) {
+  addOrRemoveEventListener(op, element, "pointermove", listeners.onPointerMove);
+  addOrRemoveEventListener(op, element, "pointerup", listeners.onPointerUp);
+  addOrRemoveEventListener(op, element, "pointercancel", listeners.onPointerUp);
+  listeners.scrollEventTargets.forEach((scrollable) =>
+    addOrRemoveEventListener(
+      op,
+      scrollable,
+      "scroll",
+      listeners.onElementOrAncestorScrolled,
+      true,
+    ),
   );
 }
 
-function forEachScrollableElementOrAncestor(
+export function getAllRelevantScrollEventTargets(
   element: Element,
-  callback: (scrollable: Element | Document) => void,
-) {
-  let scrollable: Element | null | undefined = element.closest(".scrollable");
+): (HTMLElement | Document)[] {
+  const targets: (HTMLElement | Document)[] = [document];
+  let scrollable: HTMLElement | null | undefined =
+    element.closest<HTMLElement>(".scrollable");
   while (scrollable) {
-    callback(scrollable);
+    targets.push(scrollable);
     scrollable = scrollable.parentElement?.closest(".scrollable");
   }
-  callback(document);
+  return targets;
 }

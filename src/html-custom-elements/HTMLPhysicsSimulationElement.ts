@@ -17,10 +17,14 @@ import { assert, raise } from "../development/Errors";
 import { safeCast } from "../type-utils/DynamicTypeChecks";
 import { filterByType } from "../data-structures/Arrays";
 import { makeDraggableAndZoomable } from "../drag-zoom-drop/DragZoomAndDropV2";
+import { setCssCenter, setCssDiameter, setCssScale } from "./CSSHelpers";
+import { DragZoomAndDropProperties } from "../drag-zoom-drop/_Types";
 
+// TODO! use the Symbol+class-name approach from drag-zoom-drop instead of inheritance
+// - try to use attributes for anything user-visible, and then the physics-simulation can use an attribute mutationobserver to play the simulation
 export class HTMLPhysicsSimulationElement
   extends HTMLElement
-  implements Circle, PhysicsSimulationElement
+  implements Circle, PhysicsSimulationElement, DragZoomAndDropProperties
 {
   static readonly TAG = "dust-physics-simulation-element";
 
@@ -66,7 +70,6 @@ export class HTMLPhysicsSimulationElement
 
   get wrappedElement(): HTMLElement {
     // TODO better error handling
-    // TODO clean this up
     return safeCast(this.firstElementChild, HTMLElement);
   }
 
@@ -78,18 +81,8 @@ export class HTMLPhysicsSimulationElement
     assert(isVectorFinite(newCenter), newCenter, this);
     this.#center = newCenter;
     if (!vectorsEqual(this.#previousCssTranslate, newCenter)) {
-      if (distanceBetween(this.#previousCssTranslate, newCenter) >= 1000) {
-        console.trace(
-          "Element moved suspiciously fast", // TODO resolve and remove this: it can happen when dragging while zoomed out
-          this.#previousCssTranslate,
-          newCenter,
-          this,
-        );
-      }
       this.#previousCssTranslate = newCenter;
-      // TODO extract this kind of thing into a helper module so we can share it
-      this.style.setProperty("--center-x", newCenter[X] + "px");
-      this.style.setProperty("--center-y", newCenter[Y] + "px");
+      setCssCenter(this, newCenter);
       this.playPhysicsSimulation?.();
     }
   }
@@ -116,7 +109,7 @@ export class HTMLPhysicsSimulationElement
   #setCssDiameter(newDiameter: number) {
     if (this.#previousCssDiameter !== newDiameter) {
       this.#previousCssDiameter = newDiameter;
-      this.style.setProperty("--diameter", newDiameter + "px");
+      setCssDiameter(this, newDiameter);
       this.playPhysicsSimulation?.();
     }
   }
@@ -132,8 +125,7 @@ export class HTMLPhysicsSimulationElement
     }
     if (newScale !== this.#localScale) {
       this.#localScale = newScale;
-      // TODO update CSS to match
-      this.wrappedElement.style.setProperty("--scale", newScale.toString());
+      setCssScale(this.wrappedElement, newScale);
       this.#setCssDiameter(this.#offsetDiameter * newScale);
     }
   }

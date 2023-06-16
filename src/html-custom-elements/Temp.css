@@ -1,0 +1,11 @@
+.scaledCircle {
+  --diameter: 100px;
+  --localScale: 1.0;
+  --center-x: 0;
+  --center-y: 0;
+
+  --scaled-diameter: calc(var(--diameter) * var(--localScale));
+
+  width: var(--scaled-diameter);
+  height: var(--scaled-diameter);
+}

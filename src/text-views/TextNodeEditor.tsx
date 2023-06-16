@@ -1,5 +1,16 @@
-import { For, Match, Show, Switch, createSignal } from "solid-js";
+import {
+  For,
+  Match,
+  Show,
+  Switch,
+  createSignal,
+  mergeProps,
+  onMount,
+} from "solid-js";
 
+import { makeDraggableAndZoomable } from "../drag-zoom-drop/DragZoomAndDropV2";
+import { setCssCenter } from "../html-custom-elements/CSSHelpers";
+import { Vector2D } from "../math/Vectors";
 import {
   TextGroup,
   TextLeaf,
@@ -10,13 +21,13 @@ import {
   isNotBlank,
   toUTF8,
 } from "../text/TextTree";
+import { getID } from "./Identifiers";
+import { TextGroupView, TextLeafView } from "./TextNodeView";
 import {
   TextGroupMacro,
-  TextNodeEditorProps,
   TextNodeEditorDisplayType,
+  TextNodeEditorProps,
 } from "./TextViewTypes";
-import { TextGroupView, TextLeafView } from "./TextNodeView";
-import { getID } from "./Identifiers";
 
 export function TextNodeEditor(props: TextNodeEditorProps<TextNode>) {
   function shouldShow(leaf: TextLeaf): boolean {
@@ -41,7 +52,7 @@ export function TextNodeEditor(props: TextNodeEditorProps<TextNode>) {
 
 function TextGroupEditor(props: TextNodeEditorProps<TextGroup>) {
   const [displayType, setDisplayType] = createSignal<TextNodeEditorDisplayType>(
-    props.displayType,
+    props.displayType ?? "parsedText",
   );
 
   return (
@@ -99,12 +110,12 @@ function TextExpression(props: TextNodeEditorProps<TextGroup>) {
   return (
     <div
       id={getID(TextExpression, props)}
-      classList={{
+      classList={mergeProps(props.classList, {
         Dust: true,
         textGroup: true,
         textExpression: true,
         isSelected: props.isSelected(props.jsonPointer),
-      }}
+      })}
     >
       {toUTF8(props.node)}
     </div>
@@ -159,20 +170,53 @@ type ListProps = TextNodeEditorProps<TextGroup> &
 
 function List(props: ListProps) {
   // TODO check if {...props} would work here including onClick
+  let listRef: HTMLDivElement;
+  onMount(() => {
+    let localScale = 1.0;
+    let center: Readonly<Vector2D> = [0, 0];
+    // TODO should only be draggable if the node itself is selected (not its text).
+    // So basically we want to add a click listener that selects the element and only then makes it draggable.
+    // That way, once you start dragging a div, pointer events from other pointers will pass through its children (since they're not selected) and zooming will work as expected, whereas right now it's hard to two-finger zoom a div without accidentally dragging one of its children elements instead.
+    // makeDraggableAndZoomable(listRef, {
+    //   properties: {
+    //     get center() {
+    //       return center;
+    //     },
+    //     set center(value) {
+    //       setCssCenter(listRef, value);
+    //       center = value;
+    //     },
+    //     velocity: [0, 0],
+    //     state: "pinned",
+    //     get localScale() {
+    //       return localScale;
+    //     },
+    //     set localScale(value) {
+    //       if (localScale === value) {
+    //         return;
+    //       }
+    //       listRef.style.fontSize = `${value * 100}%`;
+    //       localScale = value;
+    //     },
+    //   },
+    // });
+  });
   return (
     <div
+      ref={listRef!}
       id={getID(List, props)}
-      classList={{
+      classList={mergeProps(props.classList, {
         Dust: true,
+        textNode: true,
         singleLine: props.node.singleLine,
         isSelected: props.isSelected(props.jsonPointer),
         [props.kind]: true,
         [props.kind === "functionCall" ? props.functionCallKind : ""]: true,
-      }}
+      })}
     >
       <For each={props.node.nodes}>
         {(node, index) => (
-          <Show when={isNotBlank(node)}>
+          <Show when={isNotBlank(node)} fallback={" "}>
             <TextNodeEditor
               {...props}
               jsonPointer={props.jsonPointer + "/nodes/" + index()}

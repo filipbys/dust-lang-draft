@@ -1,18 +1,43 @@
 import { Vector2D, X, Y } from "../math/Vectors";
 
-export function setCssCenter(element: HTMLElement, center: Readonly<Vector2D>) {
-  element.style.setProperty("--center-x", center[X] + "px");
-  element.style.setProperty("--center-y", center[Y] + "px");
+export function setCssPropertyIfChanged(
+  element: ElementCSSInlineStyle,
+  property: string,
+  value: string | null,
+) {
+  const style = element.style;
+  // Avoid triggering mutationobservers if nothing changed
+  if (style.getPropertyValue(property) !== value) {
+    style.setProperty(property, value);
+  }
 }
 
-export function setCssDiameter(element: HTMLElement, diameter: number) {
-  element.style.setProperty("--diameter", diameter + "px");
+export function setCssCenter(
+  element: ElementCSSInlineStyle,
+  center: Readonly<Vector2D>,
+) {
+  setCssPropertyIfChanged(element, "--center-x", center[X] + "px");
+  setCssPropertyIfChanged(element, "--center-y", center[Y] + "px");
+}
+
+export function setCssDiameter(
+  element: ElementCSSInlineStyle,
+  diameter: number,
+) {
+  setCssDiameterLiteral(element, diameter + "px");
+}
+
+export function setCssDiameterLiteral(
+  element: ElementCSSInlineStyle,
+  diameterLiteral: string,
+) {
+  setCssPropertyIfChanged(element, "--diameter", diameterLiteral);
 }
 
 export function setCssScale(
-  element: HTMLElement,
+  element: ElementCSSInlineStyle,
   scale: number,
   unit: "" | "%" = "", // TODO rename
 ) {
-  element.style.setProperty("--scale", scale + unit);
+  setCssPropertyIfChanged(element, "--scale", scale + unit);
 }

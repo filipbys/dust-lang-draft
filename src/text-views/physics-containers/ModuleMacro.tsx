@@ -1,16 +1,27 @@
 import { For, Match, Show, Switch, createMemo, onMount } from "solid-js";
-import { TextNodeEditorProps } from "./TextViewTypes";
-import { HTMLPhysicsSimulationElement } from "../html-custom-elements/HTMLPhysicsSimulationElement";
-import { BubbleWrapper } from "../views/BubbleWrapper";
-import { IntoHTMLPhysicsSimulationComponent } from "../views/HTMLPhysicsSimulationComponent";
-import { TextGroup, asLeaf, isGroup, isNotBlank } from "../text/TextTree";
-import { TextNodeEditor } from "./TextNodeEditor";
-import { PhysicsElement, Springs } from "../math/Physics";
-import { assert } from "../development/Errors";
-import { getID } from "./Identifiers";
+import { assert } from "../../development/Errors";
+import { HTMLPhysicsSimulationElement } from "../../html-custom-elements/HTMLPhysicsSimulationElement";
+import { PhysicsElement, Springs } from "../../math/Physics";
+import { TextGroup, asLeaf, isGroup, isNotBlank } from "../../text/TextTree";
+import { BubbleWrapper } from "../../views/BubbleWrapper";
+import { IntoHTMLPhysicsSimulationComponent } from "../../views/HTMLPhysicsSimulationComponent";
+import { getID } from "../Identifiers";
+import { TextNodeEditor } from "../TextNodeEditor";
+import { TextNodeEditorProps } from "../TextViewTypes";
 
+import { tryMove } from "../../math/PhysicsSimulation";
+import { X, Y, vectorsEqual } from "../../math/Vectors";
 import "./Modules.css";
 
+// TODO!!!!!!
+// Module elements can have links between each other (by name).
+// Links are drawn visually as transparent lines (which can be hidden if desired) and they also attract the elements together.
+// This can be either explicit via an optional third parameter in the TextGroup, or it can be automatic: the language can look up the names used by each element and draw a link to those names' definitions.
+// Automatic name-based links can be turned on/off but not individually severed by the user, whereas explicit user-defined links can be created and broken by the user:
+//  - Elements normally repel each other, but if pushed close enough together, a link is created between them that holds them together (they're still repelled so the link is like a taut string).
+//    - Links can also be created explicitly using a toolbar cursor mode.
+//  - These links have a maximum force they can withstand: dragging an element gently will pull linked elements with it, but dragging it more forcefully will break the link.
+//    - The user can also always explicitly select and delete user-defined links.
 export function ModuleMacro(props: TextNodeEditorProps<TextGroup>) {
   let moduleElement: HTMLPhysicsSimulationElement;
   // let moduleContents: HTMLDivElement;
@@ -22,12 +33,11 @@ export function ModuleMacro(props: TextNodeEditorProps<TextGroup>) {
 
   onMount(() => {
     console.log("moduleElement!!", moduleElement);
-    const isWithinPhysicsElement =
-      moduleElement.parentElement?.parentElement instanceof
-      HTMLPhysicsSimulationElement;
+    const isWithinTextNode =
+      moduleElement.parentElement?.matches(".Dust.textNode");
 
-    moduleElement.state = isWithinPhysicsElement ? "free" : "pinned";
-    moduleElement.centeredWithinParent = isWithinPhysicsElement;
+    moduleElement.state = !isWithinTextNode ? "free" : "pinned";
+    moduleElement.centeredWithinParent = !isWithinTextNode;
 
     moduleElement.offsetDiameter = 1500;
     moduleElement.playPhysicsSimulation = playSimulation;
@@ -107,9 +117,6 @@ export function ModuleMacro(props: TextNodeEditorProps<TextGroup>) {
           </Match>
         </Switch>
       </div>
-      <button onClick={() => updateDiameter(+20)}>grow</button>
-      <button onClick={() => updateDiameter(-20)}>shrink</button>
-      {/* TODO add a way to add and remove elements */}
 
       {
         (assert(asLeaf(nonBlankNodes()[0])!.text === "module", nonBlankNodes()),
@@ -148,6 +155,11 @@ function ModuleElementList(
 function updateModule(this: HTMLPhysicsSimulationElement) {
   // TODO return early if simulation is not playing locally.
 
+  // TODO:
+  // - if any two elements have the same exact center, separate them horizontally in a deterministic way.
+  // - gently repel elements that are >= X distance appart
+  // - gently attract elements that are < X distance appart
+
   const physicsElements = this.getDirectPhysicsElementChildren();
 
   // const smallestDiameter =
@@ -162,7 +174,7 @@ function updateModule(this: HTMLPhysicsSimulationElement) {
     diameter: this.offsetDiameter,
     center: [0, 0],
     velocity: [0, 0],
-    force: [0, 0], // TODO use the force at the end
+    force: [0, 0],
     mass: physicsElements.reduce((total, element) => total + element.mass, 0), // TODO! this.mass should be that already
   };
 
@@ -178,7 +190,7 @@ function updateForces(
 
   const collisionSpringConstant = 0.05; // 1/(millis^2): strongly repel colliding elements
 
-  const spreadSpringConstant = 0; // TODO 0.0005; // gently spread all elements away from all others
+  const spreadSpringConstant = 0.0005; // gently spread all elements away from all others
 
   const publicElementsToBorderSpringConstant = collisionSpringConstant / 2; // Strongly pull towards the module's border
   const privateElementsToCenterSpringConstant = collisionSpringConstant / 8; // Relatively strongly pull towards the center
@@ -186,6 +198,8 @@ function updateForces(
   let sumOfPublicElementGapsToBorder = 0;
   let sumOfPrivateElementGapsToBorder = 0;
 
+  // TODO connect adjacent elements with weak springs so they tend towards a ring.
+  // Update the order of the elements when the user drags an element and changes the order by checking which two elements of the same visibility are closest and ensuring that it is between those two elements in the list
   for (const element of physicsElements) {
     if (element.classList.contains("public")) {
       Springs.connectBorders(
@@ -224,18 +238,24 @@ function updateForces(
     const first = physicsElements[i];
     for (let j = i + 1; j < physicsElements.length; j++) {
       const second = physicsElements[j];
-      // TODO try a constant force rather than a spring
-      Springs.connectCenters(
-        first,
-        second,
-        spreadSpringConstant,
-        boundaryElement.diameter,
-      );
+      if (vectorsEqual(first.center, second.center)) {
+        tryMove(first, [first.center[X] - 1, first.center[Y]]);
+        tryMove(second, [second.center[X] + 1, second.center[Y]]);
+      }
       const gap = Springs.preventCollisions(
         first,
         second,
         collisionSpringConstant,
         idealGapBetweenElements,
+      );
+      // TODO try a constant force rather than a spring
+      Springs.connectCenters(
+        first,
+        second,
+        gap < idealGapBetweenElements * 2
+          ? -spreadSpringConstant
+          : spreadSpringConstant,
+        boundaryElement.diameter,
       );
       sumOfGapsBetweenElements += gap;
       if (gap < 0) {

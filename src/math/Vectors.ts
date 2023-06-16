@@ -78,7 +78,6 @@ export function vectorTimes(
   return [vector[X] * multiplier, vector[Y] * multiplier];
 }
 
-// TODO verify that this works
 export function scale(vector: Readonly<Vector2D>, newLength: number): Vector2D {
   const currentLength = vectorLength(vector);
   if (currentLength === 0) {

@@ -1,5 +1,4 @@
 import { Vector2D, X, Y } from "../math/Vectors";
-
 import "./_PositionMarkers.css";
 
 export function createPositionMarker(
@@ -20,4 +19,21 @@ export function setPositionMarkerOffset(
 ) {
   marker.style.setProperty("--left-percent", percentageOffset[X] + "%");
   marker.style.setProperty("--top-percent", percentageOffset[Y] + "%");
+}
+
+export function createFocusMarker(
+  percentageOffset: Readonly<Vector2D>,
+  scale: number,
+): HTMLElement {
+  const marker = createPositionMarker(
+    percentageOffset,
+    "6ch", // enough to fit 10000%
+    "focus",
+  );
+  setFocusMarkerScaleText(marker, scale);
+  return marker;
+}
+
+export function setFocusMarkerScaleText(marker: HTMLElement, scale: number) {
+  marker.textContent = (scale * 100).toFixed() + "%";
 }

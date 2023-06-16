@@ -27,6 +27,7 @@ import { getJSONPointer } from "../text-views/Identifiers";
 import { BINARY_OPERATORS } from "../text/DustExpressionParser";
 import { MACROS } from "../text-views/Macros";
 import { X, Y } from "../math/Vectors";
+import { PhysicsContainer } from "../text-views/physics-containers/PhysicsContainer";
 
 // TODO window should have a toolbar with undo/redo, zoom in/out, insert, set depth limit, etc buttons
 
@@ -236,6 +237,7 @@ export function Window(props: {
             +
           </button>
         </div>
+        {/* TODO add simulation stats like total CPU time spent simulating and %CPU/timeUnit, etc */}
         <button onClick={() => setSimulationPlaying(!simulationPlaying())}>
           {simulationPlaying() ? "pause" : "play"} simulation
         </button>
@@ -251,30 +253,189 @@ export function Window(props: {
         ref={initTextNodeEditorDiv}
         onPointerDown={onTextNodeEditorPointerDown}
       >
-        <div class="Dust windowContents" ref={windowContents!}>
+        {/* TODO should be able to unwrap the parent DIV */}
+        <PhysicsContainer id={props.id + ":windowContents"} shape="rectangle">
           <For each={props.roots}>
             {(root, index) => (
-              <IntoHTMLPhysicsSimulationComponent
-                playPhysicsSimulation={playSimulation}
-                extraClasses={{
-                  windowElement: true,
-                }}
-              >
-                <TextNodeEditor
-                  editorID={props.id + ":TextNodeEditor" + index()}
-                  jsonPointer="/"
-                  node={root}
-                  binaryOperators={new Set(BINARY_OPERATORS)}
-                  depthLimit={32}
-                  displayType="parsedText"
-                  macros={new Map(MACROS)}
-                  isSelected={isSelected}
-                  setSimulationPlaying={setSimulationPlaying}
-                />
-              </IntoHTMLPhysicsSimulationComponent>
+              <TextNodeEditor
+                editorID={props.id + ":TextNodeEditor" + index()}
+                jsonPointer="/"
+                node={root}
+                binaryOperators={new Set(BINARY_OPERATORS)}
+                depthLimit={32}
+                displayType="parsedText"
+                macros={new Map(MACROS)}
+                isSelected={isSelected}
+                setSimulationPlaying={setSimulationPlaying}
+              />
             )}
           </For>
-        </div>
+          <div class="Dust windowPointerToolbar">
+            {/* TODO! allow user to hide/show the toolbar, anchor it to one of the sides of the window, or have it follow the primary pointer around. It could even act like a PhysicsElement to make sure it doesn't hide the code? */}
+            <button
+              class="Dust windowPointerModifier"
+              onMouseDown={() => {
+                /* TODO indicator.pressed=true, detect long-press, etc. Do the same for the physics shift key. */
+              }}
+            >
+              shift
+            </button>
+            <div class="Dust windowPointerModifierIndicator"></div>
+            <button class="Dust windowPointerModifier">ctrl</button>
+            <button class="Dust windowPointerModifier">alt/option</button>
+
+            <label>
+              Various inputs with/without modifier keys
+              <ul>
+                <li>
+                  Clicking an item:
+                  <table>
+                    <thead>
+                      <th>Modifier key(s)</th>
+                      <th>Behavior</th>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>None</td>
+                        <td>
+                          if it wasn't selected, unselect the previous
+                          selection(s) and add select it. Otherwise, just remove
+                          the item from the selected set.
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Shift</td>
+                        <td>
+                          keep the previous selection(s) and add/remove the
+                          item, along with all the items between it and the most
+                          recently selected item, to/from the selected set.
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Ctrl</td>
+                        <td>
+                          keep the previous selection(s) and add/remove the item
+                          to/from the selected set.
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Alt/Option</td>
+                        <td>same as ctrl modifier (TBD).</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </li>
+                <li>
+                  Scrolling:
+                  <table>
+                    <thead>
+                      <th>Modifier key(s)</th>
+                      <th>Behavior</th>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>None</td>
+                        <td>
+                          {" "}
+                          native scrolling behavior (usually scrolls the closest
+                          scrollable element/document vertically, and many
+                          browsers overload horizontal scrolling gestures as if
+                          the user clicked back/next).
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Shift</td>
+                        <td>
+                          scroll, but lock to horizontal axis (this is the
+                          native behavior in many browsers too)
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Ctrl</td>
+                        <td>
+                          zoom selected items (or the hovered item if none are
+                          selected)
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Alt/Option</td>
+                        <td>
+                          rotate the selected items (or the hovered item if none
+                          are selected) around the center of all the
+                          selected/hovered elements
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </li>
+                <li>Dragging: allow dragging anywhere</li>
+                <li>
+                  When resizing elements: aspect ratio is unlocked, so shapes
+                  resize as little as possible to follow the pointer.
+                </li>
+                <li>
+                  left/right/up/down:
+                  <ul>
+                    <li>
+                      If cursors are present: move cursors one character
+                      left/right, and to the closest element up/down.
+                    </li>
+                    <li>
+                      Else if any items are selected: move selected items n
+                      distance left/right/up/down, where n=1cm by default.
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </label>
+
+            <label>
+              Contextual:
+              <ul>
+                <li>
+                  When dragging: TBD: add dragged-over items to the selection?
+                </li>
+                <li>
+                  When resizing: lock aspect ratio: no matter which edge/corner
+                  is dragged, the width-height ratio is kept the same.
+                </li>
+                <li>
+                  left/right/up/down:
+                  <ul>
+                    <li>
+                      If cursors are present: move cursors one character
+                      left/right, and to the closest element up/down.
+                    </li>
+                    <li>
+                      Else if any items are selected: move selected items n
+                      distance left/right/up/down, where n=1mm by default.
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </label>
+
+            <label>
+              Contextual:
+              <ul>
+                <li>When dragging: TBD: snap center to grid?</li>
+                <li>When resizing: TBD: snap width/height to grid?</li>
+              </ul>
+            </label>
+
+            <label>
+              Contextual:
+              <ul>
+                <li>When clicking an item: same as ctrl modifier (TBD).</li>
+                <li>When scrolling:</li>
+                <li>
+                  When resizing: allow rotation with the same pointer that is
+                  resizing the item(s)
+                </li>
+              </ul>
+            </label>
+          </div>
+        </PhysicsContainer>
       </div>
     </div>
   );

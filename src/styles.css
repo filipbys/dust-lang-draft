@@ -28,7 +28,8 @@
   align-items: stretch;
   justify-content: center;
   gap: 2px;
-  padding: 1px;
+  padding-block: 1px;
+  padding-inline: 4px;
 }
 
 /* TODO split into a separate file */
@@ -64,7 +65,7 @@
   background: rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   flex-shrink: 0;
-  gap: 1ch;
+  gap: calc(1ch - 4px);
 }
 
 
@@ -140,19 +141,24 @@
 
 .Dust.centered:not(.singleLine) > .Dust.scopeOperator {
   transform: rotate(90deg);
+  /* TODO use rotate: property */
+}
+
+.Dust {
+  cursor: auto;
 }
 
 .Dust.identifier {
-  /* border-radius: 4px; */
   flex-shrink: 0;
-  /* padding-inline: 0.5ch;
-  padding-block: 0.25ch; */
+  cursor: auto;
+  border-radius: 4px;
+  padding-inline: 4px;
 }
 
 .Dust.functionCall.binary > :nth-child(even),
 .Dust.functionCall.prefix > :first-child {
   font-weight: bold;
-  font-size: 110%;
+  font-size: 120%;
 }
 
 .Dust.functionCall:hover:not(:focus),

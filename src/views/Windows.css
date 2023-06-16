@@ -11,6 +11,8 @@
 /* TODO move to different file */
 .scrollable {
   overflow: auto;
+  touch-action: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .Dust.windowContentArea {
@@ -40,5 +42,5 @@
   text-align: center;
   align-items: center;
   justify-content: center;
-  touch-action: none;
+  /* touch-action: none; */
 }

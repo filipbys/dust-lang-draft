@@ -9,14 +9,17 @@ export interface Identifiers {
 export interface TextNodeProps<N extends TextNode> extends Identifiers {
   node: N;
   binaryOperators?: Set<string>;
+  classList?: {
+    [k: string]: boolean | undefined;
+  };
   depthLimit: number;
   isSelected: (id: string) => boolean;
 }
 
 export interface TextNodeEditorProps<N extends TextNode>
   extends TextNodeProps<N> {
-  displayType: TextNodeEditorDisplayType;
-  setSimulationPlaying(playing: boolean): void;
+  displayType?: TextNodeEditorDisplayType;
+  setSimulationPlaying?(playing: boolean): void;
   macros?: Map<string, TextGroupMacro>;
 }
 

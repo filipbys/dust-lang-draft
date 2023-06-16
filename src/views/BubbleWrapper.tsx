@@ -1,14 +1,8 @@
-import {
-  Component,
-  ComponentProps,
-  ParentProps,
-  onCleanup,
-  onMount,
-} from "solid-js";
+import { ComponentProps, ParentProps, onCleanup, onMount } from "solid-js";
 import { HTMLPhysicsSimulationElement } from "../html-custom-elements/HTMLPhysicsSimulationElement";
+import { offsetDiameter } from "../math/Geometry";
 import { observeChildrenSizes } from "../observers/ChildSizeMutationObserver";
 import { safeCast } from "../type-utils/DynamicTypeChecks";
-import { offsetDiameter } from "../math/Geometry";
 
 export function BubbleWrapper(
   props: ComponentProps<"element"> &
@@ -55,6 +49,7 @@ function updateBubbleWrapper(wrapper: HTMLPhysicsSimulationElement) {
   //   throw `Wrapper physics element must have exactly 1 child, got ${wrapper.childElementCount}`;
   // }
   const wrappedElement = safeCast(wrapper.firstElementChild!, HTMLElement);
+  wrappedElement.classList.add("centeredWithinParent"); // TODO fix this hack
 
   wrapper.offsetDiameter = Math.max(1, offsetDiameter(wrappedElement));
 
